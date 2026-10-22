@@ -229,32 +229,25 @@ defmodule Qlarius.YouData.TagQuality do
     end
   end
 
-  defp fewer_text(min, max) when is_integer(min) and is_integer(max) do
-    "#{min}–#{max} works best. Keep more and confirm only if every choice is truly accurate."
-  end
-
-  defp fewer_text(_min, _max) do
-    "For best results, consider selecting fewer tag values."
-  end
-
-  defp too_many_text(min, max, _hard) when is_integer(min) and is_integer(max) do
-    "#{min}–#{max} works best. Keep these and confirm only if every choice is truly accurate."
-  end
+  defp fewer_text(_min, max) when is_integer(max), do: count_limit_text(:yellow, max)
 
   defp too_many_text(_min, max, hard) do
-    range =
-      cond do
-        max != nil ->
-          " Try to stay at #{max} or fewer tag values."
+    limit = if is_integer(max), do: max, else: hard
+    count_limit_text(:red, limit)
+  end
 
-        hard != nil ->
-          " Try to stay at #{hard} or fewer tag values."
+  defp count_limit_text(:yellow, limit) do
+    "Some marketers might have low confidence in this data if they think there are too many tags. " <>
+      count_limit_advice(limit)
+  end
 
-        true ->
-          ""
-      end
+  defp count_limit_text(:red, limit) do
+    "Most marketers will be skeptical of this many tag values as truthful. " <>
+      count_limit_advice(limit)
+  end
 
-    "Too many selected. Advertisers will likely suspect and exclude." <> range
+  defp count_limit_advice(limit) when is_integer(limit) do
+    "Consider prioritizing to #{limit} or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
   end
 
   defp exclusive_mix_reason(rows) do

@@ -34,10 +34,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
 
     assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
-             "2–3 works best. Keep more and confirm only if every choice is truly accurate."
+             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 3 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     assert reason(tagged(parent, children), :count).text ==
-             "2–3 works best. Keep these and confirm only if every choice is truly accurate."
+             "Most marketers will be skeptical of this many tag values as truthful. Consider prioritizing to 3 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     skipped = tagged(parent, [skip])
     assert status(skipped) == :skipped
@@ -58,7 +58,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     max_children = [child!(maximum, "A"), child!(maximum, "B")]
 
     assert reason(tagged(maximum, max_children), :count).text ==
-             "For best results, consider selecting fewer tag values."
+             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     hard = parent!(category, "Hard", %{hard_max_tags: 1})
     hard_one = child!(hard, "Only")
@@ -66,7 +66,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert status(tagged(hard, [hard_one])) == :green
 
     assert reason(tagged(hard, [hard_one, hard_two]), :count).text ==
-             "Too many selected. Advertisers will likely suspect and exclude. Try to stay at 1 or fewer tag values."
+             "Most marketers will be skeptical of this many tag values as truthful. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
   end
 
   test "freshness bands, including a null expiry and a null unripe threshold", %{
@@ -328,7 +328,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert confirmed.status == :green
 
     assert reason(confirmed, :confirmed).text ==
-             "For best results, consider selecting fewer tag values."
+             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     assert reason(confirmed, :confirmed).withdraw_kind == "count"
     refute reason(confirmed, :count)

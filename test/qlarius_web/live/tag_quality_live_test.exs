@@ -306,7 +306,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
 
     assert html =~ "Review tag"
     assert html =~ "Weight goals are mutually exclusive"
-    assert html =~ "1–4 works best."
+    assert html =~ "Consider prioritizing to 4 or fewer tag values."
 
     doc = Floki.parse_document!(html)
     assert Floki.find(doc, ".tag-review-conflicts .trait-tag") == []
