@@ -176,6 +176,7 @@ defmodule QlariusWeb.MeFileTagExportPanel do
   defp accept_code(%{phase: :code_sent, challenge: :twilio}, code, phone) do
     case Twilio.verify_code(phone, code) do
       {:ok, :verified} -> :ok
+      {:error, :expired} -> :expired
       _ -> :invalid
     end
   end
