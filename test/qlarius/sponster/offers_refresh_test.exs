@@ -218,31 +218,27 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       refute Enum.any?(reload!(offers), & &1.is_current)
     end
 
-    test "a proxy me file uses the proxy cap and ignores events when the window is zero days" do
+    test "a proxy me file activates every due offer, even after recent throttled ads" do
       set_user_throttle!(count: 2, days: 7)
-      Qlarius.System.set_global_variable("PROXY_THROTTLE_AD_COUNT", "4")
-      Qlarius.System.set_global_variable("PROXY_THROTTLE_DAYS", "0")
 
       ctx = build_three_tap_context!([])
       attach_proxy!(ctx.me_file)
       insert_throttled_events!(ctx, 2)
-      offers = insert_due_throttled_offers!(ctx, 4)
+      offers = insert_due_throttled_offers!(ctx, 6)
 
-      assert {:ok, %{activated: 4}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+      assert {:ok, %{activated: 6}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
 
       reloaded = reload!(offers)
       assert Enum.all?(reloaded, & &1.is_current)
       assert Enum.all?(reloaded, & &1.is_throttled)
     end
 
-    test "the activation job uses the proxy cap" do
+    test "the activation job does not cap a proxy me file" do
       set_user_throttle!(count: 2, days: 7)
-      Qlarius.System.set_global_variable("PROXY_THROTTLE_AD_COUNT", "4")
-      Qlarius.System.set_global_variable("PROXY_THROTTLE_DAYS", "0")
 
       ctx = build_three_tap_context!([])
       attach_proxy!(ctx.me_file)
-      offers = insert_due_throttled_offers!(ctx, 4)
+      offers = insert_due_throttled_offers!(ctx, 6)
 
       assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
       assert Enum.all?(reload!(offers), & &1.is_current)

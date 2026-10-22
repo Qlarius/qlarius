@@ -125,6 +125,7 @@ defmodule Qlarius.AdminApi.PtpCoverage do
         join: c in Campaign,
         on: c.id == o.campaign_id,
         where: c.is_ptp == true and o.is_current == false and o.is_throttled == true,
+        where: o.me_file_id not in subquery(Qlarius.Sponster.Offers.proxy_me_file_query()),
         distinct: true,
         select: o.me_file_id
       )

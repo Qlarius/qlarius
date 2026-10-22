@@ -330,10 +330,8 @@ defmodule Qlarius.Sponster.Offers do
 
   def throttle_settings(me_file_id) when is_integer(me_file_id) do
     if proxy_me_file?(me_file_id) do
-      %{
-        limit: System.get_global_variable_int("PROXY_THROTTLE_AD_COUNT", 25),
-        days: System.get_global_variable_int("PROXY_THROTTLE_DAYS", 0)
-      }
+      # A proxy MeFile belongs to a true user's persona. It is not capped.
+      %{limit: nil, days: 0}
     else
       %{
         limit: System.get_global_variable_int("THROTTLE_AD_COUNT", 3),
@@ -344,6 +342,15 @@ defmodule Qlarius.Sponster.Offers do
 
   def throttle_budget(me_file_id, now) when is_integer(me_file_id) do
     %{limit: limit, days: days} = throttle_settings(me_file_id)
+
+    if is_nil(limit) do
+      %{limit: nil, days: 0, current: 0, completed: 0, remaining: nil}
+    else
+      throttle_budget(me_file_id, now, limit, days)
+    end
+  end
+
+  defp throttle_budget(me_file_id, now, limit, days) do
     current = count_current_throttled_offers(me_file_id)
 
     completed =
@@ -363,12 +370,17 @@ defmodule Qlarius.Sponster.Offers do
     }
   end
 
-  defp proxy_me_file?(me_file_id) do
+  def proxy_me_file_query do
     from(up in UserProxy,
       join: u in assoc(up, :proxy_user),
       join: mf in assoc(u, :me_file),
-      where: mf.id == ^me_file_id
+      select: mf.id
     )
+  end
+
+  defp proxy_me_file?(me_file_id) do
+    proxy_me_file_query()
+    |> where([_up, _u, mf], mf.id == ^me_file_id)
     |> Repo.exists?()
   end
 
@@ -405,7 +417,11 @@ defmodule Qlarius.Sponster.Offers do
       )
       |> Repo.all()
 
-    offer_ids = Enum.take(pending, throttle_budget(me_file_id, now).remaining)
+    offer_ids =
+      case throttle_budget(me_file_id, now).remaining do
+        nil -> pending
+        remaining -> Enum.take(pending, remaining)
+      end
 
     if offer_ids == [] do
       0

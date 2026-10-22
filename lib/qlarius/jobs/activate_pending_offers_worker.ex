@@ -134,8 +134,14 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
         remaining_slots = budget.remaining
         throttle_limit = budget.limit
 
-        if remaining_slots > 0 do
-          offers_to_activate = Enum.take(offers, remaining_slots)
+        offers_to_activate =
+          case remaining_slots do
+            nil -> offers
+            n when is_integer(n) and n > 0 -> Enum.take(offers, n)
+            _ -> []
+          end
+
+        if offers_to_activate != [] do
           offer_ids = Enum.map(offers_to_activate, & &1.id)
           campaign_ids = Enum.map(offers_to_activate, & &1.campaign_id) |> Enum.uniq()
 
