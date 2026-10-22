@@ -10,7 +10,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   import QlariusWeb.OfferHTML
 
   alias Qlarius.Sponster.Ads.ThreeTap
-  alias Qlarius.YouData.StrongStart
   alias QlariusWeb.WalletBalanceSync
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
@@ -111,9 +110,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
         socket.assigns.user_ip,
         socket.assigns.host_uri.host
       )
-
-    me_file = socket.assigns.current_scope.user.me_file
-    StrongStart.mark_step_complete(me_file, "first_ad_interacted")
 
     # Banner collect runs in a LiveComponent on the parent LV; push an immediate
     # refresh so the announcer footer updates even if me_file PubSub was missed.

@@ -7,14 +7,14 @@ defmodule QlariusWeb.HomeLive do
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   alias QlariusWeb.Layouts
-  alias QlariusWeb.Components.StrongStartComponent
   alias QlariusWeb.Components.LedgerEntriesList
+  alias QlariusWeb.Components.NudgeStrip
   alias Qlarius.ContentSharing
+  alias Qlarius.Nudges
   alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
-  alias Qlarius.YouData.StrongStart
   alias Qlarius.YouData.TagQuality
 
   def mount(_params, session, socket) do
@@ -27,9 +27,7 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
       |> init_pwa_assigns(session)
-      |> assign(:show_strong_start, false)
-      |> assign(:strong_start_progress, nil)
-      |> assign(:starter_survey_id, nil)
+      |> assign(:nudges, [])
       |> assign(:home_extras_loading, true)
       |> assign(:active_tiqits_count, nil)
       |> assign(:fleeting_tiqits_count, nil)
@@ -59,7 +57,7 @@ defmodule QlariusWeb.HomeLive do
     {:noreply,
      socket
      |> assign(:home_extras_loading, false)
-     |> assign(:show_strong_start, false)
+     |> assign(:nudges, [])
      |> assign(:active_tiqits_count, 0)
      |> assign(:fleeting_tiqits_count, 0)
      |> assign(:recent_entries, [])
@@ -75,74 +73,42 @@ defmodule QlariusWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_event("skip_strong_start", _params, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
+  def handle_event("nudge_tap", %{"key" => key}, socket) do
+    case find_nudge(socket, key) do
+      nil ->
+        {:noreply, socket}
 
-    case StrongStart.skip_forever(me_file) do
-      {:ok, _updated_me_file} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Strong Start checklist hidden")
-         |> assign(:show_strong_start, false)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update preferences")}
+      nudge ->
+        Nudges.tap(socket.assigns.current_scope.user.me_file.id, nudge)
+        {:noreply, push_navigate(socket, to: nudge.href)}
     end
   end
 
-  def handle_event("remind_later", _params, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
+  def handle_event("nudge_dismiss", %{"key" => key}, socket) do
+    case find_nudge(socket, key) do
+      nil ->
+        {:noreply, socket}
 
-    case StrongStart.remind_later(me_file) do
-      {:ok, _updated_me_file} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "We'll remind you later")
-         |> assign(:show_strong_start, false)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update preferences")}
+      nudge ->
+        Nudges.dismiss(socket.assigns.current_scope.user.me_file.id, nudge)
+        {:noreply, assign(socket, :nudges, Enum.reject(socket.assigns.nudges, &(&1.key == key)))}
     end
   end
 
-  def handle_event("mark_notifications_done", _params, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-
-    case StrongStart.mark_step_complete(me_file, "notifications_configured") do
-      {:ok, updated_me_file} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Notifications step marked complete")
-         |> assign_strong_start(updated_me_file)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update progress")}
-    end
-  end
-
-  def handle_event("mark_referral_done", _params, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-
-    case StrongStart.mark_step_complete(me_file, "referral_viewed") do
-      {:ok, updated_me_file} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Referral step marked complete")
-         |> assign_strong_start(updated_me_file)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update progress")}
-    end
-  end
+  defp find_nudge(socket, key), do: Enum.find(socket.assigns.nudges, &(&1.key == key))
 
   defp load_home_extras(me_file, scope, trait_count) do
-    Map.merge(load_strong_start(me_file, trait_count), %{
+    nudges = Nudges.for_home(me_file, trait_count)
+    Nudges.record_shown(me_file.id, nudges)
+
+    %{
+      nudges: nudges,
       active_tiqits_count: Arcade.count_active_tiqits(scope),
       fleeting_tiqits_count: Arcade.count_fleeting_tiqits(scope),
       home_wallet_summary: Wallets.consumer_wallet_summary(me_file),
       recent_entries: recent_entries(me_file),
       received_gift: received_gift(me_file)
-    })
+    }
     |> Map.merge(review_traits(me_file))
   end
 
@@ -201,36 +167,12 @@ defmodule QlariusWeb.HomeLive do
     end
   end
 
-  defp assign_strong_start(socket, me_file) do
-    assign(socket, load_strong_start(me_file, socket.assigns.current_scope.trait_count))
-  end
-
-  defp load_strong_start(me_file, trait_count) do
-    if StrongStart.should_show?(me_file) do
-      progress = StrongStart.get_progress(me_file, trait_count)
-
-      if progress.completed_count == progress.total_count do
-        StrongStart.mark_all_complete(me_file)
-
-        %{show_strong_start: false, strong_start_progress: nil, starter_survey_id: nil}
-      else
-        %{
-          show_strong_start: true,
-          strong_start_progress: progress,
-          starter_survey_id: Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
-        }
-      end
-    else
-      %{show_strong_start: false, strong_start_progress: nil, starter_survey_id: nil}
-    end
-  end
-
   def render(assigns) do
     ~H"""
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <%!-- Phone: one column. Content area 56rem+ (desktop beside the docked menu):
-             hero in one row, setup steps as tiles, products in three columns. --%>
+             hero in one row, products in three columns. --%>
         <div class="@container">
           <div class="home-page">
             <section class="home-hero" aria-label="Wallet">
@@ -304,12 +246,6 @@ defmodule QlariusWeb.HomeLive do
                 Open
               </.link>
             </section>
-
-            <StrongStartComponent.strong_start
-              :if={@show_strong_start}
-              progress={@strong_start_progress}
-              starter_survey_id={@starter_survey_id}
-            />
 
             <div>
               <div class="home-section-head">
@@ -433,6 +369,8 @@ defmodule QlariusWeb.HomeLive do
                 </.home_product>
               </section>
             </div>
+
+            <NudgeStrip.nudge_strip id="home-nudges" nudges={@nudges} />
 
             <section
               :if={@recent_entries != []}

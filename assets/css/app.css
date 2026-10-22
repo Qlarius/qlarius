@@ -2730,131 +2730,106 @@
     @apply text-sponster-600 dark:text-sponster-300;
   }
 
-  /* Setup checklist (StrongStartComponent): one row that opens the checklist. */
-  .setup-card.surface-panel {
-    @apply flex flex-col;
+  /* Next steps (NudgeStrip): small cards in one row that scrolls sideways.
+     Scrollbar hidden; the next card peeking past the edge shows there is more. */
+  .nudge-strip__title {
+    @apply mb-2 px-1 text-sm font-medium text-base-content/60;
   }
 
-  .setup-card__summary {
-    @apply flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left;
+  .nudge-strip__list {
+    @apply m-0 flex list-none gap-2.5 overflow-x-auto p-0;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
   }
 
-  .setup-ring {
-    @apply relative flex h-11 w-11 shrink-0 items-center justify-center;
+  .nudge-strip__list::-webkit-scrollbar {
+    display: none;
   }
 
-  .setup-ring svg {
-    @apply absolute inset-0 h-full w-full;
+  .nudge-card {
+    @apply relative w-64 shrink-0 overflow-hidden rounded-2xl;
+    scroll-snap-align: start;
+    background-color: var(--home-card-bg);
+    border: 1px solid var(--home-hair);
   }
 
-  .setup-ring__track {
-    fill: none;
-    stroke: color-mix(in oklab, var(--color-base-content) 12%, transparent);
-    stroke-width: 4;
+  .nudge-card--youdata {
+    --nudge-color: var(--color-youdata-500);
   }
 
-  .setup-ring__fill {
-    fill: none;
-    stroke: var(--color-primary);
-    stroke-width: 4;
-    stroke-linecap: round;
+  .nudge-card--sponster {
+    --nudge-color: var(--color-sponster-500);
   }
 
-  .setup-ring__label {
-    @apply tabular-amount text-xs font-semibold;
+  .nudge-card--tiqit {
+    --nudge-color: var(--color-tiqit-600);
   }
 
-  .setup-card__title {
-    @apply block text-base font-semibold tracking-tight;
+  .nudge-card__open {
+    @apply flex w-full cursor-pointer items-center gap-3 py-3 pr-8 pl-3 text-left transition-colors;
   }
 
-  .setup-card__next {
-    @apply mt-0.5 line-clamp-2 text-[13px] leading-snug text-base-content/60;
+  .nudge-card__open:hover {
+    background-color: color-mix(in oklab, var(--color-base-content) 3%, transparent);
   }
 
-  .setup-card__chev {
-    @apply flex shrink-0 text-base-content/40 transition-transform;
+  .nudge-card__open:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+    border-radius: inherit;
   }
 
-  .setup-card.is-open .setup-card__chev {
-    @apply rotate-90;
+  .nudge-card__chip,
+  .nudge-card__art {
+    @apply flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl;
   }
 
-  .setup-card__details {
-    @apply hidden flex-col gap-3 px-4 pb-4;
+  .nudge-card__chip {
+    color: var(--nudge-color);
+    background-color: color-mix(in oklab, var(--nudge-color) 16%, transparent);
   }
 
-  .setup-card.is-open .setup-card__details {
-    @apply flex;
+  .nudge-card__art img {
+    @apply size-full object-cover;
   }
 
-  .setup-steps {
-    @apply m-0 flex list-none flex-col p-0;
-    border-top: 1px solid var(--home-hair);
-    padding-top: 0.5rem;
+  .nudge-card__art-dark {
+    display: none;
   }
 
-  .setup-step__link {
-    @apply flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-base-200/60;
+  html[data-theme="dark"] .nudge-card__art--paired .nudge-card__art-light {
+    display: none;
   }
 
-  .setup-step__mark {
-    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-base-content/60;
-    border: 1.5px solid color-mix(in oklab, var(--color-base-content) 22%, transparent);
+  html[data-theme="dark"] .nudge-card__art--paired .nudge-card__art-dark {
+    display: block;
   }
 
-  .setup-step.is-done .setup-step__mark {
-    @apply border-transparent bg-success text-success-content;
+  .nudge-card__text {
+    @apply flex min-w-0 flex-col;
   }
 
-  .setup-step.is-next .setup-step__mark {
-    @apply border-primary text-primary;
+  .nudge-card__title {
+    @apply truncate text-sm font-semibold leading-snug text-base-content;
   }
 
-  .setup-step__title {
-    @apply min-w-0 flex-1 text-[15px] leading-snug;
+  .nudge-card__meta {
+    @apply mt-0.5 truncate text-xs text-base-content/60;
   }
 
-  .setup-step.is-done .setup-step__title {
-    @apply text-base-content/50;
+  .nudge-card__bar {
+    @apply absolute inset-x-0 bottom-0 h-0.5;
+    background-color: color-mix(in oklab, var(--nudge-color) 18%, transparent);
   }
 
-  .setup-step.is-next .setup-step__title {
-    @apply font-semibold;
+  .nudge-card__bar > span {
+    @apply block h-full;
+    background-color: var(--nudge-color);
   }
 
-  .setup-step__meta {
-    @apply tabular-amount text-xs text-base-content/50;
-  }
-
-  .setup-next {
-    @apply flex flex-wrap items-start gap-3 rounded-2xl p-3.5;
-    background-color: color-mix(in oklab, var(--color-primary) 9%, transparent);
-  }
-
-  .setup-next__icon {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content;
-  }
-
-  .setup-next__title {
-    @apply font-semibold leading-snug;
-  }
-
-  .setup-next__desc {
-    @apply mt-0.5 text-sm leading-snug text-base-content/70;
-  }
-
-  /* Phone: buttons on their own row, aligned with the text. */
-  .setup-next__actions {
-    @apply flex basis-full gap-2 pl-12;
-  }
-
-  .setup-card__footer {
-    @apply flex items-center justify-between gap-3 px-1 text-sm;
-  }
-
-  .setup-card__footer button {
-    @apply cursor-pointer font-medium text-base-content/60 hover:text-base-content;
+  .nudge-card__dismiss {
+    @apply absolute top-1.5 right-1.5 flex size-6 cursor-pointer items-center justify-center rounded-full text-base-content/35 transition-colors hover:bg-base-200 hover:text-base-content/70;
   }
 
   @container (min-width: 56rem) {
@@ -2913,49 +2888,6 @@
 
     .home-product .home-stat-grid--2 {
       column-gap: 1.5rem;
-    }
-
-    /* Setup: always open; the five steps as tiles, next step below. */
-    .setup-card__summary {
-      @apply cursor-default px-5 pt-4 pb-3;
-    }
-
-    .setup-card__chev {
-      display: none;
-    }
-
-    .setup-card__details,
-    .setup-card.is-open .setup-card__details {
-      @apply flex px-5 pb-5;
-    }
-
-    .setup-steps {
-      @apply grid grid-cols-5 gap-2 border-0 pt-0;
-    }
-
-    .setup-step__link {
-      @apply h-full flex-col items-start gap-2 bg-base-200 p-3;
-    }
-
-    .setup-step.is-next .setup-step__link {
-      box-shadow: inset 0 0 0 1.5px var(--color-primary);
-      background-color: color-mix(in oklab, var(--color-primary) 6%, var(--home-card-bg));
-    }
-
-    .setup-step__meta {
-      @apply mt-auto;
-    }
-
-    .setup-next {
-      @apply flex-nowrap items-center;
-    }
-
-    .setup-next__actions {
-      @apply ml-auto basis-auto self-center pl-0;
-    }
-
-    .setup-card__footer {
-      @apply justify-end gap-5;
     }
   }
 
