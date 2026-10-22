@@ -15,6 +15,7 @@ defmodule QlariusWeb.HomeLive do
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.YouData.StrongStart
+  alias Qlarius.YouData.TagQuality
 
   def mount(_params, session, socket) do
     scope = socket.assigns.current_scope
@@ -35,6 +36,8 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:home_wallet_summary, nil)
       |> assign(:recent_entries, [])
       |> assign(:received_gift, nil)
+      |> assign(:review_trait_count, nil)
+      |> assign(:review_status, nil)
 
     socket =
       if connected?(socket) do
@@ -59,7 +62,9 @@ defmodule QlariusWeb.HomeLive do
      |> assign(:show_strong_start, false)
      |> assign(:active_tiqits_count, 0)
      |> assign(:fleeting_tiqits_count, 0)
-     |> assign(:recent_entries, [])}
+     |> assign(:recent_entries, [])
+     |> assign(:review_trait_count, 0)
+     |> assign(:review_status, nil)}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -138,6 +143,7 @@ defmodule QlariusWeb.HomeLive do
       recent_entries: recent_entries(me_file),
       received_gift: received_gift(me_file)
     })
+    |> Map.merge(review_traits(me_file))
   end
 
   # An installed app opens at /home with a fresh session, so it can't know which
@@ -163,6 +169,27 @@ defmodule QlariusWeb.HomeLive do
 
   defp gift_row(title, path, tiqit) do
     %{title: title, path: path, expires_at: tiqit && tiqit.expires_at}
+  end
+
+  # Yellow and red parent traits, the same ones the MeFile status filter lists.
+  # Red wins the link when both are present, since that filter shows one color.
+  defp review_traits(me_file) do
+    counts =
+      me_file.id
+      |> TagQuality.for_me_file()
+      |> Enum.frequencies_by(fn {_id, %{status: status}} -> status end)
+
+    yellow = Map.get(counts, :yellow, 0)
+    red = Map.get(counts, :red, 0)
+
+    status =
+      cond do
+        red > 0 -> "red"
+        yellow > 0 -> "yellow"
+        true -> nil
+      end
+
+    %{review_trait_count: yellow + red, review_status: status}
   end
 
   @recent_entry_count 3
@@ -301,11 +328,41 @@ defmodule QlariusWeb.HomeLive do
                   <:value>
                     <span class="home-product__v">{@current_scope.trait_count}</span>
                     <span class="home-product__l">tags</span>
+                    <.link
+                      :if={is_integer(@review_trait_count) and @review_trait_count > 0}
+                      navigate={~p"/me_file?#{[status: @review_status]}"}
+                      class={[
+                        "home-product__inner-link text-xs font-medium",
+                        @review_status == "red" && "text-error",
+                        @review_status == "yellow" && "text-warning"
+                      ]}
+                    >
+                      {@review_trait_count} to review
+                    </.link>
                   </:value>
                   <:stats>
-                    <div class="home-stat">
-                      <span class="home-stat__value">{@current_scope.trait_count}</span>
-                      <span class="home-stat__label">tags</span>
+                    <div class={[
+                      is_integer(@review_trait_count) and @review_trait_count > 0 &&
+                        "home-stat-grid--2"
+                    ]}>
+                      <div class="home-stat">
+                        <span class="home-stat__value">{@current_scope.trait_count}</span>
+                        <span class="home-stat__label">tags</span>
+                      </div>
+                      <.link
+                        :if={is_integer(@review_trait_count) and @review_trait_count > 0}
+                        navigate={~p"/me_file?#{[status: @review_status]}"}
+                        class="home-stat home-stat--interactive home-product__inner-link"
+                      >
+                        <span class={[
+                          "home-stat__value",
+                          @review_status == "red" && "text-error",
+                          @review_status == "yellow" && "text-warning"
+                        ]}>
+                          {@review_trait_count}
+                        </span>
+                        <span class="home-stat__label">to review</span>
+                      </.link>
                     </div>
                   </:stats>
                 </.home_product>

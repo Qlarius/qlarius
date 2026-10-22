@@ -91,6 +91,23 @@ defmodule QlariusWeb.TagQualityLiveTest do
     }
   end
 
+  test "home review count opens MeFile with red or yellow selected", ctx do
+    {:ok, home, _html} = live(ctx.conn, ~p"/home")
+    html = render_async(home)
+
+    assert html =~ "to review"
+    assert html =~ ~s(href="/me_file?status=red")
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/me_file?status=red")
+    html = render_async(view)
+
+    assert html =~ ~s(aria-label="Red")
+    assert html =~ ~s(aria-pressed="true")
+    assert html =~ "needs attention"
+    assert html =~ "Zeltrane"
+    refute html =~ "Brindle"
+  end
+
   test "a stale tag shows a red light, the edit sheet explains it, and saving freshens it",
        ctx do
     me_file = Repo.preload(ctx.user, :me_file).me_file

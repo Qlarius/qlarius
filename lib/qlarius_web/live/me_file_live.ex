@@ -418,7 +418,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
     socket =
@@ -445,7 +445,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
       |> assign(:tag_search_epoch, 0)
-      |> assign(:tag_status, "all")
+      |> assign(:tag_status, requested_tag_status(params))
       |> assign(:tag_status_options, [])
       |> assign(:show_tag_search, false)
       |> assign_tag_display_mode()
@@ -628,6 +628,9 @@ defmodule QlariusWeb.MeFileLive do
     end)
   end
 
+  defp requested_tag_status(%{"status" => status}) when status in ~w(yellow red), do: status
+  defp requested_tag_status(_params), do: "all"
+
   defp status_pill_label("all"), do: "All"
   defp status_pill_label("confirmed"), do: "Confirmed"
   defp status_pill_label(status), do: String.capitalize(status)
@@ -669,9 +672,20 @@ defmodule QlariusWeb.MeFileLive do
       end
 
     options = visible_tag_statuses(tag_map, socket.assigns.tag_quality)
+    requested = socket.assigns.tag_status
 
     status =
-      if socket.assigns.tag_status in options, do: socket.assigns.tag_status, else: "all"
+      cond do
+        requested in options ->
+          requested
+
+        requested in ~w(yellow red) and
+            filter_tag_map_by_status(tag_map, requested, socket.assigns.tag_quality) != [] ->
+          requested
+
+        true ->
+          "all"
+      end
 
     filtered =
       tag_map
