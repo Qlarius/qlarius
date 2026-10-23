@@ -1,8 +1,9 @@
 defmodule Qlarius.YouData.TraitSearch do
   @moduledoc """
   Keyword search over the trait taxonomy, shared by the MeCP oracle
-  (`search_traits`, top 10 active traits) and the MeFile Builder (top 15
-  traits in an active survey).
+  (`search_traits`, top 10 active traits), the MeFile Builder (top 15
+  traits in an active survey), and the trait browsers used to build
+  audience and campaign trait groups.
 
   Each query word scores a trait by the best hit on its name or `search_terms`
   (a parent or a child; a child counts toward its parent):
@@ -139,6 +140,39 @@ defmodule Qlarius.YouData.TraitSearch do
     ranked
     |> Enum.map(&Map.put(&1, :tag_count, Map.get(counts, &1.trait_id, 0)))
     |> Enum.sort_by(&{-name_band(&1, tokens), -&1.score, -&1.tag_count, &1.trait, &1.trait_id})
+  end
+
+  @doc """
+  Parent trait ids matching `query`, using the same tokenize-and-rank path
+  as MeFile Builder.
+
+  A child answer, meta tag, or search term counts toward its parent, so
+  "dance" finds the Pastimes topic. Returns `nil` when the query is too
+  short to search and the caller should show the whole list.
+
+  Pass `surveyed_only: true` for the Builder catalog. Audience and campaign
+  trait groups search every active trait.
+  """
+  def matching_parent_ids(query, opts \\ []) do
+    case query |> to_string() |> tokenize() do
+      {:ok, tokens} -> tokens |> rank(opts) |> MapSet.new(& &1.trait_id)
+      {:error, :empty_query} -> nil
+    end
+  end
+
+  @doc """
+  Categories limited to traits whose id is in `match_ids`.
+
+  `nil` is not a search, so the categories come back unchanged.
+  """
+  def filter_categories(categories, nil) when is_list(categories), do: categories
+
+  def filter_categories(categories, %MapSet{} = match_ids) when is_list(categories) do
+    categories
+    |> Enum.map(fn category ->
+      %{category | traits: Enum.filter(category.traits, &MapSet.member?(match_ids, &1.id))}
+    end)
+    |> Enum.reject(&(&1.traits == []))
   end
 
   # Topic name, then a child name, then meta_1/meta_2/meta_3. A search term

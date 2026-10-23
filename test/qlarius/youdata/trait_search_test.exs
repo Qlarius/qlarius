@@ -29,6 +29,27 @@ defmodule Qlarius.YouData.TraitSearchTest do
     TraitSearch.rank(tokens, opts)
   end
 
+  test "matching_parent_ids finds the parent of a child answer", ctx do
+    ids = TraitSearch.matching_parent_ids("pottery")
+
+    assert ctx.crafts.id in ids
+  end
+
+  test "matching_parent_ids stays unset until the query is long enough to search" do
+    assert TraitSearch.matching_parent_ids("") == nil
+    assert TraitSearch.matching_parent_ids("da") == nil
+  end
+
+  test "filter_categories keeps the parents a search found", ctx do
+    category = Repo.preload(ctx.hobbies, :traits)
+
+    assert TraitSearch.filter_categories([category], nil) == [category]
+
+    [kept] = TraitSearch.filter_categories([category], MapSet.new([ctx.crafts.id]))
+    assert Enum.map(kept.traits, & &1.id) == [ctx.crafts.id]
+    assert TraitSearch.filter_categories([category], MapSet.new()) == []
+  end
+
   test "a child trait's name finds its parent and is reported as the matched value", ctx do
     assert [%{trait_id: id, matched_values: ["Pottery"], matches: [match]} | _] =
              rank("pottery")

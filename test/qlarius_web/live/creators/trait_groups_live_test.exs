@@ -2,6 +2,7 @@ defmodule QlariusWeb.Creators.TraitGroupsLiveTest do
   use QlariusWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
+  import Qlarius.MeCPFixtures
   import Qlarius.TargetingFixtures
 
   alias Qlarius.Accounts
@@ -56,6 +57,24 @@ defmodule QlariusWeb.Creators.TraitGroupsLiveTest do
     {:ok, _} = Creators.create_creator_membership(creator.id, user.id, :owner)
 
     %{conn: log_in_user(conn, user), creator: creator}
+  end
+
+  test "trait browser search finds a parent from a child answer", %{conn: conn, creator: creator} do
+    token = "dnc#{System.unique_integer([:positive])}"
+    category = insert_category!("Hobbies")
+    pastimes = insert_trait!(category, "Pastimes #{token}")
+    insert_trait!(nil, "#{token}dance", parent_trait_id: pastimes.id)
+    decoy = insert_trait!(category, "College Attendance #{token}")
+
+    {:ok, view, _html} = live(conn, ~p"/creators/#{creator.id}/trait-groups")
+
+    html =
+      view
+      |> element("form[phx-change='search_traits']")
+      |> render_change(%{"search" => "#{token}dance"})
+
+    assert html =~ pastimes.trait_name
+    refute html =~ decoy.trait_name
   end
 
   test "first trait checkbox change stays selected", %{conn: conn, creator: creator} do

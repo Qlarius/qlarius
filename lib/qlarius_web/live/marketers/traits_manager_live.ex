@@ -370,7 +370,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     search_term = String.trim(search_term)
 
     {:noreply,
-     assign(socket, search_term: search_term, trait_match_ids: trait_match_ids(search_term))}
+     assign(socket,
+       search_term: search_term,
+       trait_match_ids: TraitSearch.matching_parent_ids(search_term)
+     )}
   end
 
   def handle_event("clear_search", _params, socket) do
@@ -594,7 +597,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       assign(
         assigns,
         :filtered,
-        filter_categories(assigns.categories, assigns.trait_match_ids)
+        TraitSearch.filter_categories(assigns.categories, assigns.trait_match_ids)
       )
 
     ~H"""
@@ -628,7 +631,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       </form>
 
       <p
-        :if={@filtered == [] and @search_term != ""}
+        :if={match?(%MapSet{}, @trait_match_ids) and @filtered == []}
         class="py-6 text-center text-sm text-base-content/60"
       >
         No traits match "{@search_term}".
@@ -663,26 +666,6 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       </div>
     </.panel>
     """
-  end
-
-  # Same match as Builder and MeFile: a query word hits a topic name, a child
-  # answer, a meta tag, a search-term slug, or the category. Words under 3
-  # characters are not a search. `nil` means show the whole browser.
-  defp trait_match_ids(search) do
-    case TraitSearch.tokenize(search) do
-      {:ok, tokens} -> tokens |> TraitSearch.rank() |> MapSet.new(& &1.trait_id)
-      {:error, :empty_query} -> nil
-    end
-  end
-
-  defp filter_categories(categories, nil), do: categories
-
-  defp filter_categories(categories, match_ids) do
-    categories
-    |> Enum.map(fn category ->
-      %{category | traits: Enum.filter(category.traits, &MapSet.member?(match_ids, &1.id))}
-    end)
-    |> Enum.reject(&(&1.traits == []))
   end
 
   attr :traits, :list, required: true

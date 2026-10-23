@@ -6,6 +6,7 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
   alias Qlarius.Creators
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.TraitGroup
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
 
@@ -126,12 +127,14 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
 
   defp assign_trait_data(socket) do
     owner = {:creator, socket.assigns.creator.id}
+    search_term = socket.assigns[:search_term] || ""
 
     socket
     |> assign(:trait_groups, Traits.list_trait_groups_for_owner(owner))
     |> assign(:archived_trait_groups, Traits.list_archived_trait_groups_for_owner(owner))
     |> assign(:categories_with_traits, Traits.list_trait_categories_with_traits())
-    |> assign(:search_term, socket.assigns[:search_term] || "")
+    |> assign(:search_term, search_term)
+    |> assign(:trait_match_ids, TraitSearch.matching_parent_ids(search_term))
     |> assign(:show_archived, socket.assigns[:show_archived] || false)
   end
 
@@ -323,11 +326,17 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
   end
 
   def handle_event("search_traits", %{"search" => search_term}, socket) do
-    {:noreply, assign(socket, :search_term, String.trim(search_term))}
+    search_term = String.trim(search_term)
+
+    {:noreply,
+     assign(socket,
+       search_term: search_term,
+       trait_match_ids: TraitSearch.matching_parent_ids(search_term)
+     )}
   end
 
   def handle_event("clear_search", _params, socket) do
-    {:noreply, assign(socket, :search_term, "")}
+    {:noreply, assign(socket, search_term: "", trait_match_ids: nil)}
   end
 
   def handle_event("add_selected_zips", %{"selected_ids" => selected_ids}, socket) do
@@ -459,6 +468,7 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
                   creator_id={@creator.id}
                   categories={@categories_with_traits}
                   search_term={@search_term}
+                  trait_match_ids={@trait_match_ids}
                 />
               </div>
             </.page>
@@ -542,10 +552,15 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
   attr :creator_id, :integer, required: true
   attr :categories, :list, required: true
   attr :search_term, :string, required: true
+  attr :trait_match_ids, :any, required: true
 
   defp trait_browser(assigns) do
     assigns =
-      assign(assigns, :filtered, filter_categories(assigns.categories, assigns.search_term))
+      assign(
+        assigns,
+        :filtered,
+        TraitSearch.filter_categories(assigns.categories, assigns.trait_match_ids)
+      )
 
     ~H"""
     <.panel
@@ -578,7 +593,7 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
       </form>
 
       <p
-        :if={@filtered == [] and @search_term != ""}
+        :if={match?(%MapSet{}, @trait_match_ids) and @filtered == []}
         class="py-6 text-center text-sm text-base-content/60"
       >
         No traits match "{@search_term}".
@@ -613,25 +628,6 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
       </div>
     </.panel>
     """
-  end
-
-  defp filter_categories(categories, search_term) do
-    if search_term == "" do
-      categories
-    else
-      search_term_lower = String.downcase(search_term)
-
-      Enum.map(categories, fn category ->
-        filtered_traits =
-          Enum.filter(category.traits, fn trait ->
-            String.contains?(String.downcase(trait.trait_name), search_term_lower) ||
-              String.contains?(String.downcase(category.name), search_term_lower)
-          end)
-
-        %{category | traits: filtered_traits}
-      end)
-      |> Enum.filter(fn category -> category.traits != [] end)
-    end
   end
 
   @trait_badge_limit 20
