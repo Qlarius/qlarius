@@ -20,9 +20,7 @@ defmodule Qlarius.Sponster.Recipient do
     field :recipient_type_id, :integer, default: 1
 
     belongs_to :user, Qlarius.Accounts.User
-    # RecipientType association commented - schema only in archive_hide
-    # belongs_to :recipient_type, Qlarius.Sponster.RecipientType
-    # allowing for recipient_type_id to be null for now and save as integer for now (1 = publisher default, 2 = charity, etc.)
+    # recipient_type_id stays a plain integer (1 = publisher, 2 = charity, and so on).
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
 
     timestamps()

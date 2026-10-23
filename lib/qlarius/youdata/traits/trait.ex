@@ -9,7 +9,6 @@ defmodule Qlarius.YouData.Traits.Trait do
   # alias Qlarius.Sponster.Campaigns.{TraitGroup, TraitGroupTrait}
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.Sponster.Campaigns.TraitGroupTrait
-  # TraitCategory commented - schema only in archive_hide
   alias Qlarius.YouData.Traits.TraitCategory
 
   @primary_key {:id, :id, autogenerate: true}
@@ -41,7 +40,6 @@ defmodule Qlarius.YouData.Traits.Trait do
     field :expired_days, :integer
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
-    # TraitCategory association commented - schema only in archive_hide
     belongs_to :trait_category, TraitCategory
     has_one :survey_question, Qlarius.YouData.Surveys.SurveyQuestion, foreign_key: :trait_id
     has_one :survey_answer, Qlarius.YouData.Surveys.SurveyAnswer, foreign_key: :trait_id

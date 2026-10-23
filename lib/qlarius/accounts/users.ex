@@ -1,6 +1,6 @@
 defmodule Qlarius.Accounts.Users do
   @moduledoc """
-  Context for interacting with the legacy Rails database.
+  Lookups for users, proxies, and MeFiles.
   """
 
   import Ecto.Query

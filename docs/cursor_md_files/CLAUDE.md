@@ -116,7 +116,6 @@ LiveView is extensively used for interactive UIs. Common patterns:
 - File uploads are handled through Waffle with local storage in development
 - CORS is configured for widget embedding
 - The application supports iframe embedding for widgets
-- Database schema was migrated from a legacy Rails application (see `legacy_structure.sql`)
 
 ## Common Development Tasks
 
