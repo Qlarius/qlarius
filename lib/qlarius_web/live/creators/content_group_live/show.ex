@@ -451,6 +451,9 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   defp format_synced_at(nil), do: "never"
   defp format_synced_at(%DateTime{} = at), do: Calendar.strftime(at, "%b %-d, %Y %H:%M UTC")
 
+  defp format_piece_date(nil), do: nil
+  defp format_piece_date(date), do: Calendar.strftime(date, "%b %d, %Y")
+
   defp duration_hint(hours) when is_integer(hours) and hours > 0 do
     label = TiqitClassHTML.format_tiqit_class_duration(hours)
     if String.ends_with?(label, ["hour", "hours"]), do: nil, else: label
@@ -640,9 +643,15 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                 >
                                   {ContentPiece.episode_label(piece)}
                                 </span>
-                                <span class="inline-flex items-center gap-1">
+                                <span
+                                  :if={piece.date_published}
+                                  class="inline-flex items-center gap-1"
+                                >
                                   <.icon name="hero-calendar" class="size-3" />
-                                  {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                                  Published {format_piece_date(piece.date_published)}
+                                </span>
+                                <span class="inline-flex items-center gap-1">
+                                  Added {format_piece_date(piece.inserted_at)}
                                 </span>
                                 <span
                                   :if={piece.length not in [nil, 0]}
@@ -1018,6 +1027,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
             </label>
             <select id="piece-order-preset" name="preset" class="select select-sm w-full">
               <option value="">Choose…</option>
+              <option value="published_desc">Newest published first</option>
+              <option value="published_asc">Oldest published first</option>
               <option value="episode">Episode order (trailer, then Ep 1, 2, 3…)</option>
               <option value="desc">Newest first (by date added)</option>
               <option value="asc">Oldest first (by date added)</option>

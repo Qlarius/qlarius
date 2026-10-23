@@ -35,7 +35,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     timestamps(type: :utc_datetime)
   end
 
-  @piece_order_presets ~w(episode asc desc title_asc title_desc)
+  @piece_order_presets ~w(episode asc desc published_asc published_desc title_asc title_desc)
 
   @doc """
   True when the list has at least one non-archived content piece.
@@ -76,6 +76,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   `display_order` from the admin modal).
 
     * `"desc"` / `"asc"` — by `inserted_at` (newest / oldest first)
+    * `"published_desc"` / `"published_asc"` — by `date_published`
+      (newest / oldest first). A piece with no publish date sorts last.
     * `"title_asc"` / `"title_desc"` — by title, case-insensitive (A–Z / Z–A)
   """
   def sort_pieces_by_preset(pieces, preset)
@@ -84,6 +86,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       "episode" -> Enum.sort_by(pieces, &episode_sort_key/1)
       "asc" -> Enum.sort_by(pieces, & &1.inserted_at, :asc)
       "desc" -> Enum.sort_by(pieces, & &1.inserted_at, :desc)
+      "published_asc" -> Enum.sort_by(pieces, &published_date(&1, :asc), {:asc, Date})
+      "published_desc" -> Enum.sort_by(pieces, &published_date(&1, :desc), {:desc, Date})
       "title_asc" -> Enum.sort_by(pieces, &title_sort_key/1, :asc)
       "title_desc" -> Enum.sort_by(pieces, &title_sort_key/1, :desc)
     end
@@ -110,6 +114,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     do: String.downcase(title)
 
   defp title_sort_key(_), do: ""
+
+  # Missing dates sort last in either direction.
+  defp published_date(%ContentPiece{date_published: %Date{} = date}, _direction), do: date
+  defp published_date(_piece, :asc), do: ~D[9999-12-31]
+  defp published_date(_piece, :desc), do: ~D[0000-01-01]
 
   @doc false
   def changeset(content_group, attrs) do

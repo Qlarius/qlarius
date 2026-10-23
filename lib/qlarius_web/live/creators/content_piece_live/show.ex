@@ -248,6 +248,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
 
                   <.panel id="piece-info" title="Info">
                     <dl class="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <.detail_item label="Published" value={format_date(@piece.date_published)} />
                       <.detail_item label="Created" value={format_date(@piece.inserted_at)} />
                       <.detail_item label="Last updated" value={format_date(@piece.updated_at)} />
                       <.detail_item label="ID" value={"##{@piece.id}"} />

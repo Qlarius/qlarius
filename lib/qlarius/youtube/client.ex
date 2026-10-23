@@ -358,7 +358,8 @@ defmodule Qlarius.Youtube.Client do
     %{
       youtube_id: id,
       duration_seconds: parse_iso8601_duration(details["duration"]),
-      description: snippet["description"]
+      description: snippet["description"],
+      published_at: snippet["publishedAt"]
     }
   end
 

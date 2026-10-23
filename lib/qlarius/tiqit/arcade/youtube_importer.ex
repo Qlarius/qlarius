@@ -88,10 +88,21 @@ defmodule Qlarius.Tiqit.Arcade.YoutubeImporter do
       title: item.title,
       description: details[:description] || item.description,
       length: details[:duration_seconds] || 0,
-      date_published: parse_published_date(item.published_at),
+      date_published: published_date(details[:published_at], item.published_at),
       thumbnail_url: item.thumbnail_url,
       playlist_position: item.playlist_position
     }
+  end
+
+  @doc """
+  The date the video was published on YouTube.
+
+  `videos.list` `snippet.publishedAt` is that date. A playlist item's
+  `publishedAt` is when the video was added to the playlist, so it is
+  only a fallback when the video resource has no publish time.
+  """
+  def published_date(video_published_at, playlist_published_at) do
+    parse_published_date(video_published_at || playlist_published_at)
   end
 
   @doc """
