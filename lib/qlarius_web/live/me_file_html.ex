@@ -1017,6 +1017,9 @@ defmodule QlariusWeb.MeFileHTML do
           </.surface_panel>
         </section>
       </div>
+      <p :if={not @loading and filtering_query?(@tag_search)} class="mefile-filter-note">
+        Filtered on "{@tag_search}".
+      </p>
       <div
         :if={
           not @loading and Enum.empty?(@tag_display_map) and
@@ -1328,6 +1331,11 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp tag_search_active?(search) do
     search |> to_string() |> String.trim() != ""
+  end
+
+  # A query short of a real search still shows every tag, so the note stays off.
+  defp filtering_query?(search) do
+    match?({:ok, _}, search |> to_string() |> TraitSearch.tokenize())
   end
 
   @protected_trait_names ["Birthdate", "Age", "Sex (Bio)"]

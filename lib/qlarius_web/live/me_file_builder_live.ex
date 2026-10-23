@@ -126,7 +126,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             search_input_id="builder-trait-search-input"
             search_label="Search topics and tags"
             search_placeholder="Topics and tags"
-            search_debounce="200"
+            search_debounce="100"
           />
           <.mefile_floating_toolbar
             :if={@editing}
@@ -150,7 +150,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
           assign={@trait_results}
         >
           <:loading>
-            <.trait_search_skeleton tag_display_mode={@tag_display_mode} />
+            <.trait_search_skeleton
+              tag_display_mode={@tag_display_mode}
+              trait_search={@trait_search}
+            />
           </:loading>
           <:failed>
             <p class="mobile-page-intro text-center py-8">
@@ -164,6 +167,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             <.trait_search_results
               results={results}
               trait_search={@trait_search}
+              filtering={@trait_results.loading}
               tag_display_mode={@tag_display_mode}
               quality={@tag_quality}
               nudges={@nudges}
@@ -871,7 +875,21 @@ defmodule QlariusWeb.MeFileBuilderLive do
     ranked =
       tokens |> TraitSearch.rank(surveyed_only: true) |> Enum.take(@trait_result_limit)
 
-    with_tags(me_file_id, ranked)
+    ranked
+    |> then(&with_tags(me_file_id, &1))
+    |> with_skip_children()
+  end
+
+  # Resolved with the search, so painting the cards does not query again.
+  defp with_skip_children(results) do
+    skip_ids =
+      results
+      |> Enum.map(& &1.trait_id)
+      |> Traits.active_skipped_child_id_by_parent()
+
+    Enum.map(results, fn result ->
+      Map.put(result, :skip_child_id, Map.get(skip_ids, result.trait_id))
+    end)
   end
 
   defp with_tags(me_file_id, results) do
@@ -967,6 +985,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   attr :results, :list, required: true
   attr :trait_search, :string, required: true
+  attr :filtering, :boolean, default: false
   attr :tag_display_mode, :string, required: true
   attr :quality, :map, default: %{}
   attr :nudges, :map, default: %{}
@@ -986,14 +1005,14 @@ defmodule QlariusWeb.MeFileBuilderLive do
     match_notes =
       Map.new(assigns.results, fn result -> {result.trait_id, match_note(result)} end)
 
+    skip_child_ids =
+      Map.new(assigns.results, fn result -> {result.trait_id, result[:skip_child_id]} end)
+
     assigns =
       assigns
       |> assign(:parent_traits, parent_traits)
       |> assign(:match_notes, match_notes)
-      |> assign(
-        :skip_child_ids,
-        Traits.active_skipped_child_id_by_parent(Enum.map(parent_traits, &elem(&1, 0)))
-      )
+      |> assign(:skip_child_ids, skip_child_ids)
 
     ~H"""
     <section
@@ -1008,22 +1027,27 @@ defmodule QlariusWeb.MeFileBuilderLive do
       <div class="mefile-category__head">
         <h2>
           Matched Tags<span :if={@parent_traits != []}> ({length(@parent_traits)})</span>
+          <span class="builder-results__query">
+            {if(@filtering, do: "Filtering", else: "Filtered")} on "{@trait_search}".
+          </span>
         </h2>
       </div>
-      <p :if={@parent_traits == []} class="builder-results__empty">
-        No topics match "{@trait_search}".
-      </p>
-      <.traits_frame :if={@parent_traits != []} tag_display_mode={@tag_display_mode}>
-        <.parent_traits_display
-          parent_traits={@parent_traits}
-          tag_display_mode={@tag_display_mode}
-          skip_child_ids={@skip_child_ids}
-          match_notes={@match_notes}
-          quality={@quality}
-          nudges={@nudges}
-          bare={@tag_display_mode != "list"}
-        />
-      </.traits_frame>
+      <div class="builder-results__cards">
+        <p :if={@parent_traits == []} class="builder-results__empty">
+          No topics match "{@trait_search}".
+        </p>
+        <.traits_frame :if={@parent_traits != []} tag_display_mode={@tag_display_mode}>
+          <.parent_traits_display
+            parent_traits={@parent_traits}
+            tag_display_mode={@tag_display_mode}
+            skip_child_ids={@skip_child_ids}
+            match_notes={@match_notes}
+            quality={@quality}
+            nudges={@nudges}
+            bare={@tag_display_mode != "list"}
+          />
+        </.traits_frame>
+      </div>
     </section>
     """
   end
@@ -1091,9 +1115,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
   defp match_note(_), do: nil
 
   attr :tag_display_mode, :string, required: true
+  attr :trait_search, :string, required: true
 
   # Bones in the shape of the view that's about to arrive: list rows in a
-  # card, or tag chips on the page.
+  # card, or tag cards in the same columns as the results.
   defp trait_search_skeleton(assigns) do
     ~H"""
     <section
@@ -1103,23 +1128,34 @@ defmodule QlariusWeb.MeFileBuilderLive do
         @tag_display_mode == "list" && "builder-results--list"
       ]}
       aria-busy="true"
-      aria-label="Searching topics"
+      aria-label={"Filtered on \"#{@trait_search}\"."}
     >
       <div class="mefile-category__head">
-        <h2>Matched Tags</h2>
+        <h2>
+          Matched Tags
+          <span class="builder-results__query">Filtered on "{@trait_search}".</span>
+        </h2>
       </div>
       <.surface_panel :if={@tag_display_mode == "list"} padding={false} class="youdata-card">
         <ul class="mefile-list" aria-hidden="true">
-          <li :for={_ <- 1..3} class="mefile-row">
-            <div class="min-w-0 flex-1 space-y-2">
-              <span class="skeleton h-3 w-24"></span>
-              <span class="skeleton h-4 w-40"></span>
+          <li :for={_ <- 1..4} class="mefile-row">
+            <div class="min-w-0 flex-1">
+              <span class="skeleton block h-3 w-28"></span>
+              <span class="skeleton mt-1.5 block h-4 w-4/5"></span>
+              <span class="skeleton mt-2 block h-3 w-1/2"></span>
             </div>
           </li>
         </ul>
       </.surface_panel>
-      <div :if={@tag_display_mode != "list"} class="flex flex-row flex-wrap gap-2" aria-hidden="true">
-        <span :for={_ <- 1..3} class="skeleton h-14 w-36 rounded-lg"></span>
+      <div :if={@tag_display_mode != "list"} class="builder-results__grid" aria-hidden="true">
+        <div
+          :for={width <- ["w-4/5", "w-3/5", "w-full", "w-2/3", "w-3/4", "w-1/2"]}
+          class="builder-result-bone"
+        >
+          <span class="skeleton block h-3 w-2/5"></span>
+          <span class={["skeleton mt-1.5 block h-4", width]}></span>
+          <span class="skeleton mt-2 block h-3 w-3/5"></span>
+        </div>
       </div>
     </section>
     """

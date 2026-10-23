@@ -36,6 +36,9 @@ config :swoosh, :api_client, false
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# Builder search caches the trait list. Tests insert traits and expect to find them immediately.
+config :qlarius, :trait_search_cache, false
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 

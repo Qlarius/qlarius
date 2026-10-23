@@ -194,7 +194,21 @@ defmodule Qlarius.YouData.TraitSearch do
   # an active survey is askable even when its catalog `is_active` flag is
   # false. Children still have to be active. Catalog search keeps requiring
   # `is_active` on every row.
-  defp active_traits(true, zip_ids) do
+  # The non-zip trait list is the same for every keystroke. Hold it briefly so
+  # a follow-up search scores the list it already loaded. Zip children stay
+  # out of this list and are queried per search. Tests turn the cache off.
+  @corpus_ttl_ms 60_000
+
+  defp active_traits(surveyed_only, zip_ids) do
+    key = {__MODULE__, surveyed_only, Enum.sort(zip_ids)}
+
+    case read_corpus(key) do
+      {:ok, rows} -> rows
+      :miss -> load_active_traits(surveyed_only, zip_ids) |> write_corpus(key)
+    end
+  end
+
+  defp load_active_traits(true, zip_ids) do
     surveyed = Surveys.surveyed_trait_ids_query()
 
     from(t in Trait,
@@ -208,11 +222,35 @@ defmodule Qlarius.YouData.TraitSearch do
     |> Repo.all()
   end
 
-  defp active_traits(false, zip_ids) do
+  defp load_active_traits(false, zip_ids) do
     from(t in Trait, where: t.is_active == true)
     |> exclude_zip_children(zip_ids)
     |> select_search_row()
     |> Repo.all()
+  end
+
+  defp read_corpus(key) do
+    if Application.get_env(:qlarius, :trait_search_cache, true) do
+      case :persistent_term.get(key, :miss) do
+        {at, rows} ->
+          if System.monotonic_time(:millisecond) - at < @corpus_ttl_ms,
+            do: {:ok, rows},
+            else: :miss
+
+        :miss ->
+          :miss
+      end
+    else
+      :miss
+    end
+  end
+
+  defp write_corpus(rows, key) do
+    if Application.get_env(:qlarius, :trait_search_cache, true) do
+      :persistent_term.put(key, {System.monotonic_time(:millisecond), rows})
+    end
+
+    rows
   end
 
   defp exclude_zip_children(query, []), do: query

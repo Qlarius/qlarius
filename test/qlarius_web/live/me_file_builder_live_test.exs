@@ -186,6 +186,11 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       html = view |> form("#builder-trait-search", %{q: "ceramics"}) |> render_change()
       assert html =~ "builder-trait-results-skeleton" or html =~ "Arts and Crafts"
 
+      if html =~ "builder-trait-results-skeleton" do
+        assert html =~ "Filtered on"
+        assert html =~ "ceramics"
+      end
+
       render_async(view)
 
       assert has_element?(
