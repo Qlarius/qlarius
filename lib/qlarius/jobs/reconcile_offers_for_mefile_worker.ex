@@ -63,11 +63,16 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     if target_band_ids == [] do
       []
     else
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
       from(b in Bid,
         where: b.target_band_id in ^target_band_ids,
         join: c in Campaign,
         on: c.id == b.campaign_id,
         where: is_nil(c.deactivated_at),
+        where: not is_nil(c.launched_at),
+        where: is_nil(c.start_date) or c.start_date <= ^now,
+        where: is_nil(c.end_date) or c.end_date >= ^now,
         preload: [campaign: [], media_run: [media_piece: :media_piece_type]],
         select: b
       )

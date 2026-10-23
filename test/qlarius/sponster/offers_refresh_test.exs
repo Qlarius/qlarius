@@ -245,6 +245,35 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     end
   end
 
+  describe "unlaunched campaigns are not served" do
+    test "a current offer on a draft is left out of the serving queries" do
+      ctx = setup_current_three_tap_offer!([])
+      %{me_file: me_file, campaign: campaign, offer: offer} = ctx
+      video = insert_video_offer!(ctx)
+
+      Repo.update!(Ecto.Changeset.change(campaign, %{launched_at: nil}))
+
+      assert Offers.list_current_three_tap_offers(me_file.id) == []
+      assert Offers.list_current_video_offers(me_file.id) == []
+      assert Offers.total_active_offer_amount(me_file) == nil
+      assert Repo.get!(Offer, offer.id).is_current
+      assert Repo.get!(Offer, video.id).is_current
+    end
+
+    test "a pending offer on a draft is not activated" do
+      %{me_file: me_file, campaign: campaign, offer: offer} =
+        setup_pending_three_tap_offer!(pending_until: hours_ago(1))
+
+      Repo.update!(Ecto.Changeset.change(campaign, %{launched_at: nil}))
+
+      assert {:ok, %{activated: 0}} = Offers.refresh_statuses_for_me_file(me_file.id)
+      refute Repo.get!(Offer, offer.id).is_current
+
+      assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
+      refute Repo.get!(Offer, offer.id).is_current
+    end
+  end
+
   describe "activation respects campaign dates" do
     test "does not activate a pending offer when the campaign has ended" do
       %{me_file: me_file, campaign: campaign, offer: offer} =
@@ -377,6 +406,7 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
         target_id: target.id,
         media_sequence_id: sequence.id,
         start_date: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        launched_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
         is_payable: true,
         is_throttled: false
       })
@@ -393,6 +423,61 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       target_band: target_band,
       phase_1_id: phase_1.id
     }
+  end
+
+  defp insert_video_offer!(ctx) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    unless Repo.get(MediaPieceType, 2) do
+      Repo.insert!(%MediaPieceType{
+        id: 2,
+        name: "video",
+        desc: "Video",
+        ad_phase_count_to_complete: 1,
+        base_fee: Decimal.new("0.10"),
+        markup_multiplier: Decimal.new("1.5"),
+        created_at: now
+      })
+    end
+
+    piece =
+      %MediaPiece{}
+      |> MediaPiece.changeset(%{
+        title: "Video ad",
+        media_piece_type_id: 2,
+        ad_category_id: ctx.media_piece.ad_category_id,
+        marketer_id: ctx.marketer.id,
+        active: true,
+        video_file: "clip.mp4",
+        duration: 15
+      })
+      |> Repo.insert!()
+
+    sequence =
+      %MediaSequence{}
+      |> MediaSequence.changeset(%{title: "Video seq", marketer_id: ctx.marketer.id})
+      |> Repo.insert!()
+
+    run =
+      %MediaRun{}
+      |> MediaRun.changeset(%{
+        marketer_id: ctx.marketer.id,
+        media_piece_id: piece.id,
+        media_sequence_id: sequence.id,
+        frequency: 1,
+        frequency_buffer_hours: 24,
+        maximum_banner_count: 1,
+        banner_retry_buffer_hours: 1,
+        is_active: true,
+        sequence_start_phase: 1,
+        sequence_end_phase: 1
+      })
+      |> Repo.insert!()
+
+    insert_offer!(
+      %{ctx | media_run: run, media_piece: piece},
+      %{is_current: true, pending_until: hours_ago(1)}
+    )
   end
 
   defp insert_offer!(ctx, attrs) do
