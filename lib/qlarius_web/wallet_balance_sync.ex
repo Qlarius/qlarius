@@ -357,14 +357,24 @@ defmodule QlariusWeb.WalletBalanceSync do
   end
 
   defp maybe_refresh_nudges(socket, %{trait_count: trait_count, user: %{me_file: me_file}}) do
-    if Map.has_key?(socket.assigns, :nudges) do
-      assign(socket, :nudges, Nudges.for_home(me_file, trait_count))
-    else
-      socket
+    case socket.assigns do
+      %{nudges: nudges} ->
+        if home_nudges_assign?(nudges) do
+          assign(socket, :nudges, Nudges.for_home(me_file, trait_count))
+        else
+          socket
+        end
+
+      _ ->
+        socket
     end
   end
 
   defp maybe_refresh_nudges(socket, _scope), do: socket
+
+  defp home_nudges_assign?([]), do: true
+  defp home_nudges_assign?([%Nudges.Nudge{} | _]), do: true
+  defp home_nudges_assign?(_), do: false
 
   # `/wallet` keeps a summary card and paginated ledger in assigns. The global
   # sync hook otherwise only refreshes `wallet_balance` and would leave those
