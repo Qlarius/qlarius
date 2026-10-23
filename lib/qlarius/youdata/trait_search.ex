@@ -265,7 +265,10 @@ defmodule Qlarius.YouData.TraitSearch do
         []
 
       true ->
-        from(t in Trait, where: t.parent_trait_id in ^zip_ids and t.is_active == true)
+        from(t in Trait,
+          where:
+            t.parent_trait_id in ^zip_ids and t.is_active == true and t.is_skipped_tag == false
+        )
         |> where(^zip_match_filter(prefixes, words))
         |> select_search_row()
         |> Repo.all()

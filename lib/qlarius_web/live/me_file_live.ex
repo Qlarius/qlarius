@@ -576,7 +576,7 @@ defmodule QlariusWeb.MeFileLive do
       QlariusWeb.Components.TraitComponents.protected_trait_name?(parent.trait_name) ->
         socket
 
-      parent.input_type == "single_select_zip" ->
+      parent.skip_exempt ->
         socket
 
       existing != [] ->
@@ -616,8 +616,14 @@ defmodule QlariusWeb.MeFileLive do
     end
   end
 
+  defp modal_skip_child(%{skip_exempt: true}), do: nil
+
   defp modal_skip_child(%{child_traits: children}) when is_list(children) do
     Enum.find(children, & &1.is_skipped_tag)
+  end
+
+  defp modal_skip_child(%{id: id}) when is_integer(id) do
+    Traits.active_skipped_child(id)
   end
 
   defp modal_skip_child(_), do: nil

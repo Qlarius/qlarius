@@ -1332,11 +1332,15 @@ defmodule QlariusWeb.MeFileHTML do
 
   @protected_trait_names ["Birthdate", "Age", "Sex (Bio)"]
 
-  defp modal_skip_child(%{input_type: "single_select_zip"}), do: nil
+  defp modal_skip_child(%{skip_exempt: true}), do: nil
   defp modal_skip_child(%{trait_name: name}) when name in @protected_trait_names, do: nil
 
   defp modal_skip_child(%{child_traits: children}) when is_list(children) do
     Enum.find(children, & &1.is_skipped_tag)
+  end
+
+  defp modal_skip_child(%{id: id}) when is_integer(id) do
+    Qlarius.YouData.Traits.active_skipped_child(id)
   end
 
   defp modal_skip_child(_), do: nil

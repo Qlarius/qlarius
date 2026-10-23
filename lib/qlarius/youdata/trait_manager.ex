@@ -36,13 +36,14 @@ defmodule Qlarius.YouData.TraitManager do
       child_count =
         Repo.one(
           from t in Trait,
-            where: t.parent_trait_id == ^parent.id,
+            where: t.parent_trait_id == ^parent.id and t.is_skipped_tag == false,
             select: count(t.id)
         ) || 0
 
       Map.merge(parent, %{
         child_traits: [],
-        child_traits_count: child_count
+        child_traits_count: child_count,
+        skip_child: active_skipped_child(parent.id)
       })
     else
       parent =
@@ -187,8 +188,8 @@ defmodule Qlarius.YouData.TraitManager do
 
   def update_child_trait(scope, %Trait{} = trait, attrs) do
     cond do
-      setting_skip?(attrs) && zip_child?(trait) ->
-        {:error, reject_skip(scope, trait, attrs, "Zip parents do not have a skip answer.")}
+      setting_skip?(attrs) && parent_skip_exempt?(trait) ->
+        {:error, reject_skip(scope, trait, attrs, "This parent does not have a skip answer.")}
 
       clearing_only_active_skip?(trait, attrs) ->
         {:error,
@@ -514,13 +515,12 @@ defmodule Qlarius.YouData.TraitManager do
     if parent.parent_trait_id do
       {:error, :child_under_child}
     else
-      parent = Repo.preload(parent, :child_traits)
-
       max_order =
-        case parent.child_traits do
-          [] -> 0
-          children -> Enum.map(children, & &1.display_order) |> Enum.max()
-        end
+        Repo.one(
+          from t in Trait,
+            where: t.parent_trait_id == ^parent.id,
+            select: max(t.display_order)
+        ) || 0
 
       order =
         if is_integer(attrs["display_order"]), do: attrs["display_order"], else: max_order + 1
@@ -600,15 +600,13 @@ defmodule Qlarius.YouData.TraitManager do
   Inserts the opt-out child when this parent has no active `is_skipped_tag` child.
 
   The label is insert-time copy. This does not search for an existing name.
-  Zip parents are left alone.
+  A `skip_exempt` parent, including Home Zip, is left alone. A zip parent that
+  is not exempt, such as Work Zip, gets the same skip child as any other trait.
   """
   def ensure_skipped_child(scope, %Trait{} = parent) do
     parent = Repo.preload(parent, :survey_question)
 
     cond do
-      parent.input_type == "single_select_zip" ->
-        {:ok, nil}
-
       parent.skip_exempt ->
         {:ok, nil}
 
@@ -708,7 +706,7 @@ defmodule Qlarius.YouData.TraitManager do
 
   defp clearing_only_active_skip?(%Trait{parent_trait_id: parent_id} = trait, attrs)
        when is_integer(parent_id) do
-    clearing_skip?(attrs) && trait.is_skipped_tag && trait.is_active && not zip_child?(trait) &&
+    clearing_skip?(attrs) && trait.is_skipped_tag && trait.is_active &&
       case active_skipped_child(parent_id) do
         %Trait{id: id} -> id == trait.id
         _ -> false
@@ -717,13 +715,10 @@ defmodule Qlarius.YouData.TraitManager do
 
   defp clearing_only_active_skip?(_, _), do: false
 
-  defp zip_child?(%Trait{parent_trait_id: nil}), do: false
+  defp parent_skip_exempt?(%Trait{parent_trait_id: nil}), do: false
 
-  defp zip_child?(%Trait{parent_trait_id: parent_id}) do
-    Repo.exists?(
-      from t in Trait,
-        where: t.id == ^parent_id and t.input_type == "single_select_zip"
-    )
+  defp parent_skip_exempt?(%Trait{parent_trait_id: parent_id}) do
+    Repo.exists?(from t in Trait, where: t.id == ^parent_id and t.skip_exempt == true)
   end
 
   defp clear_other_skip_flags(scope, parent_id, except_id) do

@@ -105,8 +105,11 @@ defmodule Qlarius.YouData.Traits do
     else
       Repo.all(
         from t in Trait,
+          join: p in Trait,
+          on: p.id == t.parent_trait_id,
           where:
-            t.parent_trait_id in ^parent_ids and t.is_active == true and t.is_skipped_tag == true,
+            t.parent_trait_id in ^parent_ids and t.is_active == true and t.is_skipped_tag == true and
+              p.skip_exempt == false,
           select: {t.parent_trait_id, t.id}
       )
       |> Map.new()
@@ -838,7 +841,7 @@ defmodule Qlarius.YouData.Traits do
       from t in Trait,
         where: t.parent_trait_id == ^parent_trait_id,
         where: t.trait_name == ^zip_code,
-        where: t.is_active == true,
+        where: t.is_active == true and t.is_skipped_tag == false,
         select: t
     )
   end
@@ -897,7 +900,7 @@ defmodule Qlarius.YouData.Traits do
       query =
         from t in Trait,
           where: t.parent_trait_id == ^parent_trait_id,
-          where: t.is_active == true,
+          where: t.is_active == true and t.is_skipped_tag == false,
           where: t.meta_2 == "STANDARD",
           where:
             ilike(t.trait_name, ^zip_prefix_pattern) or

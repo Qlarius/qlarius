@@ -408,7 +408,24 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     refute Enum.any?(active, &(&1["trait_name"] == "Prefer not to say"))
   end
 
-  test "zip parents are not given a skip child", %{token: token} do
+  test "a skip-exempt zip parent is not given a skip child", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "force" => true,
+        "parent" => %{
+          "trait_name" => "Zip #{unique()}",
+          "input_type" => "single_select_zip",
+          "skip_exempt" => true
+        },
+        "survey_question" => %{"text" => "Zip?"},
+        "children" => [%{"trait_name" => "00000"}]
+      })
+
+    refute Repo.get_by(Trait, parent_trait_id: created["id"], is_skipped_tag: true)
+  end
+
+  test "a zip parent that is not skip exempt is given a skip child", %{token: token} do
     created =
       api(token, :post, ~p"/api/admin/traits/design_packs", %{
         "mode" => "create",
@@ -421,7 +438,10 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
         "children" => [%{"trait_name" => "00000"}]
       })
 
-    refute Enum.any?(created["children"], & &1["is_skipped_tag"])
+    assert Repo.get_by!(Trait,
+             parent_trait_id: created["id"],
+             trait_name: "Prefer not to say"
+           ).is_skipped_tag
   end
 
   test "moves the skip answer onto another child and refuses to clear the last one", %{
@@ -466,14 +486,15 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     assert Repo.get!(Trait, knitting["id"]).is_skipped_tag
   end
 
-  test "refuses to mark a zip child as the skip answer", %{token: token} do
+  test "refuses to mark a child of a skip-exempt zip as the skip answer", %{token: token} do
     created =
       api(token, :post, ~p"/api/admin/traits/design_packs", %{
         "mode" => "create",
         "force" => true,
         "parent" => %{
           "trait_name" => "Zip #{unique()}",
-          "input_type" => "single_select_zip"
+          "input_type" => "single_select_zip",
+          "skip_exempt" => true
         },
         "survey_question" => %{"text" => "Zip?"},
         "children" => [%{"trait_name" => "00000"}]

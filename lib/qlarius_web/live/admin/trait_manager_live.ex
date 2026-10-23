@@ -73,6 +73,34 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      |> assign(:form, to_form(changeset))}
   end
 
+  def handle_event("add_skip_answer", _params, socket) do
+    scope = socket.assigns.current_scope
+    parent = socket.assigns.selected_parent_trait
+
+    cond do
+      is_nil(parent) or parent.skip_exempt ->
+        {:noreply, socket}
+
+      true ->
+        case TraitManager.ensure_skipped_child(scope, parent) do
+          {:ok, %Trait{}} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Skip answer added.")
+             |> assign(
+               :selected_parent_trait,
+               TraitManager.get_parent_trait_with_details(scope, parent.id)
+             )}
+
+          {:ok, nil} ->
+            {:noreply, put_flash(socket, :info, "This parent already has a skip answer.")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not add a skip answer.")}
+        end
+    end
+  end
+
   def handle_event("edit_parent_trait", _params, socket) do
     parent_trait = socket.assigns.selected_parent_trait
     changeset = Trait.changeset(parent_trait, %{})
@@ -524,7 +552,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                       <.child_trait_form
                         form={@form}
                         child_trait={@editing_item}
-                        show_skip={@selected_parent_trait.input_type != "single_select_zip"}
+                        show_skip={not @selected_parent_trait.skip_exempt}
                         on_save="save_child_trait"
                         on_cancel="cancel_edit"
                         on_delete={JS.push("delete_child_trait", value: %{id: @editing_item.id})}
@@ -668,6 +696,30 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         >
           Zip code data is managed automatically and cannot be edited individually.
         </.empty_state>
+        <div
+          :if={not @parent_trait.skip_exempt}
+          class="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 px-6 py-4"
+        >
+          <%= if @parent_trait.skip_child do %>
+            <span class="inline-flex items-center gap-2 text-sm">
+              <.status_badge>Skip</.status_badge>
+              {@parent_trait.skip_child.trait_name}
+            </span>
+            <.icon_button
+              icon="hero-pencil-square"
+              label="Edit skip answer"
+              phx-click="edit_child_trait"
+              phx-value-id={@parent_trait.skip_child.id}
+            />
+          <% else %>
+            <p class="text-sm text-base-content/70">
+              No skip answer yet. People can skip this zip once one exists.
+            </p>
+            <button type="button" phx-click="add_skip_answer" class="btn btn-sm btn-ghost">
+              <.icon name="hero-plus" class="size-4" /> Add skip answer
+            </button>
+          <% end %>
+        </div>
       <% else %>
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-6 py-3">
           <div class="flex items-center gap-2">
@@ -982,7 +1034,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
         <.input field={@form[:skip_exempt]} type="checkbox" label="Skip exempt" />
         <p class="text-xs text-base-content/60">
-          Required answers such as age, sex, and zip never get an automatic skip.
+          Checked parents never get an automatic skip answer. Home Zip stays checked.
         </p>
         <.input
           field={@form[:nudge_text]}

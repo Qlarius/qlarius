@@ -110,7 +110,7 @@ defmodule Qlarius.YouData.TraitIntegrity do
       from p in Trait,
         where:
           is_nil(p.parent_trait_id) and p.is_active == true and p.skip_exempt == false and
-            p.input_type != "single_select_zip" and p.id not in ^flagged,
+            p.id not in ^flagged,
         select: %{id: p.id, name: p.trait_name, parent_id: nil, parent_name: nil}
     )
     |> Enum.map(&issue("missing_skip", &1, counts, &1.id))
