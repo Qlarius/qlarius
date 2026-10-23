@@ -24,17 +24,28 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       )
     end
 
-    trait.(%{id: 1, trait_name: "Sex"})
-    trait.(%{id: 93, trait_name: "Age"})
-    trait.(%{id: 200_001, parent_trait_id: 1, trait_name: "Male"})
-    trait.(%{id: 200_093, parent_trait_id: 93, trait_name: "25-34"})
+    sex = trait.(%{id: 1, trait_name: "Sex"})
+    age = trait.(%{id: 93, trait_name: "Age"})
+    male = trait.(%{id: 200_001, parent_trait_id: sex.id, trait_name: "Male"})
+    age_25_34 = trait.(%{id: 200_093, parent_trait_id: age.id, trait_name: "25-34"})
+
+    case Repo.query!("SELECT pg_get_serial_sequence('traits', 'id')") do
+      %{rows: [[seq]]} when is_binary(seq) ->
+        Repo.query!(
+          "SELECT setval(to_regclass($1), (SELECT COALESCE(MAX(id), 1) FROM traits))",
+          [seq]
+        )
+
+      _ ->
+        :ok
+    end
 
     {:ok, %{user: user}} =
       Accounts.register_new_user(%{
         alias: "builder-lv-#{System.unique_integer([:positive])}",
         date_of_birth: ~D[1990-01-01],
-        sex_trait_id: 200_001,
-        age_trait_id: 200_093
+        sex_trait_id: male.id,
+        age_trait_id: age_25_34.id
       })
 
     %{conn: log_in_user(conn, user), user: user}
@@ -230,6 +241,27 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       assert_patch(view, ~p"/me_file_builder?q=Pottery")
       render_async(view)
       assert has_element?(view, "#builder-trait-results", "Arts and Crafts")
+    end
+
+    test "{:me_file_stats_updated, id} does not clobber Builder trait nudges", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=pottery")
+      render_async(view)
+
+      view |> element("button[aria-label='Show as Tags']") |> render_click()
+
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .trait-tag__name",
+               "Arts and Crafts"
+             )
+
+      me_file_id = Repo.preload(ctx.user, :me_file).me_file.id
+      ref = Process.monitor(view.pid)
+
+      send(view.pid, {:me_file_stats_updated, me_file_id})
+      _html = render(view)
+
+      refute_receive {:DOWN, ^ref, :process, _pid, _reason}
     end
 
     test "saving from a result shows the new tag values on that row", ctx do
