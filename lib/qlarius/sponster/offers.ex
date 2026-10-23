@@ -45,6 +45,7 @@ defmodule Qlarius.Sponster.Offers do
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file.id and o.is_current == true,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now
     )
@@ -137,6 +138,7 @@ defmodule Qlarius.Sponster.Offers do
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       order_by: [desc: o.offer_amt],
@@ -154,6 +156,7 @@ defmodule Qlarius.Sponster.Offers do
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       preload: [media_run: [media_piece: :ad_category]]
@@ -186,6 +189,7 @@ defmodule Qlarius.Sponster.Offers do
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       preload: [:media_run]
@@ -393,6 +397,7 @@ defmodule Qlarius.Sponster.Offers do
         where: o.is_throttled == false,
         where: o.pending_until <= ^now,
         where: is_nil(c.deactivated_at),
+        where: not is_nil(c.launched_at),
         where: is_nil(c.start_date) or c.start_date <= ^now,
         where: is_nil(c.end_date) or c.end_date >= ^now
       )
@@ -410,6 +415,7 @@ defmodule Qlarius.Sponster.Offers do
         where: o.is_throttled == true,
         where: o.pending_until <= ^now,
         where: is_nil(c.deactivated_at),
+        where: not is_nil(c.launched_at),
         where: is_nil(c.start_date) or c.start_date <= ^now,
         where: is_nil(c.end_date) or c.end_date >= ^now,
         order_by: [asc: o.pending_until, asc: o.id],
@@ -443,6 +449,7 @@ defmodule Qlarius.Sponster.Offers do
       where: o.is_current == true,
       where: o.is_throttled == true,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)

@@ -46,17 +46,18 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
     :ok
   end
 
-  # Every target worth keeping populations for: those driving a live campaign,
-  # plus those attached to creator content. Content-only audiences never reach a
-  # campaign, so keying this off campaigns alone would leave their populations
-  # to drift as users retag.
+  # Every target worth keeping populations for: those driving a launched campaign,
+  # plus those attached to creator content. Draft campaigns stay out, so a retag
+  # does not enroll a MeFile in an unlaunched audience. Content-only audiences
+  # never reach a campaign, so keying this off campaigns alone would leave their
+  # populations to drift as users retag.
   #
   # Returns distinct targets with bands and traits loaded once, rather than once
   # per referencing campaign — several campaigns commonly share a target.
   defp get_active_targets do
     campaign_target_ids =
       from(c in Campaign,
-        where: is_nil(c.deactivated_at) and not is_nil(c.target_id),
+        where: is_nil(c.deactivated_at) and not is_nil(c.launched_at) and not is_nil(c.target_id),
         select: c.target_id
       )
 

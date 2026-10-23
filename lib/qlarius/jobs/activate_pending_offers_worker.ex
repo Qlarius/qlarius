@@ -56,6 +56,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       where: o.is_throttled == false,
       where: o.pending_until <= ^now,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
@@ -70,6 +71,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       where: o.is_throttled == true,
       where: o.pending_until <= ^now,
       where: is_nil(c.deactivated_at),
+      where: not is_nil(c.launched_at),
       where: is_nil(c.start_date) or c.start_date <= ^now,
       where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
@@ -87,6 +89,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
         where: o.is_throttled == false,
         where: o.pending_until <= ^now,
         where: is_nil(c.deactivated_at),
+        where: not is_nil(c.launched_at),
         where: is_nil(c.start_date) or c.start_date <= ^now,
         where: is_nil(c.end_date) or c.end_date >= ^now
       )
@@ -111,6 +114,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
         where: o.is_throttled == true,
         where: o.pending_until <= ^now,
         where: is_nil(c.deactivated_at),
+        where: not is_nil(c.launched_at),
         where: is_nil(c.start_date) or c.start_date <= ^now,
         where: is_nil(c.end_date) or c.end_date >= ^now,
         order_by: [asc: o.me_file_id, asc: o.pending_until, asc: o.id],

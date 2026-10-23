@@ -29,11 +29,15 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsTest do
   end
 
   defp campaign_for!(target, marketer) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     %Campaign{}
     |> Ecto.Changeset.change(%{
       title: "C #{System.unique_integer([:positive])}",
       target_id: target.id,
-      marketer_id: marketer.id
+      marketer_id: marketer.id,
+      launched_at: now,
+      start_date: now
     })
     |> Repo.insert!()
   end
@@ -87,6 +91,19 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsTest do
 
   test "ignores a target with neither a campaign nor a content attachment", ctx do
     _orphan = target_fixture(ctx.owner, [[ctx.g_music]])
+
+    me_file = me_file_fixture([ctx.music])
+    sync!(me_file)
+
+    assert bands_for(me_file) == []
+  end
+
+  test "ignores a target whose only campaign has not launched", ctx do
+    target = target_fixture(ctx.owner, [[ctx.g_music]])
+
+    campaign_for!(target, ctx.marketer)
+    |> Ecto.Changeset.change(%{launched_at: nil})
+    |> Repo.update!()
 
     me_file = me_file_fixture([ctx.music])
     sync!(me_file)
