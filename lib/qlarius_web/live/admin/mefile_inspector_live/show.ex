@@ -11,6 +11,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
   alias Qlarius.Wallets
   alias Qlarius.Sponster.{Offer, Offers}
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.Notifications
 
   @impl true
@@ -201,12 +202,17 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   end
 
   defp assign_offers(socket) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     offers =
       from(o in Offer,
+        join: c in assoc(o, :campaign),
+        as: :campaign,
         where: o.me_file_id == ^socket.assigns.me_file_id and o.is_current == true,
         preload: [media_piece: :ad_category],
         order_by: [desc: o.offer_amt]
       )
+      |> CampaignFilters.live_now(now)
       |> Repo.all()
 
     assign(socket, :offers, offers)
