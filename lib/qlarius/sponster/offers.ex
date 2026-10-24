@@ -12,6 +12,7 @@ defmodule Qlarius.Sponster.Offers do
   alias Qlarius.Sponster.Ads.MediaPiecePhase
   alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.OfferCompletion
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.System
   alias Qlarius.Wallets.MeFileStatsBroadcaster
@@ -43,11 +44,10 @@ defmodule Qlarius.Sponster.Offers do
 
     from(o in Offer,
       join: c in assoc(o, :campaign),
-      where: o.me_file_id == ^me_file.id and o.is_current == true,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now
+      as: :campaign,
+      where: o.me_file_id == ^me_file.id and o.is_current == true
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.aggregate(:sum, :offer_amt)
   end
 
@@ -136,12 +136,11 @@ defmodule Qlarius.Sponster.Offers do
       join: mp in assoc(o, :media_piece),
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
+      as: :campaign,
       order_by: [desc: o.offer_amt],
       preload: [media_piece: :ad_category]
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.all()
     |> Enum.map(fn offer -> {offer, 0} end)
   end
@@ -153,11 +152,10 @@ defmodule Qlarius.Sponster.Offers do
       join: mp in assoc(o, :media_piece),
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
+      as: :campaign,
       preload: [media_run: [media_piece: :ad_category]]
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.all()
   end
 
@@ -185,11 +183,10 @@ defmodule Qlarius.Sponster.Offers do
       join: mp in assoc(o, :media_piece),
       join: c in assoc(o, :campaign),
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
+      as: :campaign,
       preload: [:media_run]
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.all()
   end
 
@@ -388,14 +385,13 @@ defmodule Qlarius.Sponster.Offers do
     {count, _} =
       from(o in Offer,
         join: c in assoc(o, :campaign),
+        as: :campaign,
         where: o.me_file_id == ^me_file_id,
         where: o.is_current == false,
         where: o.is_throttled == false,
-        where: o.pending_until <= ^now,
-        where: is_nil(c.deactivated_at),
-        where: is_nil(c.start_date) or c.start_date <= ^now,
-        where: is_nil(c.end_date) or c.end_date >= ^now
+        where: o.pending_until <= ^now
       )
+      |> CampaignFilters.live_now(now)
       |> Repo.update_all(set: [is_current: true, updated_at: now])
 
     count
@@ -405,16 +401,15 @@ defmodule Qlarius.Sponster.Offers do
     pending =
       from(o in Offer,
         join: c in assoc(o, :campaign),
+        as: :campaign,
         where: o.me_file_id == ^me_file_id,
         where: o.is_current == false,
         where: o.is_throttled == true,
         where: o.pending_until <= ^now,
-        where: is_nil(c.deactivated_at),
-        where: is_nil(c.start_date) or c.start_date <= ^now,
-        where: is_nil(c.end_date) or c.end_date >= ^now,
         order_by: [asc: o.pending_until, asc: o.id],
         select: o.id
       )
+      |> CampaignFilters.live_now(now)
       |> Repo.all()
 
     offer_ids =
@@ -439,14 +434,13 @@ defmodule Qlarius.Sponster.Offers do
 
     from(o in Offer,
       join: c in assoc(o, :campaign),
+      as: :campaign,
       where: o.me_file_id == ^me_file_id,
       where: o.is_current == true,
       where: o.is_throttled == true,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.one()
   end
 

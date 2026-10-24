@@ -8,6 +8,7 @@ defmodule Qlarius.Jobs.SendHourlyAdNotificationsWorker do
   alias Qlarius.Repo
   alias Qlarius.DateTime, as: QlariusDateTime
   import Ecto.Query
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
 
   @impl Oban.Worker
   def perform(_job) do
@@ -87,10 +88,15 @@ defmodule Qlarius.Jobs.SendHourlyAdNotificationsWorker do
   end
 
   defp get_active_offers(me_file_id) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
       where: o.me_file_id == ^me_file_id and o.is_current == true,
       order_by: [desc: o.offer_amt]
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.all()
   end
 end

@@ -12,6 +12,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
   alias Qlarius.Repo
   alias Qlarius.Sponster.{Offer, Offers, AdEvent}
   alias Qlarius.Sponster.Campaigns.{Campaign, Bid, TargetPopulation}
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets.MeFileStatsBroadcaster
 
@@ -66,11 +67,12 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
       from(b in Bid,
         where: b.target_band_id in ^target_band_ids,
         join: c in Campaign,
+        as: :campaign,
         on: c.id == b.campaign_id,
-        where: is_nil(c.deactivated_at),
         preload: [campaign: [], media_run: [media_piece: :media_piece_type]],
         select: b
       )
+      |> CampaignFilters.launched()
       |> Repo.all()
       |> Enum.filter(fn bid ->
         not media_run_complete_for_me_file?(me_file_id, bid.media_run_id, bid.media_run)

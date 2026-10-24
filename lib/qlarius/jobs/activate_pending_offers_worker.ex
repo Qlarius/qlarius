@@ -5,6 +5,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.Offers
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.System
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
 
@@ -52,28 +53,26 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   defp count_pending_unthrottled_offers(now) do
     from(o in Offer,
       join: c in assoc(o, :campaign),
+      as: :campaign,
       where: o.is_current == false,
       where: o.is_throttled == false,
       where: o.pending_until <= ^now,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.one()
   end
 
   defp count_pending_throttled_offers(now) do
     from(o in Offer,
       join: c in assoc(o, :campaign),
+      as: :campaign,
       where: o.is_current == false,
       where: o.is_throttled == true,
       where: o.pending_until <= ^now,
-      where: is_nil(c.deactivated_at),
-      where: is_nil(c.start_date) or c.start_date <= ^now,
-      where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.one()
   end
 
@@ -83,13 +82,12 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     {count, _} =
       from(o in Offer,
         join: c in assoc(o, :campaign),
+        as: :campaign,
         where: o.is_current == false,
         where: o.is_throttled == false,
-        where: o.pending_until <= ^now,
-        where: is_nil(c.deactivated_at),
-        where: is_nil(c.start_date) or c.start_date <= ^now,
-        where: is_nil(c.end_date) or c.end_date >= ^now
+        where: o.pending_until <= ^now
       )
+      |> CampaignFilters.live_now(now)
       |> Repo.update_all(set: [is_current: true, updated_at: now])
 
     Logger.info("ActivatePendingOffersWorker: Activated #{count} unthrottled offers")
@@ -107,12 +105,10 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     throttled_offers_by_me_file =
       from(o in Offer,
         join: c in assoc(o, :campaign),
+        as: :campaign,
         where: o.is_current == false,
         where: o.is_throttled == true,
         where: o.pending_until <= ^now,
-        where: is_nil(c.deactivated_at),
-        where: is_nil(c.start_date) or c.start_date <= ^now,
-        where: is_nil(c.end_date) or c.end_date >= ^now,
         order_by: [asc: o.me_file_id, asc: o.pending_until, asc: o.id],
         select: %{
           id: o.id,
@@ -120,6 +116,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
           campaign_id: o.campaign_id
         }
       )
+      |> CampaignFilters.live_now(now)
       |> Repo.all()
       |> Enum.group_by(& &1.me_file_id)
 
