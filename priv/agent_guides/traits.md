@@ -22,8 +22,10 @@ children, the survey question, and the answers in one transaction.
 - `survey_question.text`: the question people see.
 - `children[]`: `trait_name`, `survey_answer_text`, `display_order`, and `id`
   when reforming an existing child.
+- `children[].is_exclusive`: optional warning flag for non-skip answers like "None".
 - `deactivate_missing_children`: `true` to retire children you left out.
   Their MeFile tags stay.
+- `dry_run: true`: validate and compute the would-be pack result, then roll it back and write nothing.
 - `search_terms` on `parent` and on each child (optional, see below).
 
 ## Search terms
@@ -267,6 +269,12 @@ person holds that answer and another answer under the same parent, the tag
 shows yellow: "exclusive answer combined with other answers". Saving does
 not remove either tag. Leave the cleanup to the person.
 
+Set or clear the flag with `PATCH /api/admin/traits/:child_id` (or with a design pack):
+
+```json
+{"is_exclusive": true}
+```
+
 A skip stays a normal tag. Trait groups and targets match it, tag counts
 include it, and its freshness clock still runs. The only definition of a
 skip is `is_skipped_tag`. Do not treat a name like "Rather not say" as a
@@ -278,14 +286,15 @@ limits, does not satisfy a `requires` link, and does not trigger a
 `conflicts` link.
 
 To define exclusivity with links, `POST /api/admin/traits/:parent_id/children/:child_id/make_exclusive`.
-That adds a `conflicts` link between the child and every other active sibling,
-and skips links that already exist. Optional body: `{"note": "...", "include_inactive": false}`.
+That adds a `conflicts` link between the child and every other active non-skip sibling,
+and skips links that already exist. Optional body: `{"note": "...", "include_inactive": false, "exclude_skip": true}`.
+Set `exclude_skip: false` only to keep or create links involving the skip answer.
 The response has `created`, `skipped`, and `relationship_ids`.
 `POST .../unmake_exclusive` removes only the `conflicts` links between that
 child and its siblings.
 
 `exclusive_child_ids` on `GET /api/admin/traits/:id` and on `traits_catalog`
-lists children that conflict with every other active sibling.
+lists children that conflict with every other active non-skip sibling.
 
 When a design pack or `POST /traits/:id/children` adds a child, and a sibling
 already conflicts with all the other active children, the new child gets that

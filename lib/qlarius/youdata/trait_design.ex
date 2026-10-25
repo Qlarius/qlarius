@@ -24,6 +24,7 @@ defmodule Qlarius.YouData.TraitDesign do
     parent_params = params["parent"] || %{}
     children = params["children"]
     force = truthy?(params["force"])
+    dry_run = truthy?(params["dry_run"])
 
     cond do
       mode not in ["create", "reform"] ->
@@ -41,10 +42,27 @@ defmodule Qlarius.YouData.TraitDesign do
       true ->
         Repo.transaction(fn ->
           case do_apply(scope, mode, parent_params, children, params, force, opts) do
-            {:ok, detail} -> detail
-            {:error, reason} -> Repo.rollback(reason)
+            {:ok, detail} ->
+              if dry_run do
+                Repo.rollback({:dry_run, detail})
+              else
+                detail
+              end
+
+            {:error, reason} ->
+              Repo.rollback(reason)
           end
         end)
+        |> case do
+          {:ok, detail} ->
+            {:ok, detail |> Map.put(:dry_run, false) |> Map.put(:rolled_back, false)}
+
+          {:error, {:dry_run, detail}} ->
+            {:ok, detail |> Map.put(:dry_run, true) |> Map.put(:rolled_back, true)}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
     end
   end
 
@@ -186,7 +204,11 @@ defmodule Qlarius.YouData.TraitDesign do
     TraitManager.update_parent_trait(
       scope,
       parent,
-      attrs |> put_meta(params) |> put_search_filter(params) |> put_search_terms(params) |> put_skip_controls(params),
+      attrs
+      |> put_meta(params)
+      |> put_search_filter(params)
+      |> put_search_terms(params)
+      |> put_skip_controls(params),
       ensure_skip: false
     )
   end
@@ -228,6 +250,7 @@ defmodule Qlarius.YouData.TraitDesign do
                   params
                 )
                 |> put_skip_flag(params)
+                |> put_exclusive(params)
                 |> put_search_terms(params)
               )
               |> tag_new()
@@ -252,6 +275,7 @@ defmodule Qlarius.YouData.TraitDesign do
                   attrs
                   |> put_meta(params)
                   |> put_skip_flag(params)
+                  |> put_exclusive(params)
                   |> put_search_terms(params)
                 )
                 |> tag_existing()
@@ -480,6 +504,14 @@ defmodule Qlarius.YouData.TraitDesign do
   defp put_skip_flag(attrs, params) do
     if Map.has_key?(params, "is_skipped_tag") do
       Map.put(attrs, "is_skipped_tag", truthy?(params["is_skipped_tag"]))
+    else
+      attrs
+    end
+  end
+
+  defp put_exclusive(attrs, params) do
+    if Map.has_key?(params, "is_exclusive") do
+      Map.put(attrs, "is_exclusive", truthy?(params["is_exclusive"]))
     else
       attrs
     end

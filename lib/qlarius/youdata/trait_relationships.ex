@@ -242,10 +242,11 @@ defmodule Qlarius.YouData.TraitRelationships do
 
   def exclusive_child_ids(parent_id, opts \\ []) do
     except = MapSet.new(Keyword.get(opts, :except, []))
+    exclude_skip = Keyword.get(opts, :exclude_skip, true)
 
     ids =
       parent_id
-      |> active_child_ids()
+      |> active_child_ids(exclude_skip: exclude_skip)
       |> Enum.reject(&MapSet.member?(except, &1))
 
     exclusive_among(ids)
@@ -257,7 +258,8 @@ defmodule Qlarius.YouData.TraitRelationships do
     children =
       Repo.all(
         from t in Trait,
-          where: t.parent_trait_id in ^parent_ids and t.is_active == true,
+          where:
+            t.parent_trait_id in ^parent_ids and t.is_active == true and t.is_skipped_tag == false,
           select: {t.parent_trait_id, t.id}
       )
 
@@ -290,7 +292,13 @@ defmodule Qlarius.YouData.TraitRelationships do
   # POST /api/admin/traits/:id/children/:child_id/make_exclusive.
   def make_exclusive(parent_id, child_id, opts \\ []) do
     with {:ok, child} <- fetch_child(parent_id, child_id) do
-      siblings = sibling_ids(parent_id, child.id, Keyword.get(opts, :include_inactive, false))
+      siblings =
+        sibling_ids(
+          parent_id,
+          child.id,
+          Keyword.get(opts, :include_inactive, false),
+          Keyword.get(opts, :exclude_skip, true)
+        )
 
       Repo.transaction(fn ->
         rows = Enum.map(siblings, &link_conflict(child.id, &1, opts))
@@ -331,6 +339,13 @@ defmodule Qlarius.YouData.TraitRelationships do
     if new_ids == [] do
       []
     else
+      new_ids =
+        Repo.all(
+          from t in Trait,
+            where: t.id in ^new_ids and t.is_skipped_tag == false,
+            select: t.id
+        )
+
       parent_id
       |> exclusive_child_ids(except: new_ids)
       |> Enum.flat_map(fn exclusive_id ->
@@ -554,13 +569,14 @@ defmodule Qlarius.YouData.TraitRelationships do
     end
   end
 
-  defp sibling_ids(parent_id, child_id, include_inactive) do
+  defp sibling_ids(parent_id, child_id, include_inactive, exclude_skip) do
     query =
       from t in Trait,
         where: t.parent_trait_id == ^int(parent_id) and t.id != ^child_id,
         select: t.id
 
     query = if include_inactive, do: query, else: where(query, [t], t.is_active == true)
+    query = if exclude_skip, do: where(query, [t], t.is_skipped_tag == false), else: query
     Repo.all(query)
   end
 
@@ -568,12 +584,16 @@ defmodule Qlarius.YouData.TraitRelationships do
     Repo.all(from t in Trait, where: t.parent_trait_id == ^int(parent_id), select: t.id)
   end
 
-  defp active_child_ids(parent_id) do
-    Repo.all(
+  defp active_child_ids(parent_id, opts) do
+    exclude_skip = Keyword.get(opts, :exclude_skip, false)
+
+    query =
       from t in Trait,
         where: t.parent_trait_id == ^int(parent_id) and t.is_active == true,
         select: t.id
-    )
+
+    query = if exclude_skip, do: where(query, [t], t.is_skipped_tag == false), else: query
+    Repo.all(query)
   end
 
   defp exclusive_among(ids, pairs \\ nil) do

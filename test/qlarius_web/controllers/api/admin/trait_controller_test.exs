@@ -99,6 +99,68 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
     assert terms["Knitting"] == ["yarn", "needles"]
   end
 
+  test "PATCH /api/admin/traits/:id can set is_exclusive on a child trait", ctx do
+    body =
+      ctx.token
+      |> authed()
+      |> patch(~p"/api/admin/traits/#{ctx.pottery.id}", %{"is_exclusive" => true})
+      |> json_response(200)
+
+    assert body["id"] == ctx.pottery.id
+    assert body["is_exclusive"] == true
+    assert Repo.get!(Trait, ctx.pottery.id).is_exclusive == true
+  end
+
+  test "design packs can set is_exclusive on children", ctx do
+    body =
+      ctx.token
+      |> authed()
+      |> post(~p"/api/admin/traits/design_packs", %{
+        "mode" => "reform",
+        "parent" => %{"id" => ctx.crafts.id},
+        "survey_question" => %{"text" => "Which crafts interest you?"},
+        "children" => [
+          %{"id" => ctx.pottery.id, "trait_name" => "Pottery", "is_exclusive" => true},
+          %{"trait_name" => "Knitting"}
+        ]
+      })
+      |> json_response(200)
+
+    pottery = Enum.find(body["children"], &(&1["id"] == ctx.pottery.id))
+    assert pottery["is_exclusive"] == true
+    assert Repo.get!(Trait, ctx.pottery.id).is_exclusive == true
+  end
+
+  test "design pack dry_run validates and writes nothing", ctx do
+    parent_name = "Dry Run Parent #{System.unique_integer([:positive])}"
+    child_name = "Dry Run Child #{System.unique_integer([:positive])}"
+
+    body =
+      ctx.token
+      |> authed()
+      |> post(~p"/api/admin/traits/design_packs", %{
+        "dry_run" => true,
+        "mode" => "create",
+        "parent" => %{
+          "trait_name" => parent_name,
+          "input_type" => "multi_select"
+        },
+        "survey_question" => %{"text" => "Dry run question?"},
+        "children" => [%{"trait_name" => child_name, "is_exclusive" => true}]
+      })
+      |> json_response(200)
+
+    assert body["dry_run"] == true
+    assert body["rolled_back"] == true
+    assert is_integer(body["id"])
+    assert body["trait_name"] == parent_name
+    assert Enum.any?(body["children"], &(&1["trait_name"] == child_name))
+
+    assert Repo.get(Trait, body["id"]) == nil
+    assert Repo.get_by(Trait, trait_name: parent_name) == nil
+    assert Repo.get_by(Trait, trait_name: child_name) == nil
+  end
+
   test "catalog returns search terms on parents and children", ctx do
     ctx.crafts |> Ecto.Changeset.change(search_terms: ["crafting"]) |> Repo.update!()
     ctx.pottery |> Ecto.Changeset.change(search_terms: ["clay"]) |> Repo.update!()
