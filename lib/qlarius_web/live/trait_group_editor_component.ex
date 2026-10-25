@@ -56,7 +56,8 @@ defmodule QlariusWeb.Live.TraitGroupEditorComponent do
        heading: nil,
        submit_label: "Create Trait Group",
        zip_seed: nil,
-       on_save: nil
+       on_save: nil,
+       show_expanded_tags: false
      )}
   end
 
@@ -99,6 +100,7 @@ defmodule QlariusWeb.Live.TraitGroupEditorComponent do
         |> assign(:zip_search_term, "")
         |> assign(:zip_search_results, [])
         |> assign(:zip_search_limit, 1000)
+        |> assign(:show_expanded_tags, false)
         |> assign(:error, nil)
 
       {:error, _} ->
@@ -121,6 +123,10 @@ defmodule QlariusWeb.Live.TraitGroupEditorComponent do
   defp preselected_zips(_trait, _ids), do: []
 
   @impl true
+  def handle_event("set_tag_view", %{"expanded" => expanded}, socket) do
+    {:noreply, assign(socket, :show_expanded_tags, expanded == "true")}
+  end
+
   def handle_event("close_modal", _params, socket) do
     send(self(), {__MODULE__, :closed})
     {:noreply, close(socket)}
@@ -359,6 +365,7 @@ defmodule QlariusWeb.Live.TraitGroupEditorComponent do
         error={@error}
         zip_seed={@zip_seed}
         role_choice?={role_choice?(assigns)}
+        show_expanded_tags={@show_expanded_tags}
         phx_target={@myself}
       />
     </div>

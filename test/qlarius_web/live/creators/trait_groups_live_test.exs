@@ -8,6 +8,7 @@ defmodule QlariusWeb.Creators.TraitGroupsLiveTest do
   alias Qlarius.Accounts
   alias Qlarius.Creators
   alias Qlarius.Repo
+  alias Qlarius.YouData.Surveys.{SurveyAnswer, SurveyQuestion}
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.Traits.Trait
 
@@ -203,5 +204,47 @@ defmodule QlariusWeb.Creators.TraitGroupsLiveTest do
     view |> element("button[phx-value-role='include']") |> render_click()
     assert has_element?(view, "#trait-group-#{include.id}")
     refute has_element?(view, "#trait-group-#{anti.id}")
+  end
+
+  test "answers start as the short trait name and expand to the survey wording", %{
+    conn: conn,
+    creator: creator
+  } do
+    parent = parent_trait_fixture("Daily Diet")
+    variety = trait_fixture(parent, "Variety eater")
+
+    question =
+      Repo.insert!(%SurveyQuestion{
+        text: "Describe your daily meal.",
+        trait_id: parent.id,
+        active: "1",
+        display_order: 1,
+        added_by: 0,
+        modified_by: 0
+      })
+
+    Repo.insert!(%SurveyAnswer{
+      text: "Mixes a variety of foods without strict rules.",
+      survey_question_id: question.id,
+      trait_id: variety.id,
+      display_order: 1,
+      added_by: 0,
+      modified_by: 0
+    })
+
+    {:ok, view, _html} =
+      live(conn, ~p"/creators/#{creator.id}/trait-groups/new?parent_trait_id=#{parent.id}")
+
+    assert has_element?(view, "#trait-#{variety.id} ~ div", "Variety eater")
+    refute has_element?(view, "#trait-#{variety.id} ~ div .text-sm", "Mixes a variety")
+    assert has_element?(view, "button", "Simple")
+
+    view |> element("button", "Expanded") |> render_click()
+
+    assert has_element?(
+             view,
+             "#trait-#{variety.id} ~ div .text-sm",
+             "Mixes a variety of foods without strict rules."
+           )
   end
 end

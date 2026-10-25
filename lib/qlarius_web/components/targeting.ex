@@ -1118,6 +1118,12 @@ defmodule QlariusWeb.Components.Targeting do
     tag_option_meta(trait) != "" or tag_option_answer(trait) != ""
   end
 
+  def tag_list_toggle?(trait) do
+    Map.get(trait, :input_type) != "single_select_zip" and
+      is_list(Map.get(trait, :child_traits)) and
+      Enum.any?(trait.child_traits, &tag_option_detail?/1)
+  end
+
   def tag_option_filter?(trait) do
     Map.get(trait, :has_search_filter) == true and
       Map.get(trait, :input_type) != "single_select_zip"
@@ -1164,6 +1170,8 @@ defmodule QlariusWeb.Components.Targeting do
     default: false,
     doc: "offer the Anti-Trait Group toggle; only when creating a new group"
 
+  attr :show_expanded_tags, :boolean, default: false
+
   def trait_group_modal(assigns) do
     assigns =
       assign(
@@ -1193,10 +1201,37 @@ defmodule QlariusWeb.Components.Targeting do
           </button>
         </div>
 
-        <div class="p-4 bg-base-200 text-base-content/70 shrink-0 text-sm">
+        <div
+          :if={@parent_trait.survey_question || tag_list_toggle?(@parent_trait)}
+          class="p-4 bg-base-200 text-base-content/70 shrink-0 text-sm"
+        >
           <p :if={@parent_trait.survey_question}>
             {Phoenix.HTML.raw(@parent_trait.survey_question.text)}
           </p>
+          <.pill_join_selector
+            :if={tag_list_toggle?(@parent_trait)}
+            label="Tag list view"
+            class="mt-2"
+          >
+            <.pill_join_item
+              active={!@show_expanded_tags}
+              phx-click="set_tag_view"
+              phx-target={@phx_target}
+              phx-value-expanded="false"
+              aria-pressed={to_string(!@show_expanded_tags)}
+            >
+              Simple
+            </.pill_join_item>
+            <.pill_join_item
+              active={@show_expanded_tags}
+              phx-click="set_tag_view"
+              phx-target={@phx_target}
+              phx-value-expanded="true"
+              aria-pressed={to_string(@show_expanded_tags)}
+            >
+              Expanded
+            </.pill_join_item>
+          </.pill_join_selector>
         </div>
 
         <div
@@ -1368,7 +1403,11 @@ defmodule QlariusWeb.Components.Targeting do
                     :for={child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)}
                     data-tag-option-row
                     data-tag-option-text={tag_option_search_text(child_trait)}
-                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 dark:border-base-content/15 py-4 px-2 hover:bg-base-200/70 dark:hover:bg-base-300/35 cursor-pointer"
+                    class={[
+                      "flex gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 dark:border-base-content/15 py-4 px-2 hover:bg-base-200/70 dark:hover:bg-base-300/35 cursor-pointer",
+                      @show_expanded_tags && "items-start",
+                      !@show_expanded_tags && "items-center"
+                    ]}
                   >
                     <input
                       type="checkbox"
@@ -1376,18 +1415,19 @@ defmodule QlariusWeb.Components.Targeting do
                       value={child_trait.id}
                       id={"trait-#{child_trait.id}"}
                       checked={child_trait.id in @selected_ids}
-                      class="checkbox w-7 h-7"
+                      class={["checkbox w-7 h-7 shrink-0", @show_expanded_tags && "mt-1"]}
                     />
-                    <div class="text-lg text-base-content min-w-0">
-                      <div>
-                        {if child_trait.survey_answer &&
-                              child_trait.survey_answer.text not in [nil, ""],
-                            do: child_trait.survey_answer.text,
-                            else: child_trait.trait_name}
+                    <div class="min-w-0 flex-1">
+                      <div class="text-lg text-base-content">{child_trait.trait_name}</div>
+                      <div
+                        :if={@show_expanded_tags && tag_option_answer(child_trait) != ""}
+                        class="mt-1 text-sm text-base-content/60 whitespace-normal break-words"
+                      >
+                        {tag_option_answer(child_trait)}
                       </div>
                       <div
-                        :if={tag_option_meta(child_trait) != ""}
-                        class="text-sm text-base-content/60 whitespace-normal break-words"
+                        :if={@show_expanded_tags && tag_option_meta(child_trait) != ""}
+                        class="mt-1 text-sm text-base-content/60 whitespace-normal break-words"
                       >
                         {tag_option_meta(child_trait)}
                       </div>

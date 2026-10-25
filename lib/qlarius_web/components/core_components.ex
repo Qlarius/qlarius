@@ -164,7 +164,7 @@ defmodule QlariusWeb.CoreComponents do
 
   attr :rest, :global,
     include:
-      ~w(phx-click phx-value-type phx-value-status phx-value-expanded phx-value-mode disabled aria-pressed aria-label)
+      ~w(phx-click phx-target phx-value-type phx-value-status phx-value-expanded phx-value-mode disabled aria-pressed aria-label)
 
   slot :inner_block, required: true
 
