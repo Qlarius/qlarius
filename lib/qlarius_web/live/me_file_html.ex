@@ -173,6 +173,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :show_modal, :boolean, default: false
   attr :show_delete_confirm, :boolean, default: false
   attr :show_skip_conflict, :boolean, default: false
+  attr :show_empty_selection, :boolean, default: false
   attr :show_modal_skip, :boolean, default: false
   attr :zip_lookup_input, :string, default: ""
   attr :zip_lookup_trait, :any, default: nil
@@ -580,6 +581,15 @@ defmodule QlariusWeb.MeFileHTML do
                   </div>
                 </div>
 
+                <p
+                  :if={
+                    empty_tag_selection?(@trait_in_edit, @selected_ids) ||
+                      (@show_empty_selection && @trait_in_edit.input_type != "single_select_zip")
+                  }
+                  class="px-6 pt-3 text-sm font-medium text-error"
+                >
+                  Select at least one answer.
+                </p>
                 <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
                   <div class="shrink-0">
                     <button
@@ -617,7 +627,8 @@ defmodule QlariusWeb.MeFileHTML do
                       type="submit"
                       class="btn btn-lg btn-primary rounded-full"
                       disabled={
-                        @trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid
+                        (@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid) ||
+                          empty_tag_selection?(@trait_in_edit, @selected_ids)
                       }
                     >
                       Save
@@ -1380,6 +1391,9 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp deletable_trait?(%{trait_name: name}), do: editable_parent_trait?(name)
   defp deletable_trait?(_), do: false
+
+  defp empty_tag_selection?(%{input_type: "single_select_zip"}, _ids), do: false
+  defp empty_tag_selection?(_trait, ids), do: ids == []
 
   defp editable_parent_trait?(name), do: name not in @protected_trait_names
 

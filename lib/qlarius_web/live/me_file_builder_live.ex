@@ -37,6 +37,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             show_modal={@show_modal}
             show_delete_confirm={@show_delete_confirm}
             show_skip_conflict={@show_skip_conflict}
+            show_empty_selection={@show_empty_selection}
             show_modal_skip={@show_modal_skip}
             zip_lookup_input={@zip_lookup_input || ""}
             zip_lookup_trait={@zip_lookup_trait}
@@ -346,6 +347,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
       |> assign(:show_skip_conflict, false)
+      |> assign(:show_empty_selection, false)
       |> assign(:show_modal_skip, false)
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
@@ -444,7 +446,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
         {:noreply,
          socket
          |> assign(:selected_child_trait_ids, ids)
-         |> assign(:show_skip_conflict, false)}
+         |> assign(:show_skip_conflict, false)
+         |> assign(:show_empty_selection, false)}
 
       _ ->
         {:noreply, socket}
@@ -526,7 +529,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
      socket
      |> assign(:show_modal, false)
      |> assign(:show_delete_confirm, false)
-     |> assign(:show_skip_conflict, false)}
+     |> assign(:show_skip_conflict, false)
+     |> assign(:show_empty_selection, false)}
   end
 
   def handle_event("request_delete_confirm", _params, socket) do
@@ -599,22 +603,19 @@ defmodule QlariusWeb.MeFileBuilderLive do
     end
   end
 
-  def handle_event(
-        "save_tags",
-        %{
-          "me_file_id" => _me_file_id,
-          "trait_id" => trait_id,
-          "child_trait_ids" => child_trait_ids
-        },
-        socket
-      ) do
+  def handle_event("save_tags", %{"trait_id" => trait_id} = params, socket) do
     {trait_id, _} = Integer.parse(trait_id)
-    child_trait_ids = List.wrap(child_trait_ids)
+    child_trait_ids = child_trait_ids_from_form_params(params)
 
-    if Traits.mixed_skip_selection?(socket.assigns.trait_in_edit, child_trait_ids) do
-      {:noreply, reveal_skip_conflict(socket)}
-    else
-      persist_builder_tags(socket, trait_id, child_trait_ids)
+    cond do
+      child_trait_ids == [] ->
+        {:noreply, assign(socket, :show_empty_selection, true)}
+
+      Traits.mixed_skip_selection?(socket.assigns.trait_in_edit, child_trait_ids) ->
+        {:noreply, reveal_skip_conflict(socket)}
+
+      true ->
+        persist_builder_tags(socket, trait_id, child_trait_ids)
     end
   end
 
@@ -940,6 +941,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     |> assign(:show_modal, true)
     |> assign(:show_delete_confirm, false)
     |> assign(:show_skip_conflict, false)
+    |> assign(:show_empty_selection, false)
     |> ZipCodeLookup.initialize_zip_lookup_assigns()
     |> scroll_tag_list(suggested_ids)
   end

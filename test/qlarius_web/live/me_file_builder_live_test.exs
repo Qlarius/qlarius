@@ -129,6 +129,34 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       refute has_element?(view, "#qai-suggestion-#{ctx.suggestion.id}")
     end
 
+    test "saving with nothing selected keeps the tags and asks for an answer", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?suggestion=#{ctx.suggestion.id}")
+      render_async(view)
+      assert has_element?(view, "#trait-#{ctx.painting.id}[checked]")
+
+      render_change(view, "sync_tag_selection", %{
+        "me_file_id" => to_string(ctx.me_file.id),
+        "trait_id" => to_string(ctx.crafts.id)
+      })
+
+      assert has_element?(view, "button[type=submit][disabled]", "Save")
+      assert render(view) =~ "Select at least one answer."
+
+      render_submit(view, "save_tags", %{
+        "me_file_id" => to_string(ctx.me_file.id),
+        "trait_id" => to_string(ctx.crafts.id)
+      })
+
+      tagged =
+        ctx.me_file.id
+        |> Qlarius.YouData.MeFiles.existing_tags_per_parent_trait(ctx.crafts.id)
+        |> Enum.map(& &1.trait_id)
+
+      assert tagged == [ctx.painting.id]
+      assert has_element?(view, ".tag-edit-modal.modal-open")
+      assert render(view) =~ "Select at least one answer."
+    end
+
     test "a link to someone else's or a resolved suggestion opens nothing", ctx do
       other = Repo.insert!(%Qlarius.YouData.MeFiles.MeFile{})
       grant = insert_grant!(other, insert_client!(), %{tier: 2, scope: %{}})
