@@ -4,7 +4,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
   alias Qlarius.Sponster.Marketing
-  alias Qlarius.Sponster.Ads.{AdCategories, MediaPiece}
+  alias Qlarius.Sponster.Ads.{AdCategories, MediaFiles, MediaPiece}
   alias QlariusWeb.Components.SearchSelect
   import QlariusWeb.Components.AdsComponents, only: [video_thumbnail: 1]
   import QlariusWeb.Components.MarketerUI
@@ -266,128 +266,15 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   end
 
   defp upload_banner_and_get_filename(source_path, original_filename) do
-    ext = Path.extname(original_filename)
-    filename = "#{System.unique_integer([:positive])}#{ext}"
-
-    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
-
-    case storage do
-      Waffle.Storage.S3 ->
-        upload_banner_to_s3(source_path, filename)
-
-      _ ->
-        upload_banner_to_local(source_path, filename)
-    end
-
-    filename
+    MediaFiles.store!(source_path, original_filename, :banner)
   end
 
   defp upload_video_and_get_filename(source_path, original_filename) do
-    ext = Path.extname(original_filename)
-    filename = "#{System.unique_integer([:positive])}#{ext}"
-
-    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
-
-    case storage do
-      Waffle.Storage.S3 ->
-        upload_video_to_s3(source_path, filename)
-
-      _ ->
-        upload_video_to_local(source_path, filename)
-    end
-
-    filename
-  end
-
-  defp upload_banner_to_local(source_path, filename) do
-    dest_dir =
-      Path.join([
-        :code.priv_dir(:qlarius),
-        "static",
-        "uploads",
-        "media_pieces",
-        "banners",
-        "three_tap_banners"
-      ])
-
-    File.mkdir_p!(dest_dir)
-    dest_path = Path.join(dest_dir, filename)
-    File.cp!(source_path, dest_path)
-  end
-
-  defp upload_banner_to_s3(source_path, filename) do
-    bucket = Application.get_env(:waffle, :bucket)
-    s3_path = "uploads/media_pieces/banners/three_tap_banners/#{filename}"
-    {:ok, file_binary} = File.read(source_path)
-
-    ExAws.S3.put_object(bucket, s3_path, file_binary)
-    |> ExAws.request!()
-  end
-
-  defp upload_video_to_local(source_path, filename) do
-    dest_dir =
-      Path.join([
-        :code.priv_dir(:qlarius),
-        "static",
-        "uploads",
-        "media_pieces",
-        "videos"
-      ])
-
-    File.mkdir_p!(dest_dir)
-    dest_path = Path.join(dest_dir, filename)
-    File.cp!(source_path, dest_path)
-  end
-
-  defp upload_video_to_s3(source_path, filename) do
-    bucket = Application.get_env(:waffle, :bucket)
-    s3_path = "uploads/media_pieces/videos/#{filename}"
-    {:ok, file_binary} = File.read(source_path)
-
-    ExAws.S3.put_object(bucket, s3_path, file_binary)
-    |> ExAws.request!()
+    MediaFiles.store!(source_path, original_filename, :video)
   end
 
   defp upload_video_poster_and_get_filename(source_path, original_filename) do
-    ext = Path.extname(original_filename)
-    filename = "#{System.unique_integer([:positive])}#{ext}"
-
-    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
-
-    case storage do
-      Waffle.Storage.S3 ->
-        upload_video_poster_to_s3(source_path, filename)
-
-      _ ->
-        upload_video_poster_to_local(source_path, filename)
-    end
-
-    filename
-  end
-
-  defp upload_video_poster_to_local(source_path, filename) do
-    dest_dir =
-      Path.join([
-        :code.priv_dir(:qlarius),
-        "static",
-        "uploads",
-        "media_pieces",
-        "videos",
-        "posters"
-      ])
-
-    File.mkdir_p!(dest_dir)
-    dest_path = Path.join(dest_dir, filename)
-    File.cp!(source_path, dest_path)
-  end
-
-  defp upload_video_poster_to_s3(source_path, filename) do
-    bucket = Application.get_env(:waffle, :bucket)
-    s3_path = "uploads/media_pieces/videos/posters/#{filename}"
-    {:ok, file_binary} = File.read(source_path)
-
-    ExAws.S3.put_object(bucket, s3_path, file_binary)
-    |> ExAws.request!()
+    MediaFiles.store!(source_path, original_filename, :poster)
   end
 
   @impl true

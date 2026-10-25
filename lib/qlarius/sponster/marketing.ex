@@ -7,7 +7,7 @@ defmodule Qlarius.Sponster.Marketing do
   require Logger
   alias Qlarius.Repo
 
-  alias Qlarius.Sponster.Ads.MediaPiece
+  alias Qlarius.Sponster.Ads.{MediaFiles, MediaPiece}
 
   @doc """
   Returns the list of media_pieces.
@@ -91,100 +91,28 @@ defmodule Qlarius.Sponster.Marketing do
   end
 
   defp maybe_handle_plug_upload(%{"banner_image" => %Plug.Upload{} = upload} = attrs) do
-    ext = Path.extname(upload.filename)
-    filename = "#{System.unique_integer([:positive])}#{ext}"
-
-    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
-
-    try do
-      case storage do
-        Waffle.Storage.S3 ->
-          upload_to_s3_banner(upload.path, filename)
-
-        _ ->
-          upload_to_local_banner(upload.path, filename)
-      end
-
-      Map.put(attrs, "banner_image", filename)
-    rescue
-      error ->
-        Logger.error("Failed to upload file: #{inspect(error)}")
-        attrs
-    end
+    filename = upload_to_s3_banner(upload.path, upload.filename)
+    Map.put(attrs, "banner_image", filename)
+  rescue
+    error ->
+      Logger.error("Failed to upload file: #{inspect(error)}")
+      attrs
   end
 
   defp maybe_handle_plug_upload(%{"video_file" => %Plug.Upload{} = upload} = attrs) do
-    ext = Path.extname(upload.filename)
-    filename = "#{System.unique_integer([:positive])}#{ext}"
+    filename = MediaFiles.store!(upload.path, upload.filename, :video)
 
-    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
-
-    try do
-      case storage do
-        Waffle.Storage.S3 ->
-          upload_to_s3_video(upload.path, filename)
-
-        _ ->
-          upload_to_local_video(upload.path, filename)
-      end
-
-      Map.put(attrs, "video_file", filename)
-    rescue
-      error ->
-        Logger.error("Failed to upload video file: #{inspect(error)}")
-        attrs
-    end
+    Map.put(attrs, "video_file", filename)
+  rescue
+    error ->
+      Logger.error("Failed to upload video file: #{inspect(error)}")
+      attrs
   end
 
   defp maybe_handle_plug_upload(attrs), do: attrs
 
-  defp upload_to_local_banner(source_path, filename) do
-    dest_dir =
-      Path.join([
-        :code.priv_dir(:qlarius),
-        "static",
-        "uploads",
-        "media_pieces",
-        "banners",
-        "three_tap_banners"
-      ])
-
-    File.mkdir_p!(dest_dir)
-    dest_path = Path.join(dest_dir, filename)
-    File.cp!(source_path, dest_path)
-  end
-
-  defp upload_to_s3_banner(source_path, filename) do
-    bucket = Application.get_env(:waffle, :bucket)
-    s3_path = "uploads/media_pieces/banners/three_tap_banners/#{filename}"
-    {:ok, file_binary} = File.read(source_path)
-
-    ExAws.S3.put_object(bucket, s3_path, file_binary)
-    |> ExAws.request!()
-  end
-
-  defp upload_to_local_video(source_path, filename) do
-    dest_dir =
-      Path.join([
-        :code.priv_dir(:qlarius),
-        "static",
-        "uploads",
-        "media_pieces",
-        "videos"
-      ])
-
-    File.mkdir_p!(dest_dir)
-    dest_path = Path.join(dest_dir, filename)
-    File.cp!(source_path, dest_path)
-  end
-
-  defp upload_to_s3_video(source_path, filename) do
-    bucket = Application.get_env(:waffle, :bucket)
-    s3_path = "uploads/media_pieces/videos/#{filename}"
-    {:ok, file_binary} = File.read(source_path)
-
-    ExAws.S3.put_object(bucket, s3_path, file_binary)
-    |> ExAws.request!()
+  defp upload_to_s3_banner(source_path, original_filename) do
+    MediaFiles.store!(source_path, original_filename, :banner)
   end
 
   @doc """
