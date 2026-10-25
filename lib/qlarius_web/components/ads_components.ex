@@ -382,6 +382,7 @@ defmodule QlariusWeb.Components.AdsComponents do
       <video
         id="video-player"
         phx-hook="VideoPlayer"
+        phx-update="ignore"
         data-payment-collected={@video_payment_collected}
         data-is-replay={@show_replay_button || @video_payment_collected}
         class="absolute inset-0 h-full w-full object-contain"

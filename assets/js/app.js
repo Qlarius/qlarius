@@ -2693,9 +2693,19 @@ Hooks.VideoPlayer = {
     
     // Installed app (iOS or Android): fullscreen each time playback starts,
     // including replay. Completion leaves it and returns to the page.
+    // iOS ignores webkitExitFullscreen once `ended` has fired, so ask to
+    // leave in the last moment of playback instead.
     if (isPWA) {
       this._enterFullscreenOnPlay = () => this.enterPlaybackFullscreen()
       this.video.addEventListener('play', this._enterFullscreenOnPlay)
+      this._exitNearEnd = () => {
+        const video = this.video
+        if (this._exitRequested || !video.duration || !isFinite(video.duration)) return
+        if (video.currentTime < video.duration - 0.3) return
+        if (!this.inPlaybackFullscreen() && !(detectIosPwa() && video.playsInline === false)) return
+        this.requestPlaybackExit()
+      }
+      this.video.addEventListener('timeupdate', this._exitNearEnd)
     }
     
     // Countdown starts once the poster is painted, so the slide-over
@@ -2713,6 +2723,7 @@ Hooks.VideoPlayer = {
         this.pushEvent('video_watched_complete', {})
       }
       
+      this._exitRequested = true
       this.exitPlaybackFullscreen()
       this.showPosterWithPlayIcon()
     })
@@ -2720,7 +2731,8 @@ Hooks.VideoPlayer = {
     // Leaving fullscreen (the system player on iOS, or the element on Android)
     // can land on the last frame. Put the poster back if the ad has finished.
     this._onFullscreenExit = () => {
-      if (this.video.ended || this._posterRestored) this.showPosterWithPlayIcon()
+      if (this.inPlaybackFullscreen()) return
+      if (this.video.ended || this._posterAfterExit) this.showPosterWithPlayIcon()
     }
     this.video.addEventListener('webkitendfullscreen', this._onFullscreenExit)
     document.addEventListener('fullscreenchange', this._onFullscreenExit)
@@ -2783,12 +2795,17 @@ Hooks.VideoPlayer = {
     this.video.setAttribute('webkit-playsinline', '')
   },
 
+  inPlaybackFullscreen() {
+    const video = this.video
+    return !!(video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement)
+  },
+
   enterPlaybackFullscreen() {
     const video = this.video
     // Reloading to bring the poster back can emit a play event. That is not
     // the ad starting again.
-    if (this._posterRestored) return
-    if (video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement) return
+    if (this._posterRestored || this._exitRequested) return
+    if (this.inPlaybackFullscreen()) return
     if (detectIosPwa()) this.enterIosFullscreen()
     else this.enterElementFullscreen()
   },
@@ -2810,12 +2827,21 @@ Hooks.VideoPlayer = {
     if (typeof request === 'function') request.call(video).catch(() => {})
   },
 
+  requestPlaybackExit() {
+    if (this._exitRequested) return
+    this._exitRequested = true
+    this.exitPlaybackFullscreen()
+  },
+
   exitPlaybackFullscreen() {
     const video = this.video
     const leave = () => {
-      if (video.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === 'function') {
-        video.webkitExitFullscreen()
-      } else if (document.fullscreenElement && document.exitFullscreen) {
+      // The iOS system player can be up while webkitDisplayingFullscreen is
+      // already false, and it only leaves if asked on the element itself.
+      try {
+        if (typeof video.webkitExitFullscreen === 'function') video.webkitExitFullscreen()
+      } catch (_e) {}
+      if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {})
       } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
         document.webkitExitFullscreen()
@@ -2855,6 +2881,8 @@ Hooks.VideoPlayer = {
   
   hidePosterAndPlay() {
     this._posterRestored = false
+    this._exitRequested = false
+    this._posterAfterExit = false
     const posterOverlay = document.getElementById('video-poster-overlay')
     if (posterOverlay) {
       posterOverlay.style.display = 'none'
@@ -2877,9 +2905,15 @@ Hooks.VideoPlayer = {
       posterOverlay.style.display = ''
       posterOverlay.classList.remove('pointer-events-none')
     }
+    this.showPlayIcon()
+    // Flipping playsinline or reloading while the system player is up cancels
+    // the exit and leaves the finished ad full screen.
+    if (this.inPlaybackFullscreen()) {
+      this._posterAfterExit = true
+      return
+    }
     this.keepInline()
     this.video.controls = false
-    this.showPlayIcon()
     this.restorePosterFrame()
   },
 
@@ -2891,7 +2925,7 @@ Hooks.VideoPlayer = {
     if (!video || this._posterRestored) return
     // Wait until the system player has closed. Reloading while it is up
     // leaves the last frame in place.
-    if (video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement) return
+    if (this.inPlaybackFullscreen()) return
     this._posterRestored = true
     try { video.pause() } catch (_e) {}
     video.load()
@@ -2916,7 +2950,8 @@ Hooks.VideoPlayer = {
     // A re-render puts `controls` back on the tag and the iOS play button
     // covers the number again. Once the ad has finished, keep the poster up
     // across that patch.
-    if (this.video.ended || this._posterRestored) this.showPosterWithPlayIcon()
+    if (this.inPlaybackFullscreen()) return
+    if (this.video.ended || this._posterRestored || this._posterAfterExit) this.showPosterWithPlayIcon()
     else this.suppressNativePlayButton()
   },
   
@@ -2924,6 +2959,9 @@ Hooks.VideoPlayer = {
     this._posterSettled = true
     if (this._enterFullscreenOnPlay) {
       this.video.removeEventListener('play', this._enterFullscreenOnPlay)
+    }
+    if (this._exitNearEnd) {
+      this.video.removeEventListener('timeupdate', this._exitNearEnd)
     }
     if (this._onFullscreenExit) {
       this.video.removeEventListener('webkitendfullscreen', this._onFullscreenExit)
