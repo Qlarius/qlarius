@@ -1202,36 +1202,10 @@ defmodule QlariusWeb.Components.Targeting do
         </div>
 
         <div
-          :if={@parent_trait.survey_question || tag_list_toggle?(@parent_trait)}
+          :if={@parent_trait.survey_question}
           class="p-4 bg-base-200 text-base-content/70 shrink-0 text-sm"
         >
-          <p :if={@parent_trait.survey_question}>
-            {Phoenix.HTML.raw(@parent_trait.survey_question.text)}
-          </p>
-          <.pill_join_selector
-            :if={tag_list_toggle?(@parent_trait)}
-            label="Tag list view"
-            class="mt-2"
-          >
-            <.pill_join_item
-              active={!@show_expanded_tags}
-              phx-click="set_tag_view"
-              phx-target={@phx_target}
-              phx-value-expanded="false"
-              aria-pressed={to_string(!@show_expanded_tags)}
-            >
-              Simple
-            </.pill_join_item>
-            <.pill_join_item
-              active={@show_expanded_tags}
-              phx-click="set_tag_view"
-              phx-target={@phx_target}
-              phx-value-expanded="true"
-              aria-pressed={to_string(@show_expanded_tags)}
-            >
-              Expanded
-            </.pill_join_item>
-          </.pill_join_selector>
+          <p>{Phoenix.HTML.raw(@parent_trait.survey_question.text)}</p>
         </div>
 
         <div
@@ -1397,6 +1371,27 @@ defmodule QlariusWeb.Components.Targeting do
                 </div>
               <% else %>
                 <div class="divider">Select Traits</div>
+
+                <.pill_join_selector :if={tag_list_toggle?(@parent_trait)} label="Tag list view">
+                  <.pill_join_item
+                    active={!@show_expanded_tags}
+                    phx-click="set_tag_view"
+                    phx-target={@phx_target}
+                    phx-value-expanded="false"
+                    aria-pressed={to_string(!@show_expanded_tags)}
+                  >
+                    Simple
+                  </.pill_join_item>
+                  <.pill_join_item
+                    active={@show_expanded_tags}
+                    phx-click="set_tag_view"
+                    phx-target={@phx_target}
+                    phx-value-expanded="true"
+                    aria-pressed={to_string(@show_expanded_tags)}
+                  >
+                    Expanded
+                  </.pill_join_item>
+                </.pill_join_selector>
 
                 <div :if={@parent_trait.child_traits} class="py-0">
                   <label
