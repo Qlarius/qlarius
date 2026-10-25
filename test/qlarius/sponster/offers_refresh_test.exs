@@ -262,6 +262,32 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     end
   end
 
+  describe "draft campaigns are never served or activated" do
+    test "does not list offers for an unlaunched campaign" do
+      %{me_file: me_file, campaign: campaign, offer: offer, phase_1_id: phase_1_id} =
+        setup_current_three_tap_offer!(
+          maximum_banner_count: 3,
+          banner_retry_buffer_hours: 10
+        )
+
+      insert_banner_event!(offer, phase_1_id, created_at: hours_ago(11))
+
+      Repo.update!(Ecto.Changeset.change(campaign, %{launched_at: nil}))
+
+      assert Offers.list_current_three_tap_offers(me_file.id) == []
+    end
+
+    test "does not activate pending offers for an unlaunched campaign" do
+      %{me_file: me_file, campaign: campaign, offer: offer} =
+        setup_pending_three_tap_offer!(pending_until: hours_ago(1))
+
+      Repo.update!(Ecto.Changeset.change(campaign, %{launched_at: nil}))
+
+      assert {:ok, %{activated: 0}} = Offers.refresh_statuses_for_me_file(me_file.id)
+      refute Repo.get!(Offer, offer.id).is_current
+    end
+  end
+
   defp setup_current_three_tap_offer!(opts) do
     ctx = build_three_tap_context!(opts)
 
@@ -376,7 +402,8 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
         title: "Campaign #{System.unique_integer()}",
         target_id: target.id,
         media_sequence_id: sequence.id,
-        start_date: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        start_date: now,
+        launched_at: now,
         is_payable: true,
         is_throttled: false
       })

@@ -9,6 +9,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
   alias Qlarius.Sponster.{AdEvent, Offer}
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Campaigns.CampaignFilters
 
   @type t :: %__MODULE__{}
 
@@ -130,27 +131,42 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
   end
 
   def ad_offer_count(me_file) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
       where: o.me_file_id == ^me_file.id and o.is_current == true
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.aggregate(:count)
   end
 
   def three_tap_ad_offer_count(me_file) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
       join: mr in assoc(o, :media_run),
       join: mp in assoc(mr, :media_piece),
       where: o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 1
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.aggregate(:count)
   end
 
   def video_ad_offer_count(me_file) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
       join: mr in assoc(o, :media_run),
       join: mp in assoc(mr, :media_piece),
       where: o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 2
     )
+    |> CampaignFilters.live_now(now)
     |> Repo.aggregate(:count)
   end
 

@@ -1,11 +1,8 @@
 defmodule QlariusWeb.SponsterRecipientSurface do
-  import Ecto.Query, except: [update: 2, update: 3]
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [put_flash: 3, push_event: 3]
 
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Repo
-  alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Wallets
@@ -703,16 +700,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
         me_file_id = scope.user.me_file.id
 
         active_offers = Offers.list_current_three_tap_offers(me_file_id)
-
-        video_query =
-          from(o in Offer,
-            join: mp in assoc(o, :media_piece),
-            where:
-              o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
-            preload: [media_run: [media_piece: :ad_category]]
-          )
-
-        video_offers = Repo.all(video_query)
+        video_offers = Offers.list_current_video_offers(me_file_id)
 
         video_offers_with_rate =
           Enum.map(video_offers, fn offer ->
