@@ -87,6 +87,41 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
            )
   end
 
+  test "make_exclusive does not link the skipped-tag child by default", ctx do
+    skip =
+      Repo.insert!(%Trait{
+        trait_name: "Prefer not to say",
+        input_type: ctx.parent.input_type,
+        display_order: 99,
+        parent_trait_id: ctx.parent.id,
+        trait_category_id: ctx.parent.trait_category_id,
+        is_active: true,
+        is_skipped_tag: true,
+        is_exclusive: true,
+        modified_by: 0,
+        added_by: 0
+      })
+
+    body =
+      ctx.token
+      |> authed()
+      |> post(~p"/api/admin/traits/#{ctx.parent.id}/children/#{ctx.none.id}/make_exclusive", %{})
+      |> json_response(200)
+
+    assert body["created"] == 2
+
+    refute Repo.get_by(TraitRelationship,
+             trait_id: min(ctx.none.id, skip.id),
+             related_trait_id: max(ctx.none.id, skip.id),
+             kind: "conflicts"
+           )
+
+    shown =
+      ctx.token |> authed() |> get(~p"/api/admin/traits/#{ctx.parent.id}") |> json_response(200)
+
+    assert ctx.none.id in shown["exclusive_child_ids"]
+  end
+
   test "a new child inherits an exclusive sibling's conflicts", ctx do
     ctx.token
     |> authed()

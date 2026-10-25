@@ -83,10 +83,13 @@ paths:
         "200":
           description: Parent detail
     patch:
-      summary: Update a parent trait
+      summary: Update a parent trait, or update a child trait by id
+      description: >
+        If {id} is a parent id, updates the parent fields.
+        If {id} is a child id, updates the child fields, including is_exclusive.
       responses:
         "200":
-          description: Updated parent detail
+          description: Updated parent detail (for parents) or updated child detail (for children)
         "422":
           description: Protected parent, invalid input_type, or multiple tags without force
   /api/admin/traits/design_packs:
@@ -107,7 +110,9 @@ paths:
               properties:
                 mode: {type: string, enum: [create, reform]}
                 force: {type: boolean}
+                dry_run: {type: boolean}
                 deactivate_missing_children: {type: boolean}
+                extend_exclusive_conflicts: {type: boolean}
                 parent:
                   type: object
                   properties:
@@ -137,6 +142,7 @@ paths:
                       display_order: {type: integer}
                       is_active: {type: boolean}
                       is_skipped_tag: {type: boolean}
+                      is_exclusive: {type: boolean}
                       survey_answer_text: {type: string, maxLength: 4096}
                       meta_1: {type: string, nullable: true}
                       meta_2: {type: string, nullable: true}
@@ -149,7 +155,9 @@ paths:
                     display_order: {type: integer}
       responses:
         "200":
-          description: Parent detail plus deactivated_child_ids and deactivated_tag_count
+          description: >
+            Parent detail plus deactivated_child_ids and deactivated_tag_count.
+            When dry_run is true, the response includes dry_run true and rolled_back true.
         "422":
           description: Empty pack, ambiguous hint, protected parent, or validation error
   /api/admin/traits/{id}/lookup:
@@ -180,6 +188,31 @@ paths:
       responses:
         "200":
           description: Updated child
+  /api/admin/traits/{id}/children/{child_id}/make_exclusive:
+    post:
+      summary: Add conflicts links from one child to its siblings
+      description: >
+        Adds conflicts links between the child and every other active non-skip sibling.
+        Use exclude_skip false only to keep or create links involving the skip answer.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: {type: string}
+                include_inactive: {type: boolean}
+                exclude_skip: {type: boolean}
+      responses:
+        "200":
+          description: Summary with created, skipped, and relationship_ids
+  /api/admin/traits/{id}/children/{child_id}/unmake_exclusive:
+    post:
+      summary: Remove conflicts links between a child and its siblings
+      responses:
+        "200":
+          description: Summary with deleted and relationship_ids
   /api/admin/traits/{id}/deactivate:
     post:
       summary: Soft-deactivate a trait

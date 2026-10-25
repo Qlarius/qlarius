@@ -88,15 +88,28 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     scope = conn.assigns.current_scope
     force = truthy?(params["force"])
 
-    with {:ok, trait} <- TraitManager.fetch_trait(scope, id),
-         :ok <- parent_only(trait),
-         :ok <- TraitGuards.ensure_input_type_change(trait, params["input_type"], force),
-         {:ok, trait} <- TraitManager.update_parent_trait(scope, trait, parent_attrs(params)) do
-      json(
-        conn,
-        parent_json(TraitManager.get_parent_trait_with_details(scope, id))
-        |> Map.put(:inserted_children, brief_children(trait.inserted_children))
-      )
+    with {:ok, trait} <- TraitManager.fetch_trait(scope, id) do
+      if is_nil(trait.parent_trait_id) do
+        with :ok <- TraitGuards.ensure_input_type_change(trait, params["input_type"], force),
+             {:ok, trait} <- TraitManager.update_parent_trait(scope, trait, parent_attrs(params)) do
+          json(
+            conn,
+            parent_json(TraitManager.get_parent_trait_with_details(scope, id))
+            |> Map.put(:inserted_children, brief_children(trait.inserted_children))
+          )
+        else
+          {:error, reason} -> Responder.error(conn, reason)
+        end
+      else
+        with {:ok, parent} <- TraitManager.fetch_trait(scope, trait.parent_trait_id),
+             :ok <- parent_only(parent),
+             :ok <- TraitGuards.ensure_child_mutation(parent, force),
+             {:ok, child} <- TraitManager.update_child_trait(scope, trait, child_attrs(params)) do
+          json(conn, child_json(child))
+        else
+          {:error, reason} -> Responder.error(conn, reason)
+        end
+      end
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
@@ -154,7 +167,8 @@ defmodule QlariusWeb.Api.Admin.TraitController do
   def make_exclusive(conn, %{"id" => parent_id, "child_id" => child_id} = params) do
     opts = [
       note: params["note"],
-      include_inactive: truthy?(params["include_inactive"])
+      include_inactive: truthy?(params["include_inactive"]),
+      exclude_skip: exclude_skip?(params)
     ]
 
     case TraitRelationships.make_exclusive(parent_id, child_id, opts) do
@@ -196,16 +210,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
          {:ok, child} <- TraitManager.fetch_trait(scope, child_id),
          :ok <- child_of(parent, child),
          {:ok, child} <- TraitManager.update_child_trait(scope, child, child_attrs(params)) do
-      json(conn, %{
-        id: child.id,
-        trait_name: child.trait_name,
-        display_order: child.display_order,
-        is_active: child.is_active,
-        meta_1: child.meta_1,
-        meta_2: child.meta_2,
-        meta_3: child.meta_3,
-        search_terms: child.search_terms
-      })
+      json(conn, child_json(child))
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
@@ -310,6 +315,21 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     end)
   end
 
+  defp child_json(child) do
+    %{
+      id: child.id,
+      trait_name: child.trait_name,
+      display_order: child.display_order,
+      is_active: child.is_active,
+      meta_1: child.meta_1,
+      meta_2: child.meta_2,
+      meta_3: child.meta_3,
+      search_terms: child.search_terms,
+      is_skipped_tag: child.is_skipped_tag,
+      is_exclusive: child.is_exclusive
+    }
+  end
+
   defp put_skip_flag(attrs, params) do
     if Map.has_key?(params, "is_skipped_tag") do
       Map.put(attrs, "is_skipped_tag", truthy?(params["is_skipped_tag"]))
@@ -350,15 +370,20 @@ defmodule QlariusWeb.Api.Admin.TraitController do
 
     value =
       cond do
-        is_integer(raw) -> raw / 1
-        is_float(raw) -> raw
+        is_integer(raw) ->
+          raw / 1
+
+        is_float(raw) ->
+          raw
+
         is_binary(raw) ->
           case Float.parse(raw) do
             {n, _} -> n
             :error -> 15.0
           end
 
-        true -> 15.0
+        true ->
+          15.0
       end
 
     if value <= 1, do: value, else: value / 100
@@ -455,6 +480,13 @@ defmodule QlariusWeb.Api.Admin.TraitController do
   defp meta_value(_), do: nil
 
   defp truthy?(value), do: value in [true, "true", "1", 1]
+
+  defp exclude_skip?(params) when is_map(params) do
+    case Map.get(params, "exclude_skip") do
+      nil -> true
+      value -> truthy?(value)
+    end
+  end
 
   defp integer(value) when is_integer(value), do: value
 
