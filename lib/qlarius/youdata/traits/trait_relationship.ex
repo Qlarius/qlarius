@@ -1,10 +1,24 @@
 defmodule Qlarius.YouData.Traits.TraitRelationship do
+  @moduledoc """
+  A link between two traits.
+
+    * `conflicts` — the two should not both be true of one person. Symmetric,
+      stored smaller id first. Read by MeFile data quality.
+    * `requires` — holding `trait` usually means holding `related_trait`.
+      Directed. Read by MeFile data quality.
+    * `excludes` — a marketer who targets `trait` will (hard) or may (soft)
+      want to keep out people holding `related_trait`. Directed: "Burgers
+      excludes Vegan" says nothing about a vegan restaurant, which may happily
+      court burger eaters. Read only by the target editor's Anti-Trait Group
+      suggestions.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 
   alias Qlarius.YouData.Traits.Trait
 
-  @kinds ~w(conflicts requires)
+  @kinds ~w(conflicts requires excludes)
   @severities ~w(hard soft)
 
   schema "trait_relationships" do
@@ -40,11 +54,13 @@ defmodule Qlarius.YouData.Traits.TraitRelationship do
     )
   end
 
-  # Requires stays a yellow miss and does not use severity. A blank conflict
-  # severity is the historical hard link.
+  def directed?(%{kind: kind}), do: kind in ["requires", "excludes"]
+
+  # Requires stays a yellow miss and does not use severity. A blank conflict or
+  # excludes severity is hard.
   defp normalize_severity(changeset) do
     case get_field(changeset, :kind) do
-      "conflicts" ->
+      kind when kind in ["conflicts", "excludes"] ->
         case get_field(changeset, :severity) do
           severity when severity in [nil, ""] -> put_change(changeset, :severity, "hard")
           _ -> changeset

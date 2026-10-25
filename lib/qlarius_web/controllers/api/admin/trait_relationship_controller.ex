@@ -6,8 +6,12 @@ defmodule QlariusWeb.Api.Admin.TraitRelationshipController do
 
   def index(conn, params) do
     kind = params["type"] || params["kind"]
+    direction = params["direction"]
 
     cond do
+      direction not in [nil, "", "from", "to"] ->
+        Responder.error(conn, :invalid_direction)
+
       parent_id = integer(params["parent_id"]) ->
         relationships =
           parent_id
@@ -19,7 +23,7 @@ defmodule QlariusWeb.Api.Admin.TraitRelationshipController do
       trait_id = integer(params["trait_id"]) ->
         relationships =
           trait_id
-          |> TraitRelationships.list_for_parent(kind)
+          |> TraitRelationships.list_for_parent(kind, direction)
           |> Enum.map(&TraitRelationships.to_json/1)
 
         json(conn, %{relationships: relationships})

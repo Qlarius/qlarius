@@ -6,6 +6,7 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
   alias Qlarius.Creators.Creator
 
   alias Qlarius.Sponster.Campaigns.{
+    BandMatch,
     Target,
     TargetBand,
     TargetBandTraitGroup,
@@ -143,39 +144,94 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     |> Repo.one!()
   end
 
-  def add_trait_group_to_band(band_id, trait_group_id) do
-    existing =
-      from(tbtg in TargetBandTraitGroup,
-        join: tb in TargetBand,
-        on: tbtg.target_band_id == tb.id,
-        where: tb.target_id == ^get_target_id_for_band(band_id),
-        where: tbtg.trait_group_id == ^trait_group_id
-      )
-      |> Repo.one()
+  @doc """
+  Adds a group to a band.
 
-    if existing do
-      {:error, :trait_group_already_in_target}
-    else
-      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+  Refused when the group is already on the target (`scope: :band` relaxes this
+  to the band alone, for attaching one group to several rings), when an
+  Anti-Trait Group would be the band's only group (`:include_group_required`),
+  or when the group shares a trait with a group of the opposite role already on
+  the band (`:trait_in_both_roles`), since that would admit and remove the same
+  people.
+  """
+  def add_trait_group_to_band(band_id, trait_group_id, opts \\ []) do
+    band = get_target_band!(band_id)
+    group = Repo.get!(TraitGroup, trait_group_id) |> Repo.preload(:traits)
 
-      %TargetBandTraitGroup{}
-      |> TargetBandTraitGroup.changeset(%{
-        target_band_id: band_id,
-        trait_group_id: trait_group_id
-      })
-      |> Ecto.Changeset.put_change(:created_at, now)
-      |> Ecto.Changeset.put_change(:updated_at, now)
-      |> Repo.insert()
+    cond do
+      Keyword.get(opts, :scope, :target) == :target and
+          group_on_target?(band.target_id, group.id) ->
+        {:error, :trait_group_already_in_target}
+
+      Enum.any?(band.trait_groups, &(&1.id == group.id)) ->
+        {:error, :trait_group_already_in_target}
+
+      TraitGroup.anti?(group) and include_groups(band.trait_groups) == [] ->
+        {:error, :include_group_required}
+
+      (overlap = opposite_role_overlap(band.trait_groups, group)) != [] ->
+        {:error, {:trait_in_both_roles, overlap}}
+
+      true ->
+        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+        %TargetBandTraitGroup{}
+        |> TargetBandTraitGroup.changeset(%{
+          target_band_id: band_id,
+          trait_group_id: trait_group_id
+        })
+        |> Ecto.Changeset.put_change(:created_at, now)
+        |> Ecto.Changeset.put_change(:updated_at, now)
+        |> Repo.insert()
     end
   end
 
-  def remove_trait_group_from_band(band_id, trait_group_id) do
+  defp group_on_target?(target_id, trait_group_id) do
     from(tbtg in TargetBandTraitGroup,
-      where: tbtg.target_band_id == ^band_id and tbtg.trait_group_id == ^trait_group_id
+      join: tb in TargetBand,
+      on: tbtg.target_band_id == tb.id,
+      where: tb.target_id == ^target_id and tbtg.trait_group_id == ^trait_group_id
     )
-    |> Repo.delete_all()
+    |> Repo.exists?()
+  end
 
-    {:ok, :removed}
+  @doc """
+  Trait ids `group` shares with groups of the opposite role in `groups`.
+  """
+  def opposite_role_overlap(groups, group) do
+    group = Repo.preload(group, :traits)
+    mine = MapSet.new(group.traits, & &1.id)
+
+    groups
+    |> Enum.reject(&(&1.role == group.role))
+    |> Repo.preload(:traits)
+    |> Enum.flat_map(& &1.traits)
+    |> Enum.map(& &1.id)
+    |> Enum.filter(&MapSet.member?(mine, &1))
+    |> Enum.uniq()
+  end
+
+  def include_groups(groups), do: Enum.reject(groups, &TraitGroup.anti?/1)
+  def anti_groups(groups), do: Enum.filter(groups, &TraitGroup.anti?/1)
+
+  @doc """
+  Removes a group from a band. The last include group cannot leave while
+  Anti-Trait Groups remain, since a band of only anti-groups matches nobody.
+  """
+  def remove_trait_group_from_band(band_id, trait_group_id) do
+    band = get_target_band!(band_id)
+    remaining = Enum.reject(band.trait_groups, &(&1.id == trait_group_id))
+
+    if include_groups(remaining) == [] and anti_groups(remaining) != [] do
+      {:error, :include_group_required}
+    else
+      from(tbtg in TargetBandTraitGroup,
+        where: tbtg.target_band_id == ^band_id and tbtg.trait_group_id == ^trait_group_id
+      )
+      |> Repo.delete_all()
+
+      {:ok, :removed}
+    end
   end
 
   def create_outer_band(target_id, excluded_trait_group_id) do
@@ -184,38 +240,41 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     if !outermost_band do
       {:error, :no_bands_exist}
     else
-      trait_group_ids =
-        outermost_band.trait_groups
-        |> Enum.map(& &1.id)
-        |> Enum.reject(&(&1 == excluded_trait_group_id))
+      kept_groups = Enum.reject(outermost_band.trait_groups, &(&1.id == excluded_trait_group_id))
+      trait_group_ids = Enum.map(kept_groups, & &1.id)
 
-      if trait_group_ids == [] do
-        {:error, :cannot_create_empty_band}
-      else
-        {:ok, new_band} =
-          %TargetBand{}
-          |> TargetBand.changeset(%{
-            target_id: target_id,
-            is_bullseye: "0",
-            user_created_by: outermost_band.user_created_by
-          })
-          |> Repo.insert()
+      cond do
+        trait_group_ids == [] ->
+          {:error, :cannot_create_empty_band}
 
-        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        include_groups(kept_groups) == [] ->
+          {:error, :include_group_required}
 
-        associations =
-          Enum.map(trait_group_ids, fn tg_id ->
-            %{
-              target_band_id: new_band.id,
-              trait_group_id: tg_id,
-              created_at: now,
-              updated_at: now
-            }
-          end)
+        true ->
+          {:ok, new_band} =
+            %TargetBand{}
+            |> TargetBand.changeset(%{
+              target_id: target_id,
+              is_bullseye: "0",
+              user_created_by: outermost_band.user_created_by
+            })
+            |> Repo.insert()
 
-        Repo.insert_all(TargetBandTraitGroup, associations)
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-        {:ok, new_band}
+          associations =
+            Enum.map(trait_group_ids, fn tg_id ->
+              %{
+                target_band_id: new_band.id,
+                trait_group_id: tg_id,
+                created_at: now,
+                updated_at: now
+              }
+            end)
+
+          Repo.insert_all(TargetBandTraitGroup, associations)
+
+          {:ok, new_band}
       end
     end
   end
@@ -244,10 +303,23 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
   end
 
   def get_outermost_band(target_id) do
-    bands = get_bands_for_target(target_id)
+    target_id |> get_bands_for_target() |> outermost_band()
+  end
 
-    bands
-    |> Enum.min_by(&length(&1.trait_groups), fn -> nil end)
+  @doc """
+  The least restrictive of an already loaded band list, or nil when empty.
+  """
+  def outermost_band(bands) when is_list(bands) do
+    Enum.min_by(bands, &restrictiveness/1, fn -> nil end)
+  end
+
+  @doc """
+  How narrow a band is: include groups first, since each one is another
+  requirement, then Anti-Trait Groups, since each one removes more people.
+  Rings are ordered by this, bullseye first.
+  """
+  def restrictiveness(band) do
+    {length(include_groups(band.trait_groups)), length(anti_groups(band.trait_groups))}
   end
 
   def get_available_trait_groups_for_target(target_id, owner) when is_integer(owner) do
@@ -399,6 +471,7 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
           title: group.title,
           description: group.description,
           parent_trait_id: group.parent_trait_id,
+          role: group.role,
           user_created_by: created_by
         }
         |> Map.merge(owner_attrs)
@@ -509,16 +582,8 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     })
   end
 
-  defp get_target_id_for_band(band_id) do
-    from(tb in TargetBand,
-      where: tb.id == ^band_id,
-      select: tb.target_id
-    )
-    |> Repo.one!()
-  end
-
   defp sort_bands_by_trait_count(bands) do
-    Enum.sort_by(bands, &length(&1.trait_groups), :desc)
+    Enum.sort_by(bands, &restrictiveness/1, :desc)
   end
 
   def band_label(band, all_bands) do
@@ -575,44 +640,59 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
   end
 
   @doc """
-  MeFiles that have at least one trait from every given trait group.
+  MeFiles that hold a trait from every include group and none from any
+  Anti-Trait Group among the given groups.
 
-  An empty group matches nobody. This is the same match the population worker
-  uses for a band, so a dry-run reach count and a later population agree.
+  This is the same match the population worker uses for a band, so a dry-run
+  reach count and a later population agree. See `BandMatch`.
   """
-  def me_file_ids_matching_groups([]), do: []
-
   def me_file_ids_matching_groups(trait_group_ids) do
-    alias Qlarius.YouData.MeFiles.MeFileTag
+    BandMatch.me_file_ids_for_group_ids(trait_group_ids)
+  end
 
-    trait_ids_by_group =
-      from(tgt in TraitGroupTrait,
-        where: tgt.trait_group_id in ^trait_group_ids,
-        select: {tgt.trait_group_id, tgt.trait_id}
-      )
-      |> Repo.all()
-      |> Enum.group_by(fn {tg_id, _trait_id} -> tg_id end, fn {_tg_id, trait_id} -> trait_id end)
+  @doc """
+  Reach for a band given its group ids: how many people the include groups
+  admit, how many of those the Anti-Trait Groups remove, and the result.
+  """
+  def reach_for_groups(trait_group_ids) do
+    {include_sets, anti_sets} = BandMatch.load_sets(trait_group_ids)
+    included = length(BandMatch.me_file_ids({include_sets, []}))
+    reach = length(BandMatch.me_file_ids({include_sets, anti_sets}))
 
-    if map_size(trait_ids_by_group) != length(trait_group_ids) do
-      []
-    else
-      trait_group_ids
-      |> Enum.reduce(from(mft in MeFileTag, as: :base), fn tg_id, query ->
-        trait_ids = Map.get(trait_ids_by_group, tg_id, [])
+    %{included: included, removed: included - reach, reach: reach}
+  end
 
-        where(
-          query,
-          [base: mft],
-          exists(
-            from(mft2 in MeFileTag,
-              where: mft2.me_file_id == parent_as(:base).me_file_id and mft2.trait_id in ^trait_ids
-            )
-          )
-        )
-      end)
-      |> select([base: mft], mft.me_file_id)
-      |> distinct(true)
-      |> Repo.all()
+  @doc """
+  Attaches an Anti-Trait Group to bands of a target. Defaults to every band;
+  pass `band_ids:` to choose. Each band is checked with the usual rules and the
+  first refusal stops the whole attach, so a partially applied anti-group never
+  lands.
+  """
+  def attach_anti_group(target_id, trait_group_id, opts \\ []) do
+    bands = get_bands_for_target(target_id)
+
+    chosen =
+      case Keyword.get(opts, :band_ids) do
+        nil -> bands
+        ids -> Enum.filter(bands, &(&1.id in ids))
+      end
+
+    cond do
+      is_frozen?(target_id) ->
+        {:error, :frozen_target}
+
+      chosen == [] ->
+        {:error, :no_bands_exist}
+
+      true ->
+        Repo.transaction(fn ->
+          Enum.map(chosen, fn band ->
+            case add_trait_group_to_band(band.id, trait_group_id, scope: :band) do
+              {:ok, _} -> band.id
+              {:error, reason} -> Repo.rollback(reason)
+            end
+          end)
+        end)
     end
   end
 

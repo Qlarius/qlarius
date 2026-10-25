@@ -48,8 +48,115 @@ defmodule Qlarius.YouData.TraitIntegrity do
       skip_rate_threshold: threshold,
       skip_monitoring: monitoring,
       issues: issues,
+      excludes: excludes_report(),
       confirmed_overrides: QualityConfirmations.report()
     }
+  end
+
+  @over_constraining_share 0.5
+
+  @doc """
+  Health of the directed `excludes` rows that drive Anti-Trait Group
+  suggestions. Each list holds rows an agent may want to revisit:
+
+    * `dead` — a side of the row is an inactive trait, so it can never fire
+    * `symmetric` — both directions exist; one of them is usually a `conflicts`
+      row in disguise or an over-reach
+    * `unused` — the subject trait sits in no active include group, so no
+      target has ever been able to see the suggestion
+    * `over_constraining` — a hard row whose excluded answer is held by more
+      than half the people who hold the subject; keeping them out would gut
+      the target
+  """
+  def excludes_report do
+    rows =
+      Repo.all(
+        from r in TraitRelationship,
+          where: r.kind == "excludes",
+          order_by: [asc: r.id],
+          preload: [:trait, :related_trait]
+      )
+
+    pairs = MapSet.new(rows, &{&1.trait_id, &1.related_trait_id})
+    subjects_in_groups = subject_ids_in_include_groups(Enum.map(rows, & &1.trait_id))
+    overlap = excludes_overlap(Enum.map(rows, & &1.id))
+
+    %{
+      total: length(rows),
+      dead:
+        rows
+        |> Enum.reject(&(&1.trait.is_active and &1.related_trait.is_active))
+        |> Enum.map(&excludes_row/1),
+      symmetric:
+        rows
+        |> Enum.filter(
+          &(MapSet.member?(pairs, {&1.related_trait_id, &1.trait_id}) and
+              &1.trait_id < &1.related_trait_id)
+        )
+        |> Enum.map(&excludes_row/1),
+      unused:
+        rows
+        |> Enum.reject(&MapSet.member?(subjects_in_groups, &1.trait_id))
+        |> Enum.map(&excludes_row/1),
+      over_constraining:
+        rows
+        |> Enum.filter(&(&1.severity == "hard"))
+        |> Enum.flat_map(fn row ->
+          case Map.get(overlap, row.id) do
+            {holders, both} when holders > 0 and both / holders > @over_constraining_share ->
+              [
+                row
+                |> excludes_row()
+                |> Map.merge(%{subject_holders: holders, also_hold_excluded: both})
+              ]
+
+            _ ->
+              []
+          end
+        end)
+    }
+  end
+
+  defp excludes_row(row) do
+    %{
+      relationship_id: row.id,
+      trait_id: row.trait_id,
+      trait_name: row.trait.trait_name,
+      related_trait_id: row.related_trait_id,
+      related_trait_name: row.related_trait.trait_name,
+      severity: row.severity,
+      note: row.note
+    }
+  end
+
+  defp subject_ids_in_include_groups([]), do: MapSet.new()
+
+  defp subject_ids_in_include_groups(trait_ids) do
+    Repo.all(
+      from tgt in Qlarius.Sponster.Campaigns.TraitGroupTrait,
+        join: tg in Qlarius.Sponster.Campaigns.TraitGroup,
+        on: tg.id == tgt.trait_group_id,
+        where: tgt.trait_id in ^trait_ids and tg.role == "include" and is_nil(tg.deactivated_at),
+        select: tgt.trait_id,
+        distinct: true
+    )
+    |> MapSet.new()
+  end
+
+  defp excludes_overlap([]), do: %{}
+
+  defp excludes_overlap(relationship_ids) do
+    Repo.all(
+      from r in TraitRelationship,
+        join: a in MeFileTag,
+        on: a.trait_id == r.trait_id,
+        left_join: b in MeFileTag,
+        on: b.trait_id == r.related_trait_id and b.me_file_id == a.me_file_id,
+        where: r.id in ^relationship_ids,
+        group_by: r.id,
+        select: {r.id, count(a.me_file_id, :distinct), count(b.me_file_id, :distinct)}
+    )
+    |> Map.new(fn {id, holders, both} -> {id, {holders, both}} end)
   end
 
   defp summary(issues) do

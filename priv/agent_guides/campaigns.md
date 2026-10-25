@@ -192,16 +192,32 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
 Build groups before targets. A target never creates groups for you.
 
 - `GET /api/admin/trait_groups?marketer_id=&creator_id=&api_ref_prefix=` lists
-  groups with `trait_ids` and `me_file_count`.
+  groups with `trait_ids`, `role`, and `me_file_count`.
 - `POST /api/admin/trait_groups` creates one:
   `{api_ref, title, marketer_id or creator_id, parent_trait_id?, trait_ids,
-  dry_run?, on_existing?}`. `trait_ids` are active children of
-  `parent_trait_id`. Omit the parent only for a free set of traits. Read trait
-  ids from this system's traits catalog.
+  role?, dry_run?, on_existing?}`. Read trait ids from this system's traits
+  catalog.
+- A group matches anyone who holds **any** of its `trait_ids` (OR). With
+  `parent_trait_id`, every id must be an active child of that parent. Leave
+  `parent_trait_id` out to mix topics in one group, for example Home Zip
+  Code and Work Zip Code answers for the same area, or two cuisine answers
+  from different questions. The parent is then derived: set when every id
+  shares one parent, `null` when they span topics. The response returns
+  `parent_trait_id` either way. Mixed ids under a sent `parent_trait_id` are
+  `422 traits_not_children`; unknown or inactive ids are `422 traits_not_found`.
+- `role` is `include` (default) or `anti`. An include group admits people.
+  An **Anti-Trait Group** (`anti`) removes anyone who holds one of its
+  answers from the band it sits on. A band matches people who hold an answer
+  from every include group and no answer from any anti group. The role is
+  fixed at creation (`422 role_immutable` on change); make a new group for
+  the other role. Prefer one anti group per topic so rings can drop them
+  separately; a multi-topic anti group is fine when they always travel
+  together.
 - `POST /api/admin/trait_groups/:id/traits` with `{add: [], remove: []}`
-  changes membership. A group used by a launched campaign is `409 frozen_target`.
-  A group that sits on more than one target is `409 trait_group_shared`: create
-  a new group instead of editing the shared one.
+  changes membership and re-derives `parent_trait_id`. A group used by a
+  launched campaign is `409 frozen_target`. A group that sits on more than
+  one target is `409 trait_group_shared`: create a new group instead of
+  editing the shared one.
 - `DELETE /api/admin/trait_groups/:id` only when the group is on no band.
   `?dry_run=true` first.
 - `GET /api/admin/zip_codes?q=` searches zip traits. `q` must be at least 2
@@ -222,16 +238,58 @@ band id is smallest: bids pay the tightest band the most.
   `{api_ref, marketer_id or creator_id, title, bullseye: [group ids],
   drop_order: [group ids], dry_run?, on_existing?}`.
   `drop_order` ids must be in the bullseye, and each step drops exactly one.
-  The response includes `bands`, each with `estimated_reach`. Near-zero reach
-  on a local database is expected and is not an error.
+  The response includes `bands`, each with `trait_group_ids`,
+  `include_group_ids`, `anti_group_ids`, `included` (people the include
+  groups admit), `removed` (how many of those the anti groups take out), and
+  `estimated_reach` (`included - removed`). Near-zero reach on a local
+  database is expected and is not an error.
+- Anti-Trait Groups go in `bullseye` like any other group and may appear in
+  `drop_order`; dropping one widens the next ring by letting those people
+  back in. Two rules hold on every band: at least one include group
+  (`422 include_group_required`, so an anti group can never be the last one
+  standing), and no answer held by both an include group and an anti group
+  on the same band (`422 trait_in_both_roles`, with the trait ids).
 - `GET /api/admin/targets?marketer_id=&creator_id=&archived=` and
-  `GET /api/admin/targets/:id` return bands, labels, frozen, and campaign ids.
+  `GET /api/admin/targets/:id` return bands, labels, frozen, and campaign
+  ids. Each band lists `trait_groups`, `include_groups`, and `anti_groups`.
 - `POST /api/admin/targets/:id/bands` with `{exclude_trait_group_id}` adds one
   outer band. `DELETE /api/admin/targets/:id/bands/outermost` removes the
   widest band. Both refuse a target a launched campaign still uses.
+- `POST /api/admin/targets/:id/anti_groups` with `{trait_group_id,
+  band_ids?}` attaches an existing Anti-Trait Group (same owner, `role`
+  `anti`) to every band, or to `band_ids`. All or nothing: a refusal on any
+  chosen band attaches to none. Returns `band_ids` attached.
 - `POST /api/admin/targets/:id/clone` requires a new `api_ref`. Same owner
   shares the trait groups. `dest_marketer_id` or `dest_creator_id` copies into
-  another org.
+  another org; copied groups keep their `role`.
+
+### Suggestions: answers a marketer may want to keep out
+
+The catalog carries directed `excludes` rows (see `?topic=traits`): "a
+marketer who targets Hamburgers will not want Vegans". The app follows them
+from a target's include groups and offers the matching answers as
+Anti-Trait Groups. It is advice. A target with open suggestions is valid,
+launches, and is never marked wrong. Vegan restaurants are not told to drop
+burger eaters, because no row points that way.
+
+- `GET /api/admin/targets/:id/suggestions` returns `count`, `frozen`,
+  `topics`, and `dismissed`. Each topic is the parent of the excluded
+  answers with `traits` (`trait_id`, `trait_name`, `severity` `hard` "will
+  not want" or `soft` "may not want", `because` the included answers that
+  led here, `note`). Answers the target already keeps out, or already
+  includes, are left out. Read this after a build and show the admin.
+- To accept: create an Anti-Trait Group with those `trait_ids` and `role:
+  "anti"` (one per topic, or one combined), then `POST
+  /api/admin/targets/:id/anti_groups`, or rebuild with `on_existing:
+  "update"` and the anti group in `bullseye`. Confirm with the admin first;
+  every accepted answer removes people.
+- To decline a topic for this target only: `POST
+  /api/admin/targets/:id/suggestions/dismiss` with `{parent_trait_id}`. It
+  moves to `dismissed` and stops counting. `POST .../suggestions/reopen`
+  with the same body brings it back. Dismissals are per target; another
+  target with the same groups still sees the topic.
+- A frozen target (`frozen: true`) still lists suggestions; attach after a
+  depopulate, or on the next build.
 - `POST /api/admin/targets/:id/populate` enqueues population.
   `GET /api/admin/targets/:id/population` returns the status and a count per band.
 - `DELETE /api/admin/targets/:id` only when no campaign has ever used it.
@@ -330,8 +388,13 @@ Required: `api_ref_base`, shaped like a key without the type, for example
 - `base.marketer`, `base.ad`, `base.tg-1`, `base.tg-2`, ...
 - `base.target`, `base.seq`, `base.campaign`
 
-`trait_groups` is an array in bullseye order. `target.drop_order` is a list
-of indexes into that array (0 drops the first group), not trait group ids.
+`trait_groups` is an array in bullseye order. Each entry takes the same
+fields as `POST /api/admin/trait_groups`, including `role: "anti"` for an
+Anti-Trait Group and no `parent_trait_id` for a multi-topic group. The
+target's band rules apply (at least one include group on every band, no
+answer in both roles). `target.drop_order` is a list of indexes into that
+array (0 drops the first group), not trait group ids. The response `bands`
+carry `included`, `removed`, and `estimated_reach` like a target build.
 `campaign.is_ptp` is always true. `is_throttled` defaults to true unless
 `campaign` sends it. `campaign.start_date` and `campaign.end_date` follow the
 same rules as `POST /api/admin/campaigns`. Send `dry_run: true` first. A dry run rolls the database
@@ -383,9 +446,10 @@ build, then send it again without `dry_run`. Do not call launch.
   },
   "trait_groups": [
     {"title": "Taco fans", "parent_trait_id": 100, "trait_ids": [101, 102]},
-    {"title": "Phoenix", "parent_trait_id": 200, "trait_ids": [85001]}
+    {"title": "Phoenix", "trait_ids": [85001, 85101]},
+    {"title": "Keep out · Typical Daily Diet", "role": "anti", "parent_trait_id": 300, "trait_ids": [301]}
   ],
-  "target": {"title": "Phoenix taco fans", "drop_order": [0]},
+  "target": {"title": "Phoenix taco fans", "drop_order": [2, 0]},
   "sequence": {"title": "Joe's Tacos"},
   "campaign": {"title": "Joe's Tacos PTP"}
 }
@@ -393,8 +457,11 @@ build, then send it again without `dry_run`. Do not call launch.
 
 `media_piece_type_id`, `parent_trait_id`, and `trait_ids` above are
 placeholders. Replace them with ids from the system you are calling. The
-campaign comes back with `is_ptp: true`, `is_payable: false`, and
-`is_throttled: true`.
+Phoenix group mixes a Home Zip Code and a Work Zip Code answer, so its
+parent is derived as `null`. The third group is an Anti-Trait Group: the
+bullseye is taco fans in Phoenix who are not vegan, ring 1 lets vegans back
+in, and ring 2 is everyone in Phoenix. The campaign comes back with
+`is_ptp: true`, `is_payable: false`, and `is_throttled: true`.
 
 ## Checklist
 
@@ -409,7 +476,9 @@ campaign comes back with `is_ptp: true`, `is_payable: false`, and
 | Create the ad | `POST /api/admin/media_pieces` |
 | Create trait groups | `POST /api/admin/trait_groups` |
 | Assemble the target, bullseye outward | `POST /api/admin/targets/builds` |
-| Preview reach | the build response `estimated_reach` |
+| Preview reach | the build response `included`, `removed`, `estimated_reach` |
+| Read keep-out suggestions, show the admin | `GET /api/admin/targets/:id/suggestions` |
+| Accept some as Anti-Trait Groups, or dismiss a topic | `POST /api/admin/trait_groups` with `role: "anti"`, then `POST /api/admin/targets/:id/anti_groups`; or `POST .../suggestions/dismiss` |
 | Populate when you want counts filled in | `POST /api/admin/targets/:id/populate` |
 | Create the sequence and its run | `POST /api/admin/media_sequences` |
 | Preview bids | `POST /api/admin/campaigns/bid_preview` |
@@ -429,6 +498,13 @@ campaign comes back with `is_ptp: true`, `is_payable: false`, and
 - `409 launched`: the campaign has been launched and cannot be deleted.
 - `409 frozen_target`: a launched campaign still uses this target.
 - `409 trait_group_shared`: create a new group instead of editing this one.
-- `422 traits_required`, `422 traits_not_children`, `422 drop_not_in_bullseye`,
-  `422 empty_band`, `422 zip_query_too_short`.
+- `422 traits_required`, `422 traits_not_children`, `422 traits_not_found`,
+  `422 drop_not_in_bullseye`, `422 empty_band`, `422 zip_query_too_short`.
+- `422 role_immutable`: a group's role is fixed; create a new group.
+- `422 include_group_required`: a band would hold only Anti-Trait Groups.
+- `422 trait_in_both_roles`: an answer is in an include group and an anti
+  group on the same band; the message lists the trait ids.
+- `422 anti_group_required`: `POST /targets/:id/anti_groups` needs a group
+  with `role` `anti`. `422 no_bands_exist`: build the bullseye first.
+- `422 parent_trait_id_required`: dismiss and reopen need `parent_trait_id`.
 - `422 invalid_month`: coverage `month` must be `YYYY-MM`.

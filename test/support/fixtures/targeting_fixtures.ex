@@ -95,10 +95,10 @@ defmodule Qlarius.TargetingFixtures do
   @doc """
   A trait group holding `traits`. Owner is `marketer_id` or `creator_id`.
   """
-  def trait_group_fixture(owner, traits) do
+  def trait_group_fixture(owner, traits, attrs \\ %{}) do
     group =
       %TraitGroup{}
-      |> TraitGroup.changeset(Enum.into(owner, %{title: unique("Group")}))
+      |> TraitGroup.changeset(owner |> Enum.into(%{title: unique("Group")}) |> Map.merge(attrs))
       |> Repo.insert!()
 
     for trait <- traits do
@@ -108,6 +108,13 @@ defmodule Qlarius.TargetingFixtures do
     end
 
     group
+  end
+
+  @doc """
+  An Anti-Trait Group: a band carrying it removes anyone holding `traits`.
+  """
+  def anti_trait_group_fixture(owner, traits) do
+    trait_group_fixture(owner, traits, %{role: "anti", title: unique("Anti")})
   end
 
   @doc """

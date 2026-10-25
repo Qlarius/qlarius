@@ -6,6 +6,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
 
   alias Qlarius.Sponster.Campaigns.{
     BandDefinition,
+    BandMatch,
     CampaignPubSub,
     Target,
     TargetBand,
@@ -32,11 +33,11 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       Targets.update_target(target, %{population_status: "not_populated"})
       {:ok, :no_bands}
     else
-      sorted_bands = Enum.sort_by(bands, &length(&1.trait_groups))
+      sorted_bands = Enum.sort_by(bands, &Targets.restrictiveness/1)
 
       Enum.each(sorted_bands, fn band ->
         Logger.info(
-          "  Band #{band.id} (#{if band.is_bullseye == "1", do: "Bullseye", else: "Ring"}): #{length(band.trait_groups)} trait_groups"
+          "  Band #{band.id} (#{if band.is_bullseye == "1", do: "Bullseye", else: "Ring"}): #{length(BandMatch.include_groups(band.trait_groups))} include groups, #{length(BandMatch.anti_groups(band.trait_groups))} anti groups"
         )
       end)
 
@@ -161,12 +162,17 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
   # rows were computed against — which is the state any reader of those rows
   # wants. Bands created since the last populate carry a nil tier.
   #
-  # Ordering matches the backfill in
-  # 20260915043240_add_ranking_fields_to_target_bands.exs: most trait groups
-  # first, id as tiebreak, so tier 0 is the most restrictive band.
+  # Ordering follows `Targets.restrictiveness/1` (most include groups, then
+  # most anti-groups, first), id as tiebreak, so tier 0 is the most restrictive
+  # band. This matches the backfill in
+  # 20260915043240_add_ranking_fields_to_target_bands.exs for bands without
+  # anti-groups.
   defp refresh_band_metadata(bands) do
     bands
-    |> Enum.sort_by(fn band -> {-length(band.trait_groups), band.id} end)
+    |> Enum.sort_by(fn band ->
+      {include_count, anti_count} = Targets.restrictiveness(band)
+      {-include_count, -anti_count, band.id}
+    end)
     |> Enum.with_index()
     |> Map.new(fn {band, tier} ->
       hash = BandDefinition.hash_for_band(band)
@@ -320,8 +326,12 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
     |> Map.new()
   end
 
+  # Snapshots record the answers that put someone in the band, so only include
+  # groups contribute. An Anti-Trait Group's traits are, by definition, absent
+  # from everyone who matched.
   defp build_trait_metadata(trait_groups) do
-    all_traits = Enum.flat_map(trait_groups, fn tg -> tg.traits end)
+    all_traits =
+      trait_groups |> BandMatch.include_groups() |> Enum.flat_map(fn tg -> tg.traits end)
 
     parent_ids =
       all_traits
@@ -453,23 +463,32 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
   defp populate_bands_bottom_up(sorted_bands) do
     require Logger
 
-    {_final_candidates, populations} =
-      Enum.reduce(sorted_bands, {nil, %{}}, fn band, {prev_candidates, populations_acc} ->
-        trait_group_ids = Enum.map(band.trait_groups, & &1.id)
+    # Rings are walked outermost first, each narrower band filtering the
+    # previous band's matches. That relies on every inner band being a subset of
+    # the one outside it, which holds when rings differ by dropping groups: a
+    # dropped include group only widens, and a dropped anti-group only widens.
+    # Where a band is not a subset (same include count, differing anti-groups
+    # in a hand-built target), the scan restarts from everyone.
+    {_final_candidates, _prev_band, populations} =
+      Enum.reduce(sorted_bands, {nil, nil, %{}}, fn band, {prev_candidates, prev_band, acc} ->
+        sets = BandMatch.trait_id_sets(band.trait_groups)
 
         candidates =
-          if prev_candidates == nil do
-            Logger.info(
-              "PopulateTargetWorker: Finding me_files for outermost band #{band.id} with #{length(trait_group_ids)} trait_groups"
-            )
+          cond do
+            prev_candidates == nil ->
+              Logger.info("PopulateTargetWorker: Finding me_files for outermost band #{band.id}")
+              BandMatch.me_file_ids(sets)
 
-            find_me_files_matching_all_trait_groups(trait_group_ids)
-          else
-            Logger.info(
-              "PopulateTargetWorker: Filtering #{length(prev_candidates)} candidates for band #{band.id}"
-            )
+            subset_of?(band, prev_band) ->
+              Logger.info(
+                "PopulateTargetWorker: Filtering #{length(prev_candidates)} candidates for band #{band.id}"
+              )
 
-            filter_candidates_for_next_band(prev_candidates, trait_group_ids)
+              filter_candidates_for_next_band(prev_candidates, sets)
+
+            true ->
+              Logger.info("PopulateTargetWorker: Band #{band.id} is not nested, scanning fresh")
+              BandMatch.me_file_ids(sets)
           end
 
         Logger.info(
@@ -477,62 +496,32 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         )
 
         new_populations =
-          Enum.reduce(candidates, populations_acc, fn me_file_id, acc ->
+          Enum.reduce(candidates, acc, fn me_file_id, acc ->
             Map.put(acc, me_file_id, band.id)
           end)
 
-        {candidates, new_populations}
+        {candidates, band, new_populations}
       end)
 
     populations
   end
 
-  defp find_me_files_matching_all_trait_groups(trait_group_ids) do
-    Targets.me_file_ids_matching_groups(trait_group_ids)
+  # A band's matches are a subset of another's when it carries every group the
+  # other does.
+  defp subset_of?(band, outer_band) do
+    outer_ids = MapSet.new(outer_band.trait_groups, & &1.id)
+    Enum.all?(outer_ids, &(&1 in Enum.map(band.trait_groups, fn g -> g.id end)))
   end
 
-  defp filter_candidates_for_next_band(prev_candidates, new_trait_group_ids) do
-    trait_ids_by_group =
-      from(tgt in Qlarius.Sponster.Campaigns.TraitGroupTrait,
-        where: tgt.trait_group_id in ^new_trait_group_ids,
-        select: {tgt.trait_group_id, tgt.trait_id}
-      )
-      |> Repo.all()
-      |> Enum.group_by(fn {tg_id, _trait_id} -> tg_id end, fn {_tg_id, trait_id} -> trait_id end)
+  defp filter_candidates_for_next_band([], _sets), do: []
 
-    if map_size(trait_ids_by_group) != length(new_trait_group_ids) do
-      require Logger
-
-      Logger.warning(
-        "PopulateTargetWorker: Some trait_groups have no traits in filter, expected #{length(new_trait_group_ids)}, got #{map_size(trait_ids_by_group)}"
-      )
-
-      []
+  defp filter_candidates_for_next_band(prev_candidates, sets) do
+    if BandMatch.matchable?(sets) do
+      BandMatch.me_file_ids(sets, prev_candidates)
     else
-      base_query =
-        from(mft in MeFileTag, as: :base)
-        |> where([mft], mft.me_file_id in ^prev_candidates)
-
-      query_with_conditions =
-        Enum.reduce(new_trait_group_ids, base_query, fn tg_id, query ->
-          trait_ids = Map.get(trait_ids_by_group, tg_id, [])
-
-          where(
-            query,
-            [base: mft],
-            exists(
-              from(mft2 in MeFileTag,
-                where:
-                  mft2.me_file_id == parent_as(:base).me_file_id and mft2.trait_id in ^trait_ids
-              )
-            )
-          )
-        end)
-
-      query_with_conditions
-      |> select([base: mft], mft.me_file_id)
-      |> distinct(true)
-      |> Repo.all()
+      require Logger
+      Logger.warning("PopulateTargetWorker: Band has no matchable include groups, matches nobody")
+      []
     end
   end
 

@@ -55,11 +55,14 @@ Every error body has `error` (a code), `message`, and `guide` (this page).
 | POST | /api/admin/content_groups/packs | Create or update a group from a pack |
 | POST | /api/admin/content_groups/:id/sync | Add new episodes from a group's feed; `{"reorder": true}` also puts the group in episode order |
 | POST | /api/admin/traits/design_packs | Create or reform a parent trait |
+| POST | /api/admin/trait_relationships | `conflicts`, `requires`, and directed `excludes` rows; list with `?trait_id=&kind=&direction=from|to` (see `?topic=traits`) |
+| GET | /api/admin/traits/integrity_report | Read-only catalog checks, including an `excludes` health section |
 | GET | /api/admin/ad_categories | Sponster ad taxonomy rows by category; also import, remap, prune (see `?topic=ad_categories`) |
 | GET | /api/admin/marketers | Marketers with counts; also create (find-or-create by `api_ref`), update, delete (see `?topic=campaigns`) |
 | GET | /api/admin/media_piece_types | Ad types, pricing, required fields, and which types the API can create |
 | POST | /api/admin/media_pieces | Create an ad (HTTPS image or multipart banner); also list, update, delete |
-| POST | /api/admin/trait_groups | Trait groups, then targets, sequences, campaigns, a one-call PTP build, and the coverage report (see `?topic=campaigns`) |
+| POST | /api/admin/trait_groups | Trait groups (`role` include or anti, single or multi-topic), then targets, sequences, campaigns, a one-call PTP build, and the coverage report (see `?topic=campaigns`) |
+| GET | /api/admin/targets/:id/suggestions | Answers a marketer may want to keep out, from catalog `excludes` rows; dismiss or reopen per topic, attach with `POST /targets/:id/anti_groups` |
 
 Full schemas: `docs/admin_content_group_api.openapi.yaml`,
 `docs/admin_trait_survey_api.openapi.yaml`,

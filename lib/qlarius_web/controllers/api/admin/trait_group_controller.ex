@@ -80,6 +80,7 @@ defmodule QlariusWeb.Api.Admin.TraitGroupController do
       title: group.title,
       description: group.description,
       parent_trait_id: group.parent_trait_id,
+      role: Map.get(group, :role, "include"),
       marketer_id: group.marketer_id,
       creator_id: group.creator_id,
       deactivated_at: group.deactivated_at,

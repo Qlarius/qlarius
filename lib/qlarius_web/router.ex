@@ -275,6 +275,11 @@ defmodule QlariusWeb.Router do
       live "/campaigns", Live.Marketers.CampaignsManagerLive, :index
       live "/traits", Live.Marketers.TraitsManagerLive, :index
       live "/traits/new", Live.Marketers.TraitsManagerLive, :new_trait_group
+
+      live "/traits/:id/topics/:parent_trait_id",
+           Live.Marketers.TraitsManagerLive,
+           :edit_topic
+
       live "/targets", Live.Marketers.TargetsManagerLive, :index
       live "/targets/:id/edit", Live.Marketers.TargetsManagerLive, :edit
       live "/targets/:id/inspect", Live.Marketers.TargetsManagerLive, :inspect
@@ -515,6 +520,10 @@ defmodule QlariusWeb.Router do
     get "/targets", TargetController, :index
     post "/targets/:id/bands", TargetController, :add_band
     delete "/targets/:id/bands/outermost", TargetController, :delete_outermost
+    post "/targets/:id/anti_groups", TargetController, :attach_anti_group
+    get "/targets/:id/suggestions", TargetController, :suggestions
+    post "/targets/:id/suggestions/dismiss", TargetController, :dismiss_suggestion
+    post "/targets/:id/suggestions/reopen", TargetController, :reopen_suggestion
     post "/targets/:id/clone", TargetController, :clone
     post "/targets/:id/populate", TargetController, :populate
     get "/targets/:id/population", TargetController, :population
@@ -649,6 +658,11 @@ defmodule QlariusWeb.Router do
       live "/creators/:id/referrals", CreatorDashboard.Referrals, :index
       live "/creators/:creator_id/trait-groups", Creators.TraitGroupsLive, :index
       live "/creators/:creator_id/trait-groups/new", Creators.TraitGroupsLive, :new_trait_group
+
+      live "/creators/:creator_id/trait-groups/:id/topics/:parent_trait_id",
+           Creators.TraitGroupsLive,
+           :edit_topic
+
       live "/creators/:creator_id/audiences", Creators.AudiencesLive, :index
       live "/creators/:creator_id/audiences/:id/edit", Creators.AudiencesLive, :edit
       live "/creators/:creator_id/audiences/:id/inspect", Creators.AudiencesLive, :inspect

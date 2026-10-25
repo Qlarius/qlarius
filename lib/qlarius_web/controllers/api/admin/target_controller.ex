@@ -35,6 +35,41 @@ defmodule QlariusWeb.Api.Admin.TargetController do
     end
   end
 
+  def suggestions(conn, %{"id" => id}) do
+    with {:ok, target} <- load(id) do
+      json(conn, Targets.suggestions(target))
+    else
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def dismiss_suggestion(conn, %{"id" => id} = params) do
+    with {:ok, target} <- load(id),
+         {:ok, body} <- Targets.dismiss_suggestion(target, params["parent_trait_id"]) do
+      json(conn, Map.put(body, :result, "dismissed"))
+    else
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def reopen_suggestion(conn, %{"id" => id} = params) do
+    with {:ok, target} <- load(id),
+         {:ok, body} <- Targets.reopen_suggestion(target, params["parent_trait_id"]) do
+      json(conn, Map.put(body, :result, "reopened"))
+    else
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def attach_anti_group(conn, %{"id" => id} = params) do
+    with {:ok, target} <- load(id),
+         {:ok, body} <- Targets.attach_anti_group(target, params) do
+      json(conn, body)
+    else
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
   def delete_outermost(conn, %{"id" => id}) do
     with {:ok, target} <- load(id),
          {:ok, _} <- Targets.delete_outermost(target) do

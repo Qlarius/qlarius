@@ -181,12 +181,16 @@ The same PATCH, with `unripe_days`, `ripen_days`, `stale_days`, and
 ### Relationships
 
 `POST /api/admin/trait_relationships` with `trait_id`, `related_trait_id`,
-`kind` (`conflicts` or `requires`), an optional `severity` (`hard` or
-`soft`, conflicts only), and an optional `note` written for the person who
-owns the MeFile ("You can't have 0 children and also have a son").
+`kind` (`conflicts`, `requires`, or `excludes`), an optional `severity`
+(`hard` or `soft`; conflicts and excludes), and an optional `note`.
 `DELETE /api/admin/trait_relationships/:id` removes one.
 `GET /api/admin/trait_relationships?trait_id=` lists the ones touching a
-trait.
+trait; add `direction=from` or `direction=to` to see only the rows where
+that trait (or its children) is the subject or the object.
+
+Two of the kinds are about the person's own answers and color their tag
+(`conflicts`, `requires`). The third, `excludes`, is about who an advertiser
+wants to reach, and never colors a tag. Keep them apart.
 
 - `conflicts` points both ways. Store it once; the API keeps the two ids in
   a fixed order. Use it for values that cannot both be true, including
@@ -218,6 +222,43 @@ trait.
   when a child conflicts with its own parent, when two children of a
   single-select parent conflict, when either side is inactive or is a skip,
   or when the same pair already has the other kind of link.
+
+### Excludes: who a marketer will not want
+
+`excludes` is directed and reads "a marketer who targets `trait_id` will
+(`hard`) or may (`soft`) want to keep out people who hold
+`related_trait_id`". It drives the Anti-Trait Group suggestions a marketer
+sees while building a target, and nothing else: tag quality ignores it, the
+MeFile owner never sees it, and a target is never marked wrong for leaving
+it unanswered. The marketer can decline every suggestion.
+
+- Direction matters, and the reverse is usually false. A burger place will
+  not want vegans (`Hamburgers excludes Vegan`, hard). A vegan restaurant
+  may still welcome burger eaters, so do not store `Vegan excludes
+  Hamburgers` unless that is true on its own. Store each direction only when
+  it stands alone.
+- `hard` ("will not want") is for answers that make the product pointless
+  to the person: dietary and ethical rules, allergies, legal age, owning no
+  car for an auto part. `soft` ("may not want") is for habits and tastes
+  that often, not always, rule the product out. When unsure, use `soft` or
+  leave it out. An over-eager row costs a marketer reach they wanted.
+- `note` here is for the marketer, one short reason: "Vegans eat no
+  seafood". It shows under the suggested answer.
+- Relate the specific answers. `Hamburgers excludes Vegan` says more than
+  `Fast Food Preferences excludes Typical Daily Diet`, and the suggestion
+  can name both sides. Do not point a trait at an answer under its own
+  parent; that is a `conflicts` row in disguise and is reported as a
+  warning (`excludes an answer under its own parent`).
+- `warnings` for excludes also flag a reverse row that already exists
+  (`the reverse excludes row is also present`) and a pair that also
+  `conflicts`. Both are saved; read them and decide.
+- Read `GET /api/admin/trait_relationships?trait_id=<parent>&kind=excludes&direction=from`
+  before adding: it lists what that family already keeps out.
+
+Checklist for a new product category: list the answers an honest buyer
+holds; for each, ask which answers elsewhere in the catalog make the buyer
+impossible (hard) or unlikely (soft); store those rows from the buyer's
+answer to the other answer; stop there. Do not add the reverse to be tidy.
 
 ## Exclusive answers
 
@@ -263,10 +304,20 @@ writes nothing. If any item is an error, nothing is written.
 {"create": [{"trait_id": 1, "related_trait_id": 2, "type": "conflicts", "severity": "soft", "note": "..."}], "delete": [10, {"trait_id": 3, "related_trait_id": 4, "type": "requires"}], "dry_run": false}
 ```
 
-`type` and `kind` are the same field (`conflicts` or `requires`). `severity`
-is `hard` or `soft` and applies to conflicts; leave it out for hard. Each
-result is `created`, `exists`, `deleted`, `not_found`, or `error`, and
-created or existing links include the same `warnings` as a single POST.
+`type` and `kind` are the same field (`conflicts`, `requires`, or
+`excludes`). `severity` is `hard` or `soft` and applies to conflicts and
+excludes; leave it out for hard. Each result is `created`, `exists`,
+`deleted`, `not_found`, or `error`, and created or existing links include
+the same `warnings` as a single POST. `excludes` rows keep `trait_id` and
+`related_trait_id` exactly as sent; `conflicts` rows are stored in a fixed
+order because they have no direction.
+
+```json
+{"create": [
+  {"trait_id": 1101, "related_trait_id": 1665, "type": "excludes", "note": "Vegans eat no seafood"},
+  {"trait_id": 1101, "related_trait_id": 1668, "type": "excludes", "severity": "soft", "note": "Steak-and-potatoes eaters rarely order sushi"}
+], "dry_run": true}
+```
 
 `PATCH /api/admin/trait_relationships/:id` changes `note`, `type`, or
 `severity` in place. Leave a key out to keep it. `null` clears a note.
@@ -291,8 +342,12 @@ item. This does not insert a skip child.
 Replaces each list the way a single PATCH does. No skip child is inserted.
 
 `GET /api/admin/trait_relationships?parent_id=` returns the links among that
-parent's children. Add `type=conflicts` or `type=requires` to filter. `trait_id`
-still lists every link touching that trait or, for a parent, its children.
+parent's children. Add `type=conflicts`, `type=requires`, or `type=excludes`
+to filter. `trait_id` still lists every link touching that trait or, for a
+parent, its children; `direction=from` keeps the rows where they are the
+subject (`trait_id`), `direction=to` the rows where they are the object
+(`related_trait_id`). Direction is only meaningful for `requires` and
+`excludes`.
 
 `GET /api/admin/audit_log?trait_id=` is read-only. Each row has the admin
 token label, the time, and the before and after values for relationship,
@@ -323,6 +378,18 @@ survey name. A rate above the threshold is `review_wording` and also an
 issue: the question may need different wording. Sort your review by skip
 rate.
 
+`excludes` reports the health of the `excludes` rows that drive Anti-Trait
+Group suggestions. `total` is the row count. `dead` rows have an inactive
+trait on either side and can never fire. `symmetric` rows exist in both
+directions; one of them is usually wrong (see Excludes above). `unused`
+rows have a subject that sits in no active include group, so no marketer
+has ever seen the suggestion; that is informational, not an error.
+`over_constraining` rows are hard rows where more than half the people who
+hold the subject also hold the excluded answer (`subject_holders`,
+`also_hold_excluded`); confirming one would gut a target, so consider
+`soft` or removal. Every row carries `relationship_id`, both trait ids and
+names, `severity`, and `note`.
+
 `confirmed_overrides` lists links and parents that people are currently
 confirming, highest count first. A conflict row has `relationship_id`, both
 trait ids, `severity`, and `count`. A count row has the parent `trait_id`
@@ -348,7 +415,8 @@ The checks are:
 - a search term that repeats the trait's own name, or the same term on
   more than three parents
 - a relationship that points at an inactive trait, conflicts inside a
-  family, or a pair that has both kinds
+  family, a pair that has both kinds, an `excludes` row aimed at an answer
+  under its own parent, or an `excludes` row whose reverse is also stored
 - count or freshness values that contradict each other, including count
   rules on a parent that is not multi-select
 - a skip rate above the threshold

@@ -2032,22 +2032,24 @@ Hooks.ZipSelector = {
       btn.addEventListener('click', (e) => {
         const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action
         
+        // pushEventTo(this.el) reaches the LiveComponent that rendered the
+        // selector, and falls back to the LiveView when there is none.
         if (action === 'add-all') {
-          this.pushEvent('add_all_visible_zips', {})
+          this.pushEventTo(this.el, 'add_all_visible_zips', {})
         } else if (action === 'add-selected') {
           const selectedIds = Array.from(this.availableSelect.selectedOptions)
             .filter(opt => !opt.disabled)
             .map(opt => opt.value)
           if (selectedIds.length > 0) {
-            this.pushEvent('add_selected_zips', { selected_ids: selectedIds })
+            this.pushEventTo(this.el, 'add_selected_zips', { selected_ids: selectedIds })
           }
         } else if (action === 'remove-selected') {
           const selectedIds = Array.from(this.selectedSelect.selectedOptions).map(opt => opt.value)
           if (selectedIds.length > 0) {
-            this.pushEvent('remove_selected_zips', { selected_ids: selectedIds })
+            this.pushEventTo(this.el, 'remove_selected_zips', { selected_ids: selectedIds })
           }
         } else if (action === 'clear-all') {
-          this.pushEvent('clear_all_zips', {})
+          this.pushEventTo(this.el, 'clear_all_zips', {})
         }
       })
     })

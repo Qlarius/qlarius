@@ -5,8 +5,10 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
   alias Qlarius.Sponster.Campaigns.{Target, Targets}
-  alias Qlarius.YouData.Traits
   alias QlariusWeb.Live.Marketers.CurrentMarketer
+  alias QlariusWeb.Live.TargetEditorComponent
+
+  defp target_editor_id, do: "target-editor"
 
   on_mount {CurrentMarketer, :load_current_marketer}
 
@@ -37,26 +39,12 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   defp apply_action(socket, :edit, %{"id" => id}) do
     if socket.assigns.current_marketer do
       target = Targets.get_target_for_marketer!(id, socket.assigns.current_marketer.id)
-      bands = Targets.get_bands_for_target(target.id)
-      outermost_band = Targets.get_outermost_band(target.id)
-
-      available_trait_groups =
-        Targets.get_available_trait_groups_for_target(
-          target.id,
-          socket.assigns.current_marketer.id
-        )
 
       socket
       |> assign(:page_title, "Edit Target: #{target.title}")
       |> assign(:target, target)
-      |> assign(:bands, bands)
-      |> assign(:outermost_band, outermost_band)
-      |> assign(:available_trait_groups, available_trait_groups)
-      |> assign(:me_file_counts, me_file_counts(bands, available_trait_groups))
       |> assign(:target_form, to_form(Target.changeset(target, %{})))
       |> assign(:editing_target_info, false)
-      |> assign(:expanding_target, false)
-      |> assign(:band_population_counts, %{})
     else
       socket
       |> put_flash(:error, "Please select a marketer first")
@@ -244,122 +232,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
      |> assign(:target_form, to_form(Target.changeset(socket.assigns.target, %{})))}
   end
 
-  def handle_event("create_bullseye", _params, socket) do
-    if !Targets.get_bullseye_for_target(socket.assigns.target.id) do
-      case Targets.create_bullseye_band(socket.assigns.target.id) do
-        {:ok, _band} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Bullseye created")
-           |> reload_target_data()}
-
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to create bullseye")}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "Bullseye already exists")}
-    end
-  end
-
-  def handle_event("add_trait_group", %{"trait_group_id" => trait_group_id}, socket) do
-    bullseye = Targets.get_bullseye_for_target(socket.assigns.target.id)
-
-    bullseye =
-      if !bullseye do
-        case Targets.create_bullseye_band(socket.assigns.target.id) do
-          {:ok, band} -> band
-          {:error, _} -> nil
-        end
-      else
-        bullseye
-      end
-
-    if !bullseye do
-      {:noreply, put_flash(socket, :error, "Failed to create bullseye")}
-    else
-      case Targets.add_trait_group_to_band(bullseye.id, String.to_integer(trait_group_id)) do
-        {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Trait group added to bullseye")
-           |> reload_target_data()}
-
-        {:error, :trait_group_already_in_target} ->
-          {:noreply, put_flash(socket, :error, "Trait group already in target")}
-
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to add trait group")}
-      end
-    end
-  end
-
-  def handle_event(
-        "remove_trait_group_from_bullseye",
-        %{"band_id" => band_id, "trait_group_id" => trait_group_id},
-        socket
-      ) do
-    {:ok, _} =
-      Targets.remove_trait_group_from_band(
-        String.to_integer(band_id),
-        String.to_integer(trait_group_id)
-      )
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Trait group removed from bullseye")
-     |> reload_target_data()}
-  end
-
-  def handle_event("start_expanding_target", _params, socket) do
-    {:noreply, assign(socket, :expanding_target, true)}
-  end
-
-  def handle_event("cancel_expanding_target", _params, socket) do
-    {:noreply, assign(socket, :expanding_target, false)}
-  end
-
-  def handle_event("create_outer_band", %{"excluded_trait_group_id" => tg_id}, socket) do
-    case Targets.create_outer_band(socket.assigns.target.id, String.to_integer(tg_id)) do
-      {:ok, _band} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Ring created")
-         |> assign(:expanding_target, false)
-         |> reload_target_data()}
-
-      {:error, :cannot_create_empty_band} ->
-        {:noreply, put_flash(socket, :error, "Cannot create empty band")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create ring")}
-    end
-  end
-
-  def handle_event("delete_outermost_band", _params, socket) do
-    case Targets.delete_outermost_band(socket.assigns.target.id) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Ring deleted")
-         |> reload_target_data()}
-
-      {:error, :cannot_delete_bullseye} ->
-        {:noreply, put_flash(socket, :error, "Cannot delete bullseye")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "No bands to delete")}
-    end
-  end
-
-  def handle_event("populate_target", _params, socket) do
-    Targets.trigger_population(socket.assigns.target)
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Populating target \"#{socket.assigns.target.title}\"...")
-     |> push_navigate(to: ~p"/marketer/targets/#{socket.assigns.target.id}/inspect")}
-  end
-
   def handle_event("refresh_population", _params, socket) do
     require Logger
     Logger.info("🔄 User clicked Refresh Population for target #{socket.assigns.target.id}")
@@ -385,15 +257,26 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
     end
   end
 
-  def handle_event("done", _params, socket) do
-    if socket.assigns.bands == [] do
-      {:noreply, put_flash(socket, :error, "Create at least a bullseye before finishing")}
-    else
-      {:noreply, push_navigate(socket, to: ~p"/marketer/targets")}
-    end
+  @impl true
+  def handle_info({TargetEditorComponent, {:flash, kind, message}}, socket) do
+    {:noreply, put_flash(socket, kind, message)}
   end
 
-  @impl true
+  def handle_info({TargetEditorComponent, :changed}, socket) do
+    {:noreply, reload_target_data(socket)}
+  end
+
+  def handle_info({TargetEditorComponent, :populating}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "Populating target \"#{socket.assigns.target.title}\"...")
+     |> push_navigate(to: ~p"/marketer/targets/#{socket.assigns.target.id}/inspect")}
+  end
+
+  def handle_info({TargetEditorComponent, :done}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/marketer/targets")}
+  end
+
   def handle_info(msg, socket) do
     case msg do
       {:target_populated, target_id, timestamp} ->
@@ -415,6 +298,8 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
           socket.assigns.live_action == :edit && socket.assigns.target &&
               socket.assigns.target.id == target_id ->
+            send_update(TargetEditorComponent, id: target_editor_id(), reload: true)
+
             {:noreply,
              socket
              |> put_flash(:info, "Target population complete")
@@ -436,32 +321,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
         socket.assigns.current_marketer.id
       )
 
-    bands = Targets.get_bands_for_target(target.id)
-    outermost_band = Targets.get_outermost_band(target.id)
-
-    available_trait_groups =
-      Targets.get_available_trait_groups_for_target(
-        target.id,
-        socket.assigns.current_marketer.id
-      )
-
-    socket
-    |> assign(:target, target)
-    |> assign(:bands, bands)
-    |> assign(:outermost_band, outermost_band)
-    |> assign(:available_trait_groups, available_trait_groups)
-    |> assign(:me_file_counts, me_file_counts(bands, available_trait_groups))
-    |> assign(:editing_target_info, false)
-    |> assign(:expanding_target, false)
-  end
-
-  defp me_file_counts(bands, available_trait_groups) do
-    bands
-    |> Enum.flat_map(& &1.trait_groups)
-    |> Enum.concat(available_trait_groups)
-    |> Enum.map(& &1.id)
-    |> Enum.uniq()
-    |> Traits.me_file_counts_for_trait_groups()
+    assign(socket, :target, target)
   end
 
   defp reload_inspect_data(socket) do
@@ -519,13 +379,13 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
                     target_form={@target_form}
                     editing_target_info={@editing_target_info}
                   />
-                  <Targeting.band_editor
+                  <.live_component
+                    module={TargetEditorComponent}
+                    id={target_editor_id()}
+                    target={@target}
+                    owner={{:marketer, @current_marketer.id}}
                     copy={Targeting.copy(:target)}
-                    bands={@bands}
-                    outermost_band={@outermost_band}
-                    available_trait_groups={@available_trait_groups}
-                    me_file_counts={@me_file_counts}
-                    expanding_target={@expanding_target}
+                    show_me_file_counts?={true}
                   />
                 </.page>
               <% @live_action == :inspect -> %>
@@ -649,7 +509,9 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
             {target.description}
           </p>
           <div class="mt-2 flex flex-wrap gap-1.5">
-            <.chip :for={tg <- target.bullseye_trait_groups}>{tg.title}</.chip>
+            <.chip :for={tg <- target.bullseye_trait_groups}>
+              <Targeting.role_badge group={tg} /> {tg.title}
+            </.chip>
             <span :if={target.bullseye_trait_groups == []} class="text-xs text-base-content/50">
               No bullseye yet
             </span>

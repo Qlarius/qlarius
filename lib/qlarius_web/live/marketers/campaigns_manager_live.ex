@@ -5,7 +5,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   import QlariusWeb.Components.MarketerUI
 
-  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, AdsComponents}
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, AdsComponents, Targeting}
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns
   alias Qlarius.Sponster.Campaigns.{Targets, MediaSequences, CampaignPubSub}
@@ -1333,7 +1333,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           </thead>
           <tbody>
             <tr :for={
-              band <- Enum.sort_by(@campaign.target.target_bands, &length(&1.trait_groups), :desc)
+              band <- Enum.sort_by(@campaign.target.target_bands, &Targets.restrictiveness/1, :desc)
             }>
               <% bid = Enum.find(@campaign.bids, &(&1.target_band_id == band.id)) %>
               <td class="whitespace-nowrap font-medium !align-top">
@@ -1341,7 +1341,9 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
               </td>
               <td class="!align-top">
                 <div :if={@show_traits?} class="flex flex-wrap gap-1">
-                  <.chip :for={tg <- band.trait_groups}>{tg.title}</.chip>
+                  <.chip :for={tg <- band.trait_groups}>
+                    <Targeting.role_badge group={tg} /> {tg.title}
+                  </.chip>
                 </div>
                 <span :if={!@show_traits?} class="text-base-content/60">
                   {length(band.trait_groups)} trait groups

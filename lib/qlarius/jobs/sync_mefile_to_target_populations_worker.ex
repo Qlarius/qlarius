@@ -6,7 +6,16 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Campaign, Target, TargetPopulation, TargetBand, Targets}
+
+  alias Qlarius.Sponster.Campaigns.{
+    BandMatch,
+    Campaign,
+    Target,
+    TargetPopulation,
+    TargetBand,
+    Targets
+  }
+
   alias Qlarius.Tiqit.ContentAudienceTarget
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
@@ -114,48 +123,16 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
   # Bands are checked most-restrictive first and the first match wins, so the
   # me_file lands in its innermost qualifying band — the same rule
-  # PopulateTargetWorker applies in batch.
+  # PopulateTargetWorker applies in batch. Match semantics live in `BandMatch`.
   defp find_optimal_band_for_me_file(target, me_file_id, cache) do
     target.target_bands
-    |> Enum.sort_by(&length(&1.trait_groups), :desc)
+    |> Enum.sort_by(&Targets.restrictiveness/1, :desc)
     |> Enum.reduce_while({nil, cache}, fn band, {_none, cache} ->
-      case me_file_matches_band?(me_file_id, band, cache) do
+      case BandMatch.matches?(me_file_id, band.trait_groups, cache) do
         {true, cache} -> {:halt, {band, cache}}
         {false, cache} -> {:cont, {nil, cache}}
       end
     end)
-  end
-
-  defp me_file_matches_band?(_me_file_id, %{trait_groups: []}, cache), do: {false, cache}
-
-  defp me_file_matches_band?(me_file_id, band, cache) do
-    Enum.reduce_while(band.trait_groups, {true, cache}, fn trait_group, {_so_far, cache} ->
-      case me_file_has_trait_from_group?(me_file_id, trait_group, cache) do
-        {true, cache} -> {:cont, {true, cache}}
-        {false, cache} -> {:halt, {false, cache}}
-      end
-    end)
-  end
-
-  defp me_file_has_trait_from_group?(me_file_id, trait_group, cache) do
-    trait_ids = trait_group.traits |> Enum.map(& &1.id) |> Enum.sort()
-
-    cond do
-      trait_ids == [] ->
-        {false, cache}
-
-      Map.has_key?(cache, trait_ids) ->
-        {Map.fetch!(cache, trait_ids), cache}
-
-      true ->
-        matches =
-          from(mft in MeFileTag,
-            where: mft.me_file_id == ^me_file_id and mft.trait_id in ^trait_ids
-          )
-          |> Repo.exists?()
-
-        {matches, Map.put(cache, trait_ids, matches)}
-    end
   end
 
   defp insert_target_populations_with_snapshots(me_file_id, band_ids) do
@@ -222,8 +199,11 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
     )
   end
 
+  # Only include groups describe why someone is in the band; see
+  # PopulateTargetWorker.
   defp build_trait_metadata(trait_groups) do
-    all_traits = Enum.flat_map(trait_groups, fn tg -> tg.traits end)
+    all_traits =
+      trait_groups |> BandMatch.include_groups() |> Enum.flat_map(fn tg -> tg.traits end)
 
     parent_ids =
       all_traits

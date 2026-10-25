@@ -151,9 +151,11 @@ defmodule Qlarius.YouData.TagQuality do
   defp relationships(ids) do
     ids = Enum.uniq(ids)
 
+    # `excludes` is marketer targeting advice, never a statement about the
+    # person, so data quality never reads it.
     Repo.all(
       from r in TraitRelationship,
-        where: r.trait_id in ^ids or r.related_trait_id in ^ids
+        where: (r.trait_id in ^ids or r.related_trait_id in ^ids) and r.kind != "excludes"
     )
   end
 

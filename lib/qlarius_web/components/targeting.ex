@@ -1,9 +1,10 @@
 defmodule QlariusWeb.Components.Targeting do
   use QlariusWeb, :html
 
-  import QlariusWeb.Components.MarketerUI, only: [panel: 1, empty_state: 1]
+  import QlariusWeb.Components.MarketerUI, only: [panel: 1, empty_state: 1, chip: 1]
 
-  alias Qlarius.Sponster.Campaigns.{TargetBand, Targets}
+  alias Qlarius.Sponster.Campaigns.{AudienceBuilder, TargetBand, Targets, TraitGroup}
+  alias Qlarius.YouData.TraitSearch
 
   def copy(:target) do
     %{
@@ -20,7 +21,9 @@ defmodule QlariusWeb.Components.Targeting do
       locked_title: "This target structure is frozen",
       locked_body: "Depopulate this target below to edit its structure.",
       refresh: "Refresh Population",
-      depopulate: "Depopulate"
+      depopulate: "Depopulate",
+      people: "people",
+      done_empty: "Create at least a bullseye before finishing"
     }
   end
 
@@ -39,7 +42,9 @@ defmodule QlariusWeb.Components.Targeting do
       locked_title: "This audience structure is frozen",
       locked_body: "Depopulate this audience to edit its structure.",
       refresh: "Refresh reach",
-      depopulate: "Depopulate"
+      depopulate: "Depopulate",
+      people: "viewers",
+      done_empty: "Add at least one tag or trait group before finishing"
     }
   end
 
@@ -66,8 +71,79 @@ defmodule QlariusWeb.Components.Targeting do
     List.first(List.wrap(target)) in ["trait_ids", "trait_ids[]"]
   end
 
+  @doc """
+  Zip codes a group already holds under other zip topics, offered as a starting
+  point when a second zip topic (Work after Home) is added. Nil when there are
+  none.
+  """
+  def zip_seed(group, new_parent_id) do
+    zips =
+      group.traits
+      |> Enum.filter(
+        &(&1.input_type == "single_select_zip" and &1.parent_trait_id != new_parent_id)
+      )
+
+    case zips do
+      [] ->
+        nil
+
+      [first | _] ->
+        %{
+          label: (first.parent_trait && first.parent_trait.trait_name) || "the other zip topic",
+          codes: zips |> Enum.map(& &1.trait_name) |> Enum.uniq()
+        }
+    end
+  end
+
+  @doc """
+  Human wording for the reasons `AudienceBuilder.set_topic/4` and
+  `remove_topic/2` refuse an edit.
+  """
+  def topic_error(reason, copy) do
+    case reason do
+      {:frozen_target, _ids} ->
+        "This group is on a #{copy.noun_lower} in a live campaign. Depopulate that #{copy.noun_lower} to edit it."
+
+      :frozen_target ->
+        "This #{copy.noun_lower} is in a live campaign. Depopulate it to edit."
+
+      :include_group_required ->
+        "A band needs a group that includes people before an Anti-Trait Group can remove any."
+
+      {:trait_in_both_roles, _} ->
+        "One of those answers is already included by this #{copy.noun_lower}."
+
+      :trait_group_already_in_target ->
+        "That group is already on this #{copy.noun_lower}."
+
+      :no_bands_exist ->
+        "Create a bullseye first."
+
+      :trait_group_shared ->
+        "This group is used by more than one #{copy.noun_lower}. Create a new group instead."
+
+      :last_topic ->
+        "A group keeps at least one topic. Delete the group instead."
+
+      :traits_required ->
+        "Select at least one answer."
+
+      {:traits_not_children, _} ->
+        "Those answers belong to a different topic."
+
+      {:traits_not_found, _} ->
+        "Some of those answers are no longer available."
+
+      %Ecto.Changeset{} = changeset ->
+        changeset
+
+      other ->
+        "Could not save: #{inspect(other)}"
+    end
+  end
+
   def excluded_trait_group_id(band, bands) do
-    sorted_bands = Enum.sort_by(bands, &length(&1.trait_groups), :desc)
+    sorted_bands = Enum.sort_by(bands, &Targets.restrictiveness/1, :desc)
     current_index = Enum.find_index(sorted_bands, &(&1.id == band.id))
 
     if current_index && current_index < length(sorted_bands) - 1 do
@@ -94,10 +170,13 @@ defmodule QlariusWeb.Components.Targeting do
   attr :available_trait_groups, :list, required: true
   attr :expanding_target, :boolean, default: false
   attr :show_populate?, :boolean, default: true
+  attr :phx_target, :any, default: nil, doc: "LiveComponent that owns the band events"
 
   attr :me_file_counts, :map,
     default: nil,
     doc: "trait group id => MeFile count; counts are hidden when nil"
+
+  slot :notes, doc: "quiet content under the band list, such as suggestions"
 
   def band_editor(assigns) do
     ~H"""
@@ -108,11 +187,14 @@ defmodule QlariusWeb.Components.Targeting do
         description="The bullseye is your most precise audience. Each outer ring drops one trait group to reach more people."
       >
         <:actions>
-          <button type="button" phx-click="done" class="btn btn-sm btn-ghost">Done</button>
+          <button type="button" phx-click="done" phx-target={@phx_target} class="btn btn-sm btn-ghost">
+            Done
+          </button>
           <button
             :if={@show_populate? and @bands != []}
             type="button"
             phx-click="populate_target"
+            phx-target={@phx_target}
             class="btn btn-sm btn-primary"
             data-confirm={@copy.populate_confirm}
           >
@@ -139,6 +221,7 @@ defmodule QlariusWeb.Components.Targeting do
                 }
                 type="button"
                 phx-click="delete_outermost_band"
+                phx-target={@phx_target}
                 class="btn btn-ghost btn-xs btn-square text-error"
                 title="Delete this ring"
                 aria-label="Delete this ring"
@@ -155,6 +238,7 @@ defmodule QlariusWeb.Components.Targeting do
                     :for={tg <- band.trait_groups}
                     type="button"
                     phx-click="create_outer_band"
+                    phx-target={@phx_target}
                     phx-value-excluded_trait_group_id={tg.id}
                     class={[
                       "inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1 text-sm transition-colors hover:border-warning hover:bg-warning/20",
@@ -162,18 +246,24 @@ defmodule QlariusWeb.Components.Targeting do
                     ]}
                     title={"Exclude #{tg.title} from the new ring"}
                   >
-                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <.role_badge group={tg} /> {tg.title}
+                    <.me_file_count counts={@me_file_counts} id={tg.id} role={tg.role} />
                     <.icon name="hero-scissors" class="size-4 text-warning" />
                   </button>
                 <% TargetBand.is_bullseye?(band) && length(@bands) == 1 -> %>
                   <span
                     :for={tg <- band.trait_groups}
-                    class="inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 py-1 pr-1 pl-2.5 text-sm"
+                    class={[
+                      "inline-flex items-center gap-1.5 rounded-md border py-1 pr-1 pl-2.5 text-sm",
+                      chip_role_class(tg)
+                    ]}
                   >
-                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <.role_badge group={tg} /> {tg.title}
+                    <.me_file_count counts={@me_file_counts} id={tg.id} role={tg.role} />
                     <button
                       type="button"
                       phx-click="remove_trait_group_from_bullseye"
+                      phx-target={@phx_target}
                       phx-value-band_id={band.id}
                       phx-value-trait_group_id={tg.id}
                       class="rounded p-0.5 text-base-content/50 hover:bg-base-300 hover:text-error"
@@ -187,12 +277,14 @@ defmodule QlariusWeb.Components.Targeting do
                   <span
                     :for={{tg, dropped?} <- band_chips(band, @bands)}
                     class={[
-                      "inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
+                      "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm",
+                      chip_role_class(tg),
                       dropped? && "text-base-content/70"
                     ]}
                     title={dropped? && "Dropped in the next ring"}
                   >
-                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <.role_badge group={tg} /> {tg.title}
+                    <.me_file_count counts={@me_file_counts} id={tg.id} role={tg.role} />
                     <.icon
                       :if={dropped?}
                       name="hero-arrow-down-right"
@@ -210,6 +302,7 @@ defmodule QlariusWeb.Components.Targeting do
               <button
                 type="button"
                 phx-click="cancel_expanding_target"
+                phx-target={@phx_target}
                 class="btn btn-ghost btn-xs btn-square"
                 title="Cancel"
                 aria-label="Cancel new ring"
@@ -223,11 +316,20 @@ defmodule QlariusWeb.Components.Targeting do
           </li>
         </ul>
 
+        <div :if={@notes != [] and @bands != []} class="border-t border-base-300 px-6 py-3">
+          {render_slot(@notes)}
+        </div>
+
         <:footer :if={
           @bands != [] && @outermost_band && length(@outermost_band.trait_groups) > 1 &&
             !@expanding_target
         }>
-          <button type="button" phx-click="start_expanding_target" class="btn btn-sm btn-outline">
+          <button
+            type="button"
+            phx-click="start_expanding_target"
+            phx-target={@phx_target}
+            class="btn btn-sm btn-outline"
+          >
             <.icon name="hero-plus" class="size-4" /> {@copy.expand}
           </button>
         </:footer>
@@ -256,13 +358,17 @@ defmodule QlariusWeb.Components.Targeting do
             :for={tg <- @available_trait_groups}
             type="button"
             phx-click="add_trait_group"
+            phx-target={@phx_target}
             phx-value-trait_group_id={tg.id}
             disabled={length(@bands) > 1}
             class="group flex w-full items-center justify-between gap-2 rounded-lg border border-base-300 px-3 py-2 text-left text-sm transition-colors enabled:hover:border-base-content/30 enabled:hover:bg-base-200/60 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span class="min-w-0 truncate">{tg.title}</span>
+            <span class="flex min-w-0 items-center gap-1.5">
+              <.role_badge group={tg} />
+              <span class="truncate">{tg.title}</span>
+            </span>
             <span class="flex shrink-0 items-center gap-2">
-              <.me_file_count counts={@me_file_counts} id={tg.id} />
+              <.me_file_count counts={@me_file_counts} id={tg.id} role={tg.role} />
               <.icon
                 name="hero-plus"
                 class="size-4 text-base-content/40 group-enabled:group-hover:text-base-content"
@@ -277,6 +383,7 @@ defmodule QlariusWeb.Components.Targeting do
 
   attr :counts, :map, default: nil
   attr :id, :integer, required: true
+  attr :role, :string, default: "include"
 
   defp me_file_count(%{counts: nil} = assigns), do: ~H""
 
@@ -286,11 +393,71 @@ defmodule QlariusWeb.Components.Targeting do
     ~H"""
     <span
       class="inline-flex items-center gap-0.5 text-xs text-base-content/50"
-      title={"#{@count} MeFiles"}
+      title={"#{@count} MeFiles#{if @role == "anti", do: " removed"}"}
     >
-      <.icon name="hero-user" class="size-3" />{@count}
+      <.icon name={if @role == "anti", do: "hero-user-minus", else: "hero-user"} class="size-3" />{@count}
     </span>
     """
+  end
+
+  attr :group, :map, required: true
+  attr :class, :string, default: nil
+
+  @doc """
+  Marks an Anti-Trait Group wherever a group is named. Include groups show nothing.
+  """
+  def role_badge(assigns) do
+    ~H"""
+    <span
+      :if={TraitGroup.anti?(@group)}
+      class={["mr-1 inline-flex shrink-0 items-center text-error", @class]}
+      title="Anti-Trait Group: removes anyone with these answers"
+      aria-label="keep out"
+    >
+      <.icon name="hero-no-symbol" class="size-3.5" />
+    </span>
+    """
+  end
+
+  attr :groups, :list, required: true, doc: "every active group, to decide whether to show"
+  attr :value, :string, required: true, doc: "\"all\", \"include\", or \"anti\""
+
+  @doc """
+  A small role filter for group lists. Appears once a workspace has an
+  Anti-Trait Group; pages handle `filter_role` with a `role` value.
+  """
+  def role_filter(assigns) do
+    ~H"""
+    <div
+      :if={Enum.any?(@groups, &TraitGroup.anti?/1)}
+      class="join"
+      role="group"
+      aria-label="Filter by role"
+    >
+      <button
+        :for={{value, label} <- [{"all", "All"}, {"include", "Include"}, {"anti", "Keep out"}]}
+        type="button"
+        phx-click="filter_role"
+        phx-value-role={value}
+        class={["btn btn-xs join-item", @value == value && "btn-active"]}
+        aria-pressed={to_string(@value == value)}
+      >
+        {label}
+      </button>
+    </div>
+    """
+  end
+
+  @doc """
+  Groups matching a `role_filter` value.
+  """
+  def filter_by_role(groups, "all"), do: groups
+  def filter_by_role(groups, role), do: Enum.filter(groups, &(&1.role == role))
+
+  defp chip_role_class(group) do
+    if TraitGroup.anti?(group),
+      do: "border-error/40 bg-error/5",
+      else: "border-base-300 bg-base-200"
   end
 
   attr :copy, :map, required: true
@@ -380,6 +547,533 @@ defmodule QlariusWeb.Components.Targeting do
     """
   end
 
+  @topic_chip_limit 12
+
+  attr :trait_groups, :list, required: true
+  attr :archived, :boolean, default: false
+  attr :usage_label, :string, default: "In targets"
+  attr :deactivate_confirm, :string, default: "Deactivate this trait group? It is in use."
+  attr :topic_path, :any, required: true, doc: "fn group, parent_trait_id -> patch path"
+
+  def trait_group_list(assigns) do
+    ~H"""
+    <ul class="divide-y divide-base-300">
+      <li
+        :for={group <- @trait_groups}
+        id={"trait-group-#{group.id}"}
+        class={[
+          "flex items-start gap-5 px-6 py-4 transition-colors hover:bg-base-200/40",
+          @archived && "opacity-70"
+        ]}
+      >
+        <div class="min-w-0 flex-1">
+          <p class="flex items-center gap-2 font-semibold">
+            {group.title} <.role_badge group={group} />
+          </p>
+          <p :if={group.description} class="text-sm text-base-content/60">{group.description}</p>
+          <.topic_rows group={group} archived={@archived} topic_path={@topic_path} />
+        </div>
+
+        <dl class="grid shrink-0 grid-cols-2 gap-6 text-right max-sm:hidden">
+          <div>
+            <dt class="text-xs text-base-content/50">
+              {if TraitGroup.anti?(group), do: "MeFiles removed", else: "MeFiles"}
+            </dt>
+            <dd class="font-semibold">{group.me_file_count}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/50">{@usage_label}</dt>
+            <dd class="font-semibold">{group.target_band_count}</dd>
+          </div>
+        </dl>
+
+        <div class="shrink-0">
+          <%= cond do %>
+            <% @archived -> %>
+              <button
+                type="button"
+                phx-click="reactivate_trait_group"
+                phx-value-id={group.id}
+                class="btn btn-sm btn-ghost"
+              >
+                <.icon name="hero-arrow-uturn-left" class="size-4" /> Reactivate
+              </button>
+            <% group.target_band_count > 0 -> %>
+              <button
+                type="button"
+                phx-click="deactivate_trait_group"
+                phx-value-id={group.id}
+                class="btn btn-sm btn-ghost"
+                data-confirm={@deactivate_confirm}
+              >
+                <.icon name="hero-archive-box" class="size-4" /> Deactivate
+              </button>
+            <% true -> %>
+              <button
+                type="button"
+                phx-click="delete_trait_group"
+                phx-value-id={group.id}
+                class="btn btn-sm btn-ghost btn-square text-error"
+                title="Delete"
+                aria-label={"Delete #{group.title}"}
+                data-confirm="Delete this trait group? This cannot be undone."
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+          <% end %>
+        </div>
+      </li>
+    </ul>
+    """
+  end
+
+  attr :group, :map, required: true
+  attr :archived, :boolean, default: false
+  attr :topic_path, :any, required: true
+
+  defp topic_rows(assigns) do
+    topics = AudienceBuilder.topics(assigns.group)
+
+    assigns =
+      assigns
+      |> assign(:topics, topics)
+      |> assign(:multi?, length(topics) > 1)
+      |> assign(:chip_limit, @topic_chip_limit)
+
+    ~H"""
+    <div class="mt-2 space-y-2">
+      <p :if={@multi? or TraitGroup.anti?(@group)} class="text-xs text-base-content/60">
+        {topic_sentence(@group, @multi?)}
+      </p>
+      <div
+        :for={%{parent: parent, traits: traits} <- @topics}
+        id={"trait-group-#{@group.id}-topic-#{(parent && parent.id) || "none"}"}
+        class="flex items-start gap-3"
+      >
+        <div class="min-w-0 flex-1 space-y-1">
+          <div :if={parent} class="text-xs font-medium text-base-content/60">
+            {parent.trait_name}
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <.chip :for={trait <- Enum.take(traits, @chip_limit)}>{trait.trait_name}</.chip>
+            <.chip :if={length(traits) > @chip_limit} class="border-dashed bg-transparent">
+              +{length(traits) - @chip_limit} more
+            </.chip>
+          </div>
+        </div>
+        <div :if={not @archived and parent} class="flex shrink-0 items-center gap-1">
+          <.link
+            patch={@topic_path.(@group, parent.id)}
+            class="btn btn-ghost btn-xs"
+            aria-label={"Edit #{parent.trait_name} in #{@group.title}"}
+          >
+            Edit
+          </.link>
+          <button
+            :if={@multi?}
+            type="button"
+            phx-click="remove_topic"
+            phx-value-group_id={@group.id}
+            phx-value-parent_trait_id={parent.id}
+            data-confirm={"Remove #{parent.trait_name} from #{@group.title}?"}
+            class="btn btn-ghost btn-xs btn-square"
+            title="Remove topic"
+            aria-label={"Remove #{parent.trait_name} from #{@group.title}"}
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </button>
+        </div>
+      </div>
+      <button
+        :if={not @archived}
+        type="button"
+        phx-click="add_topic"
+        phx-value-group_id={@group.id}
+        class="btn btn-ghost btn-xs text-base-content/70"
+      >
+        <.icon name="hero-plus" class="size-3.5" /> Add topic
+      </button>
+    </div>
+    """
+  end
+
+  defp topic_sentence(group, multi?) do
+    case {TraitGroup.anti?(group), multi?} do
+      {true, true} -> "Removes anyone with any of these answers."
+      {true, false} -> "Removes anyone with one of these answers."
+      {false, _} -> "Matches anyone with any of these answers."
+    end
+  end
+
+  attr :categories, :list, required: true
+  attr :search_term, :string, required: true
+  attr :trait_match_ids, :any, required: true
+  attr :topic_path, :any, required: true, doc: "fn parent_trait_id -> path"
+  attr :adding_to, :map, default: nil, doc: "group receiving a new topic, or nil"
+
+  def trait_browser(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :filtered,
+        TraitSearch.filter_categories(assigns.categories, assigns.trait_match_ids)
+      )
+
+    ~H"""
+    <.panel
+      title="Trait browser"
+      description={
+        if @adding_to,
+          do: "Pick the topic to add to this group.",
+          else: "Choose a trait to group its answers."
+      }
+      class="lg:sticky lg:top-22"
+    >
+      <div
+        :if={@adding_to}
+        id="adding-topic-banner"
+        class="mb-3 flex items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm"
+      >
+        <span class="min-w-0 truncate">
+          Adding a topic to <span class="font-semibold">{@adding_to.title}</span>
+        </span>
+        <button type="button" phx-click="cancel_add_topic" class="btn btn-ghost btn-xs">
+          Cancel
+        </button>
+      </div>
+
+      <form phx-change="search_traits" phx-submit="search_traits">
+        <label class="input input-bordered flex w-full items-center gap-2">
+          <.icon name="hero-magnifying-glass" class="size-4 opacity-50" />
+          <input
+            type="text"
+            phx-debounce="300"
+            name="search"
+            value={@search_term}
+            placeholder="Search traits"
+            class="grow"
+            autocomplete="off"
+          />
+          <button
+            :if={@search_term != ""}
+            type="button"
+            phx-click="clear_search"
+            class="btn btn-ghost btn-xs btn-circle"
+            aria-label="Clear search"
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </button>
+        </label>
+      </form>
+
+      <p
+        :if={match?(%MapSet{}, @trait_match_ids) and @filtered == []}
+        class="py-6 text-center text-sm text-base-content/60"
+      >
+        No traits match "{@search_term}".
+      </p>
+
+      <div class="-mx-2 max-h-[calc(100vh-20rem)] space-y-1 overflow-y-auto">
+        <details :for={category <- @filtered} open class="group/category">
+          <summary class="flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-2 text-sm font-semibold hover:bg-base-200/60">
+            <span class="flex items-center gap-1.5">
+              <.icon
+                name="hero-chevron-right"
+                class="size-4 text-base-content/40 transition-transform group-open/category:rotate-90"
+              />
+              {category.name}
+            </span>
+            <span class="text-xs font-normal text-base-content/50">{length(category.traits)}</span>
+          </summary>
+          <div class="pb-2 pl-5">
+            <.link
+              :for={trait <- category.traits}
+              patch={@topic_path.(trait.id)}
+              class="group flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-base-content/80 hover:bg-base-200/60 hover:text-base-content"
+            >
+              <span class="min-w-0 truncate">{trait.trait_name}</span>
+              <.icon
+                name="hero-plus"
+                class="size-4 shrink-0 text-base-content/30 group-hover:text-base-content"
+              />
+            </.link>
+          </div>
+        </details>
+      </div>
+    </.panel>
+    """
+  end
+
+  attr :suggestions, :map, required: true, doc: "AntiGroupSuggestions.for_target/1"
+  attr :count, :integer, required: true
+  attr :copy, :map, required: true
+  attr :phx_target, :any, default: nil
+
+  @doc """
+  One quiet line under the rings. Says nothing when there is nothing to suggest
+  and nothing was dismissed. Never marks the target wrong.
+  """
+  def anti_suggestion_line(assigns) do
+    ~H"""
+    <p
+      :if={@count > 0}
+      id="anti-suggestion-line"
+      class="flex items-center gap-2 text-sm text-base-content/70"
+    >
+      <.icon name="hero-light-bulb" class="size-4 shrink-0 text-base-content/50" />
+      <span>
+        {@count} {if @count == 1, do: "answer", else: "answers"} you may want to keep out of this {@copy.noun_lower}.
+      </span>
+      <button
+        type="button"
+        phx-click="open_suggestions"
+        phx-target={@phx_target}
+        class="link link-hover font-medium"
+      >
+        Review
+      </button>
+    </p>
+    <p :if={@count == 0 and @suggestions.dismissed != []} class="text-xs text-base-content/50">
+      <button
+        type="button"
+        phx-click="open_suggestions"
+        phx-target={@phx_target}
+        class="link link-hover"
+      >
+        Suggestions
+      </button>
+    </p>
+    """
+  end
+
+  attr :suggestions, :map, required: true
+  attr :review, :map, required: true, doc: "selected ids, titles, shape, band_ids, combined_title"
+  attr :bands, :list, required: true
+  attr :copy, :map, required: true
+  attr :error, :string, default: nil
+  attr :phx_target, :any, default: nil
+
+  @doc """
+  The review drawer for Anti-Trait Group suggestions: pick answers per topic,
+  name the group or groups, choose one combined group or one per topic, and
+  confirm. Each topic can be dismissed for this target; dismissed topics stay
+  reachable at the bottom.
+  """
+  def suggestion_review(assigns) do
+    topics = assigns.suggestions.topics
+    selected = assigns.review.selected
+
+    assigns =
+      assigns
+      |> assign(:topics, topics)
+      |> assign(:selected_count, MapSet.size(selected))
+      |> assign(:multi_topic?, length(topics) > 1)
+      |> assign(:multi_band?, length(assigns.bands) > 1)
+
+    ~H"""
+    <div class="modal modal-bottom md:modal-middle modal-open bg-base-300/80 backdrop-blur-sm">
+      <div class="modal-box flex max-h-[90vh] flex-col border border-base-300 bg-base-100 p-0 !max-w-2xl">
+        <div class="flex shrink-0 items-baseline justify-between bg-base-200 p-4">
+          <div>
+            <h3 class="text-lg font-bold">Keep out</h3>
+            <p class="text-sm text-base-content/60">
+              Answers that marketers targeting what this {@copy.noun_lower} includes tend to keep out. Your call.
+            </p>
+          </div>
+          <button
+            type="button"
+            phx-click="close_suggestions"
+            phx-target={@phx_target}
+            class="btn btn-md btn-circle btn-ghost"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div :if={@suggestions.frozen?} class="shrink-0 bg-warning/10 px-4 py-2 text-sm">
+          This {@copy.noun_lower} is in a live campaign. Depopulate it to edit.
+        </div>
+
+        <form
+          id="suggestion-review-form"
+          phx-change="review_change"
+          phx-submit="confirm_suggestions"
+          phx-target={@phx_target}
+          class="flex min-h-0 flex-1 flex-col"
+        >
+          <div class="flex-1 space-y-5 overflow-y-auto p-4">
+            <p :if={@topics == []} class="text-sm text-base-content/60">
+              Nothing open right now.
+            </p>
+
+            <section
+              :for={%{parent: parent, traits: traits} <- @topics}
+              id={"suggestion-topic-#{parent.id}"}
+              class="rounded-xl border border-base-300"
+            >
+              <div class="flex items-center justify-between gap-2 border-b border-base-300 px-3 py-2">
+                <span class="font-semibold">{parent.trait_name}</span>
+                <span class="flex items-center gap-1 text-xs">
+                  <button
+                    type="button"
+                    phx-click="select_topic"
+                    phx-value-parent_trait_id={parent.id}
+                    phx-target={@phx_target}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="clear_topic"
+                    phx-value-parent_trait_id={parent.id}
+                    phx-target={@phx_target}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="dismiss_topic"
+                    phx-value-parent_trait_id={parent.id}
+                    phx-target={@phx_target}
+                    class="btn btn-ghost btn-xs text-base-content/60"
+                    title="Hide this topic for this target"
+                  >
+                    Not for this {@copy.noun_lower}
+                  </button>
+                </span>
+              </div>
+
+              <label
+                :for={%{trait: trait, severity: severity, because: because, note: note} <- traits}
+                class="flex cursor-pointer items-start gap-3 border-b border-dashed border-base-300 px-3 py-2 last:border-b-0 hover:bg-base-200/60"
+              >
+                <input
+                  type="checkbox"
+                  name="trait_ids[]"
+                  value={trait.id}
+                  checked={MapSet.member?(@review.selected, trait.id)}
+                  class="checkbox checkbox-sm mt-0.5"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center gap-2">
+                    <span>{trait.trait_name}</span>
+                    <span class={[
+                      "badge badge-xs",
+                      if(severity == "hard", do: "badge-neutral", else: "badge-ghost")
+                    ]}>
+                      {if severity == "hard", do: "will not want", else: "may not want"}
+                    </span>
+                  </span>
+                  <span class="block text-xs text-base-content/60">
+                    Because you include {Enum.join(because, ", ")}{if note, do: " · #{note}"}
+                  </span>
+                </span>
+              </label>
+
+              <div :if={not @multi_topic? or @review.shape == "per_topic"} class="px-3 py-2">
+                <input
+                  type="text"
+                  name={"titles[#{parent.id}]"}
+                  value={Map.get(@review.titles, parent.id, "")}
+                  placeholder={"Keep out · #{parent.trait_name}"}
+                  class="input input-sm w-full"
+                  aria-label={"Group name for #{parent.trait_name}"}
+                />
+              </div>
+            </section>
+
+            <fieldset :if={@multi_topic?} class="space-y-2 text-sm">
+              <legend class="text-xs font-medium text-base-content/60">Shape</legend>
+              <label class="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="shape"
+                  value="combined"
+                  checked={@review.shape == "combined"}
+                  class="radio radio-sm"
+                /> One Anti-Trait Group with every chosen answer
+              </label>
+              <label class="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="shape"
+                  value="per_topic"
+                  checked={@review.shape == "per_topic"}
+                  class="radio radio-sm"
+                /> One Anti-Trait Group per topic, so rings can drop them separately
+              </label>
+              <input
+                :if={@review.shape == "combined"}
+                type="text"
+                name="combined_title"
+                value={@review.combined_title || ""}
+                placeholder={"Keep out · " <> Enum.map_join(@topics, ", ", & &1.parent.trait_name)}
+                class="input input-sm w-full"
+                aria-label="Group name"
+              />
+            </fieldset>
+
+            <fieldset :if={@multi_band? and @topics != []} class="space-y-1 text-sm">
+              <legend class="text-xs font-medium text-base-content/60">Apply to</legend>
+              <label :for={band <- @bands} class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="band_ids[]"
+                  value={band.id}
+                  checked={band.id in @review.band_ids}
+                  class="checkbox checkbox-sm"
+                />
+                {Targets.band_label(band, @bands)}
+              </label>
+            </fieldset>
+
+            <div :if={@suggestions.dismissed != []} class="text-xs text-base-content/60">
+              <span class="font-medium">Dismissed for this {@copy.noun_lower}:</span>
+              <span
+                :for={%{parent: parent} <- @suggestions.dismissed}
+                class="ml-1 inline-flex items-center gap-1"
+              >
+                {parent.trait_name}
+                <button
+                  type="button"
+                  phx-click="reopen_topic"
+                  phx-value-parent_trait_id={parent.id}
+                  phx-target={@phx_target}
+                  class="link link-hover"
+                >
+                  Reopen
+                </button>
+              </span>
+            </div>
+          </div>
+
+          <div class="flex shrink-0 items-center justify-end gap-2 border-t border-base-300 bg-base-200 p-4">
+            <p :if={@error} class="mr-auto text-sm text-error">{@error}</p>
+            <button
+              type="button"
+              phx-click="close_suggestions"
+              phx-target={@phx_target}
+              class="btn btn-ghost"
+            >
+              Not now
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              disabled={@selected_count == 0 or @suggestions.frozen? or @review.band_ids == []}
+            >
+              Keep out {@selected_count}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    """
+  end
+
   @doc """
   Text matched by the tagging search box: title, survey answer, and every meta field.
   """
@@ -459,6 +1153,16 @@ defmodule QlariusWeb.Components.Targeting do
   attr :heading, :string, default: nil
   attr :submit_label, :string, default: "Create Trait Group"
   attr :selected_ids, :list, default: []
+  attr :error, :string, default: nil
+  attr :phx_target, :any, default: nil, doc: "LiveComponent that owns the modal events"
+
+  attr :zip_seed, :map,
+    default: nil,
+    doc: "%{label, codes} zip codes from another topic in the group, offered as a start"
+
+  attr :role_choice?, :boolean,
+    default: false,
+    doc: "offer the Anti-Trait Group toggle; only when creating a new group"
 
   def trait_group_modal(assigns) do
     assigns =
@@ -479,7 +1183,12 @@ defmodule QlariusWeb.Components.Targeting do
       ]}>
         <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">
           <h3 class="text-lg font-bold">{@heading}</h3>
-          <button type="button" phx-click="close_modal" class="btn btn-md btn-circle btn-ghost">
+          <button
+            type="button"
+            phx-click="close_modal"
+            phx-target={@phx_target}
+            class="btn btn-md btn-circle btn-ghost"
+          >
             ✕
           </button>
         </div>
@@ -504,6 +1213,7 @@ defmodule QlariusWeb.Components.Targeting do
             id="trait-group-form"
             phx-change="validate_trait_group"
             phx-submit="save_trait_group"
+            phx-target={@phx_target}
             class="flex flex-col flex-1 min-h-0"
           >
             <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -515,8 +1225,45 @@ defmodule QlariusWeb.Components.Targeting do
                 <.input field={@form[:description]} type="textarea" label="Description (optional)" />
               </div>
 
+              <label
+                :if={@role_choice?}
+                class="flex cursor-pointer items-start gap-3 rounded-lg border border-base-300 px-3 py-2 text-sm"
+              >
+                <input type="hidden" name="trait_group[role]" value="include" />
+                <input
+                  type="checkbox"
+                  name="trait_group[role]"
+                  value="anti"
+                  checked={@form[:role].value == "anti"}
+                  class="checkbox checkbox-sm mt-0.5"
+                />
+                <span>
+                  <span class="font-medium">Create as Anti-Trait Group</span>
+                  <span class="block text-xs text-base-content/60">
+                    Removes anyone with these answers from a band instead of including them. This cannot change later.
+                  </span>
+                </span>
+              </label>
+
               <%= if @parent_trait.input_type == "single_select_zip" do %>
                 <div class="divider">Select Zip Codes</div>
+
+                <div
+                  :if={@zip_seed && @selected_zips == []}
+                  class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-base-300 bg-base-200/60 px-3 py-2 text-sm"
+                >
+                  <span class="text-base-content/70">
+                    This group already holds {length(@zip_seed.codes)} zip codes under {@zip_seed.label}.
+                  </span>
+                  <button
+                    type="button"
+                    phx-click="seed_zips"
+                    phx-target={@phx_target}
+                    class="btn btn-sm btn-ghost"
+                  >
+                    Start with the same zip codes
+                  </button>
+                </div>
 
                 <div id="zip-selector" phx-hook="ZipSelector" class="flex gap-4 w-full">
                   <div class="flex-1 min-w-0">
@@ -546,6 +1293,7 @@ defmodule QlariusWeb.Components.Targeting do
                       <select
                         name="limit"
                         phx-change="change_zip_limit"
+                        phx-target={@phx_target}
                         class="select select-bordered select-sm w-28"
                       >
                         <option value="1000" selected={@zip_search_limit == 1000}>1,000</option>
@@ -649,8 +1397,14 @@ defmodule QlariusWeb.Components.Targeting do
               <% end %>
             </div>
 
-            <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-              <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
+            <div class="p-4 flex flex-row items-center gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+              <p :if={@error} class="mr-auto text-sm text-error">{@error}</p>
+              <button
+                type="button"
+                phx-click="close_modal"
+                phx-target={@phx_target}
+                class="btn btn-lg btn-ghost"
+              >
                 Cancel
               </button>
               <button

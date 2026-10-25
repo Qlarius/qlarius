@@ -26,33 +26,55 @@ defmodule Qlarius.Sponster.Campaigns.BandDefinition do
   groups is irrelevant — a band means "hold a trait from every one of these
   groups" — so both levels are sorted before hashing.
 
-  Returns `nil` for a band that cannot match anybody: no trait groups at all, or
-  any group with no traits. Both workers already treat such bands as matching
-  nobody, and marking them ineligible keeps unrelated degenerate bands from
-  being mistaken for twins of each other.
+  Returns `nil` for a band that cannot match anybody: no include groups at all,
+  or any include group with no traits. Both workers already treat such bands as
+  matching nobody, and marking them ineligible keeps unrelated degenerate bands
+  from being mistaken for twins of each other.
+
+  Anti-Trait Groups are passed separately as `anti_id_sets`. A band with none
+  hashes exactly as it did before anti-groups existed, so stored hashes stay
+  valid. When any anti-group is present a polarity marker and the anti sets join
+  the fingerprint, since "Vegans" as an include and "Vegans" as an anti match
+  different people. An empty anti-group removes nobody and is dropped before
+  hashing.
   """
-  def hash(trait_id_sets) when is_list(trait_id_sets) do
-    normalized =
-      Enum.map(trait_id_sets, fn ids -> ids |> Enum.uniq() |> Enum.sort() end)
+  def hash(trait_id_sets, anti_id_sets \\ []) when is_list(trait_id_sets) do
+    normalized = normalize(trait_id_sets)
+    anti = anti_id_sets |> normalize() |> Enum.reject(&(&1 == []))
 
     if normalized == [] or Enum.any?(normalized, &(&1 == [])) do
       nil
     else
-      normalized
-      |> Enum.sort()
-      |> Enum.map_join("|", &Enum.join(&1, ","))
+      include_part = normalized |> Enum.sort() |> Enum.map_join("|", &Enum.join(&1, ","))
+
+      material =
+        case anti do
+          [] ->
+            include_part
+
+          _ ->
+            include_part <>
+              "!" <> (anti |> Enum.sort() |> Enum.map_join("|", &Enum.join(&1, ",")))
+        end
+
+      material
       |> then(&:crypto.hash(:sha256, &1))
       |> Base.encode16(case: :lower)
     end
   end
 
+  defp normalize(id_sets), do: Enum.map(id_sets, fn ids -> ids |> Enum.uniq() |> Enum.sort() end)
+
   @doc """
   Fingerprints a band that has `trait_groups: :traits` preloaded.
   """
   def hash_for_band(%{trait_groups: trait_groups}) when is_list(trait_groups) do
-    trait_groups
-    |> Enum.map(fn group -> Enum.map(group.traits, & &1.id) end)
-    |> hash()
+    {anti, include} = Enum.split_with(trait_groups, &(&1.role == "anti"))
+
+    hash(
+      Enum.map(include, fn group -> Enum.map(group.traits, & &1.id) end),
+      Enum.map(anti, fn group -> Enum.map(group.traits, & &1.id) end)
+    )
   end
 
   @doc """

@@ -144,6 +144,18 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:trait_id_required),
     do: {422, "trait_id_required", "Send trait_id or parent_id"}
 
+  defp message(:invalid_direction),
+    do: {422, "invalid_direction", "direction must be from or to"}
+
+  defp message(:parent_trait_id_required),
+    do: {422, "parent_trait_id_required", "parent_trait_id is required"}
+
+  defp message(:no_bands_exist),
+    do: {422, "no_bands_exist", "The target has no bands yet. Build the bullseye first."}
+
+  defp message(:anti_group_required),
+    do: {422, "anti_group_required", "trait_group_id must be an Anti-Trait Group (role anti)"}
+
   defp message(:too_many_operations),
     do: {422, "too_many_operations", "At most 1000 operations per call"}
 
@@ -261,6 +273,21 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:api_ref_immutable),
     do: {422, "api_ref_immutable", "api_ref can't be changed once set"}
 
+  defp message(:role_immutable),
+    do:
+      {422, "role_immutable",
+       "A trait group's role is fixed at creation. Create a new group with the other role instead."}
+
+  defp message(:include_group_required),
+    do:
+      {422, "include_group_required",
+       "A band needs at least one include group. Anti-Trait Groups only remove people from what the include groups match."}
+
+  defp message({:trait_in_both_roles, trait_ids}),
+    do:
+      {422, "trait_in_both_roles",
+       "These traits are held by both an include group and an Anti-Trait Group on the band: #{Enum.join(trait_ids, ", ")}"}
+
   defp message(:image_required),
     do:
       {422, "image_required",
@@ -303,6 +330,11 @@ defmodule QlariusWeb.Api.Admin.Responder do
     do:
       {422, "traits_not_children",
        "These trait ids are not active children of the parent: #{Enum.join(missing, ", ")}"}
+
+  defp message({:traits_not_found, missing}),
+    do:
+      {422, "traits_not_found",
+       "These trait ids are not active answer traits: #{Enum.join(missing, ", ")}"}
 
   defp message({:frozen_target, ids}),
     do:

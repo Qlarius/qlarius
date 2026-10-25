@@ -14,7 +14,8 @@ defmodule Qlarius.AdminApi.TraitGroups do
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.Traits.Trait
 
-  @fields ~w(title description parent_trait_id)
+  @fields ~w(title description parent_trait_id role)
+  @insert_fields ~w(api_ref title description parent_trait_id role)
 
   def list(params) do
     owner = owner(params)
@@ -64,6 +65,9 @@ defmodule Qlarius.AdminApi.TraitGroups do
       Map.has_key?(params, "api_ref") && params["api_ref"] != group.api_ref ->
         {:error, :api_ref_immutable}
 
+      role_change?(group, params) ->
+        {:error, :role_immutable}
+
       reason = lock_reason(group) ->
         {:error, reason}
 
@@ -108,11 +112,18 @@ defmodule Qlarius.AdminApi.TraitGroups do
         current = group |> Repo.preload(:traits) |> Map.fetch!(:traits) |> Enum.map(& &1.id)
         trait_ids = (current ++ int_list(add)) -- int_list(remove)
 
-        with {:ok, trait_ids} <- AudienceBuilder.validate_traits(group.parent_trait_id, trait_ids) do
+        with {:ok, trait_ids} <- AudienceBuilder.validate_traits(nil, trait_ids) do
+          parent_id = AudienceBuilder.derived_parent_id(trait_ids)
+
           if opts[:dry_run] do
-            {:ok, %{result: "would_update", trait_ids: trait_ids}}
+            {:ok, %{result: "would_update", trait_ids: trait_ids, parent_trait_id: parent_id}}
           else
-            AudienceBuilder.replace_traits!(group, trait_ids)
+            group =
+              group
+              |> TraitGroup.changeset(%{parent_trait_id: parent_id})
+              |> Repo.update!()
+              |> AudienceBuilder.replace_traits!(trait_ids)
+
             {:ok, %{result: "updated", record: Repo.preload(group, :traits, force: true)}}
           end
         end
@@ -201,7 +212,7 @@ defmodule Qlarius.AdminApi.TraitGroups do
   defp insert(attrs, owner, trait_ids) do
     attrs =
       attrs
-      |> Map.take(["api_ref", "title", "description", "parent_trait_id"])
+      |> Map.take(@insert_fields)
       |> Map.merge(owner_attrs(owner))
       |> Map.put("trait_ids", trait_ids)
 
@@ -211,20 +222,33 @@ defmodule Qlarius.AdminApi.TraitGroups do
   end
 
   defp apply_update(group, attrs, trait_ids, opts) do
-    if opts[:dry_run] do
-      {:ok, group}
-    else
-      with {:ok, group} <- Traits.update_trait_group(group, Map.take(attrs, @fields)) do
-        AudienceBuilder.replace_traits!(group, trait_ids)
-        {:ok, Repo.preload(group, :traits, force: true)}
-      end
+    cond do
+      role_change?(group, attrs) ->
+        {:error, :role_immutable}
+
+      opts[:dry_run] ->
+        {:ok, group}
+
+      true ->
+        with {:ok, group} <- Traits.update_trait_group(group, Map.take(attrs, @fields)) do
+          AudienceBuilder.replace_traits!(group, trait_ids)
+          {:ok, Repo.preload(group, :traits, force: true)}
+        end
+    end
+  end
+
+  defp role_change?(group, attrs) do
+    case Map.get(attrs, "role") do
+      nil -> false
+      "" -> false
+      role -> role != group.role
     end
   end
 
   defp preview(attrs, owner, trait_ids) do
     attrs =
       attrs
-      |> Map.take(["api_ref", "title", "description", "parent_trait_id"])
+      |> Map.take(@insert_fields)
       |> Map.merge(owner_attrs(owner))
 
     case TraitGroup.changeset(%TraitGroup{}, attrs) do

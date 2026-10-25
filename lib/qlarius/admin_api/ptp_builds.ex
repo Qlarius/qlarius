@@ -67,7 +67,7 @@ defmodule Qlarius.AdminApi.PtpBuilds do
     with {:ok, marketer, marketer_result} <- marketer(scope, base, params["marketer"] || %{}),
          {:ok, piece, piece_result} <- piece(base, marketer, params["media_piece"] || %{}),
          {:ok, groups, group_results} <- groups(base, marketer, params["trait_groups"] || []),
-         {:ok, target, target_result} <-
+         {:ok, target, target_result, bands} <-
            target(scope, base, marketer, groups, params["target"] || %{}),
          {:ok, sequence, sequence_result} <-
            sequence(base, marketer, piece, params["sequence"] || %{}),
@@ -91,6 +91,7 @@ defmodule Qlarius.AdminApi.PtpBuilds do
          media_piece_id: id_of(piece),
          trait_group_ids: Enum.map(groups, &id_of/1),
          target_id: id_of(target),
+         bands: bands,
          media_sequence_id: id_of(sequence),
          campaign_id: id_of(campaign.record),
          bids: Map.get(campaign, :bids, [])
@@ -168,8 +169,11 @@ defmodule Qlarius.AdminApi.PtpBuilds do
     }
 
     case Targets.build(scope, attrs, dry_run: false) do
-      {:ok, %{target: target, result: result}} -> {:ok, target, result}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{target: target, result: result} = built} ->
+        {:ok, target, result, Map.get(built, :bands, [])}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

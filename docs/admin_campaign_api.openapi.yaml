@@ -197,10 +197,28 @@ paths:
       responses:
         "200": {description: "{count, trait_groups}"}
     post:
-      summary: Create a trait group. trait_ids are active children of parent_trait_id
+      summary: Create a trait group. With parent_trait_id, trait_ids are its active children; without it, trait_ids may span topics and the parent is derived. role is include (default) or anti (an Anti-Trait Group that removes people from a band) and cannot change later.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_ref, title, trait_ids]
+              properties:
+                api_ref: {$ref: "#/components/schemas/ApiRef"}
+                title: {type: string}
+                description: {type: string}
+                marketer_id: {type: integer}
+                creator_id: {type: integer}
+                parent_trait_id: {type: integer, nullable: true}
+                trait_ids: {type: array, items: {type: integer}}
+                role: {type: string, enum: [include, anti], default: include}
+                on_existing: {type: string, enum: [skip, update]}
+                dry_run: {type: boolean}
       responses:
-        "201": {description: "{result: created, trait_group}"}
+        "201": {description: "{result: created, trait_group} with role and parent_trait_id"}
         "200": {description: matched, would_create, would_update, or updated}
+        "422": {description: traits_required, traits_not_children, traits_not_found, role_immutable}
   /api/admin/zip_codes:
     get:
       summary: Search zip traits. Defaults to Home Zip Code. q must be at least 2 characters
@@ -228,8 +246,43 @@ paths:
                 drop_order: {type: array, items: {type: integer}, description: Trait group ids, each peeling one group off}
                 dry_run: {type: boolean}
       responses:
-        "201": {description: Created target and bands with estimated_reach}
+        "201": {description: Created target. Each band lists trait_group_ids, include_group_ids, anti_group_ids, included, removed, and estimated_reach}
         "200": {description: Dry run or matched. Near-zero reach locally is expected}
+        "422": {description: include_group_required (a band would hold only Anti-Trait Groups), trait_in_both_roles, drop_not_in_bullseye, empty_band}
+  /api/admin/targets/{id}/anti_groups:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    post:
+      summary: Attach an existing Anti-Trait Group to every band, or to band_ids. All or nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trait_group_id]
+              properties:
+                trait_group_id: {type: integer}
+                band_ids: {type: array, items: {type: integer}}
+      responses:
+        "200": {description: "{result: attached, trait_group_id, band_ids}"}
+        "422": {description: anti_group_required, include_group_required, trait_in_both_roles, no_bands_exist}
+        "409": {description: frozen_target}
+  /api/admin/targets/{id}/suggestions:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    get:
+      summary: Answers a marketer may want to keep out, from catalog excludes rows. Advice only; the target is never marked wrong.
+      responses:
+        "200": {description: "{target_id, frozen, count, topics: [{parent_trait_id, parent_trait_name, traits: [{trait_id, trait_name, severity, because, note}]}], dismissed}"}
+  /api/admin/targets/{id}/suggestions/dismiss:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    post:
+      summary: Hide one topic's suggestions for this target. Body {parent_trait_id}. POST .../suggestions/reopen undoes it.
+      responses:
+        "200": {description: The suggestions body with result dismissed}
+        "422": {description: parent_trait_id_required}
   /api/admin/media_sequences:
     post:
       summary: Build a sequence from an existing media piece. The run is that piece plus frequency rules; a run without media_piece_id is refused. Omitted frequency fields use PTP defaults.
@@ -345,8 +398,9 @@ paths:
                 image_url: "https://cdn.example/joes.png"
               trait_groups:
                 - {title: "Taco fans", parent_trait_id: 100, trait_ids: [101, 102]}
-                - {title: "Phoenix", parent_trait_id: 200, trait_ids: [85001]}
-              target: {title: "Phoenix taco fans", drop_order: [0]}
+                - {title: "Phoenix", trait_ids: [85001, 85101]}
+                - {title: "Keep out · Typical Daily Diet", role: anti, parent_trait_id: 300, trait_ids: [301]}
+              target: {title: "Phoenix taco fans", drop_order: [2, 0]}
               sequence: {title: "Joe's Tacos"}
               campaign: {title: "Joe's Tacos PTP"}
           multipart/form-data:

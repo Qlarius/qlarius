@@ -76,8 +76,13 @@ defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
     :ok
   end
 
+  # Only include groups describe why someone is in the band; see
+  # PopulateTargetWorker.
   defp build_trait_metadata(trait_groups) do
-    all_traits = Enum.flat_map(trait_groups, fn tg -> tg.traits end)
+    all_traits =
+      trait_groups
+      |> Qlarius.Sponster.Campaigns.BandMatch.include_groups()
+      |> Enum.flat_map(fn tg -> tg.traits end)
 
     parent_ids =
       all_traits

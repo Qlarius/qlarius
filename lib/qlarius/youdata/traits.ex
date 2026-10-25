@@ -283,6 +283,10 @@ defmodule Qlarius.YouData.Traits do
   @doc """
   Returns `%{trait_group_id => count}` of distinct MeFiles tagged with any
   trait in each group. Groups with no tagged MeFiles are absent from the map.
+
+  The count means the same thing for either role: how many MeFiles hold one of
+  the group's traits. For an include group that is the people it admits; for an
+  Anti-Trait Group it is the people it removes. Callers label it accordingly.
   """
   def me_file_counts_for_trait_groups([]), do: %{}
 
@@ -316,7 +320,7 @@ defmodule Qlarius.YouData.Traits do
     from(tg in TraitGroup, where: tg.id == ^id)
     |> owner_filter(owner)
     |> Repo.one!()
-    |> Repo.preload(:traits)
+    |> Repo.preload(traits: :parent_trait)
     |> add_trait_group_stats()
   end
 

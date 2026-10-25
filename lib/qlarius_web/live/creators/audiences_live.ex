@@ -9,9 +9,10 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   alias Qlarius.Sponster.Campaigns.{Target, Targets}
   alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece}
   alias Qlarius.Tiqit.{ContentAudiences, CreatorAudienceStarters}
-  alias Qlarius.YouData.Traits
-  alias Qlarius.Sponster.Campaigns.TraitGroup
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
+  alias QlariusWeb.Live.{TargetEditorComponent, TraitGroupEditorComponent}
+
+  defp target_editor_id, do: "target-editor"
 
   @impl true
   def mount(%{"creator_id" => creator_id}, _session, socket) do
@@ -82,42 +83,38 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   end
 
   defp assign_edit_data(socket, target) do
-    bands = Targets.get_bands_for_target(target.id)
-    outermost_band = Targets.get_outermost_band(target.id)
-
-    available_trait_groups =
-      Targets.get_available_trait_groups_for_target(
-        target.id,
-        {:creator, socket.assigns.creator.id}
-      )
-
     socket
     |> assign(:target, target)
-    |> assign(:bands, bands)
-    |> assign(:outermost_band, outermost_band)
-    |> assign(:available_trait_groups, available_trait_groups)
     |> assign(:target_form, to_form(Target.changeset(target, %{})))
     |> assign(:editing_target_info, false)
-    |> assign(:expanding_target, false)
-    |> assign(:tagged_by_parent, tagged_by_parent(bands))
+    |> assign_bands(target)
     |> assign(:content_tag_parents, CreatorAudienceStarters.content_parent_traits())
     |> assign(:audience_tag_parents, CreatorAudienceStarters.audience_parent_traits())
+  end
+
+  # The starter cards read the bands directly; the band editor component loads
+  # its own copy and tells us when they change.
+  defp assign_bands(socket, target) do
+    bands = Targets.get_bands_for_target(target.id)
+
+    socket
+    |> assign(:bands, bands)
+    |> assign(:tagged_by_parent, tagged_by_parent(bands))
   end
 
   defp assign_starter_defaults(socket) do
     socket
     |> assign(:starter_skipped, false)
     |> assign(:starter_open, false)
-    |> assign(:show_modal, false)
-    |> assign(:selected_parent_trait, nil)
-    |> assign(:trait_group_form, nil)
-    |> assign(:selected_ids, [])
-    |> assign(:zip_search_term, "")
-    |> assign(:selected_zips, [])
-    |> assign(:zip_search_results, [])
-    |> assign(:zip_search_limit, 1000)
-    |> assign(:modal_heading, nil)
-    |> assign(:modal_submit_label, "Save tags")
+    |> close_starter_editor()
+  end
+
+  defp close_starter_editor(socket) do
+    socket
+    |> assign(:editor_parent_trait_id, nil)
+    |> assign(:editor_preselected_ids, [])
+    |> assign(:editor_title, nil)
+    |> assign(:editor_heading, nil)
   end
 
   @impl true
@@ -157,107 +154,6 @@ defmodule QlariusWeb.Creators.AudiencesLive do
      |> assign(:target_form, to_form(Target.changeset(socket.assigns.target, %{})))}
   end
 
-  def handle_event("add_trait_group", %{"trait_group_id" => trait_group_id}, socket) do
-    bullseye = Targets.get_bullseye_for_target(socket.assigns.target.id)
-
-    bullseye =
-      if !bullseye do
-        case Targets.create_bullseye_band(socket.assigns.target.id) do
-          {:ok, band} -> band
-          {:error, _} -> nil
-        end
-      else
-        bullseye
-      end
-
-    if !bullseye do
-      {:noreply, put_flash(socket, :error, "Failed to create bullseye")}
-    else
-      case Targets.add_trait_group_to_band(bullseye.id, String.to_integer(trait_group_id)) do
-        {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Trait group added to bullseye")
-           |> reload_edit_data()}
-
-        {:error, :trait_group_already_in_target} ->
-          {:noreply, put_flash(socket, :error, "Trait group already in audience")}
-
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to add trait group")}
-      end
-    end
-  end
-
-  def handle_event(
-        "remove_trait_group_from_bullseye",
-        %{"band_id" => band_id, "trait_group_id" => trait_group_id},
-        socket
-      ) do
-    {:ok, _} =
-      Targets.remove_trait_group_from_band(
-        String.to_integer(band_id),
-        String.to_integer(trait_group_id)
-      )
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Trait group removed from bullseye")
-     |> reload_edit_data()}
-  end
-
-  def handle_event("start_expanding_target", _params, socket) do
-    {:noreply, assign(socket, :expanding_target, true)}
-  end
-
-  def handle_event("cancel_expanding_target", _params, socket) do
-    {:noreply, assign(socket, :expanding_target, false)}
-  end
-
-  def handle_event("create_outer_band", %{"excluded_trait_group_id" => tg_id}, socket) do
-    case Targets.create_outer_band(socket.assigns.target.id, String.to_integer(tg_id)) do
-      {:ok, _band} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Ring created")
-         |> assign(:expanding_target, false)
-         |> reload_edit_data()}
-
-      {:error, :cannot_create_empty_band} ->
-        {:noreply, put_flash(socket, :error, "Cannot create empty band")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create ring")}
-    end
-  end
-
-  def handle_event("delete_outermost_band", _params, socket) do
-    case Targets.delete_outermost_band(socket.assigns.target.id) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Ring deleted")
-         |> reload_edit_data()}
-
-      {:error, :cannot_delete_bullseye} ->
-        {:noreply, put_flash(socket, :error, "Cannot delete bullseye")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "No bands to delete")}
-    end
-  end
-
-  def handle_event("populate_target", _params, socket) do
-    ContentAudiences.trigger_population(socket.assigns.target)
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Populating audience “#{socket.assigns.target.title}”...")
-     |> push_navigate(
-       to: inspect_path(socket.assigns.creator, socket.assigns.target, socket.assigns.attach)
-     )}
-  end
-
   def handle_event("refresh_population", _params, socket) do
     ContentAudiences.trigger_population(socket.assigns.target)
 
@@ -279,16 +175,6 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to depopulate audience")}
-    end
-  end
-
-  def handle_event("done", _params, socket) do
-    if socket.assigns[:bands] == [] do
-      {:noreply,
-       put_flash(socket, :error, "Add at least one tag or trait group before finishing")}
-    else
-      {:noreply,
-       push_navigate(socket, to: index_path(socket.assigns.creator, socket.assigns.attach))}
     end
   end
 
@@ -350,7 +236,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
      socket
      |> assign(:starter_skipped, true)
      |> assign(:starter_open, false)
-     |> assign(:show_modal, false)}
+     |> close_starter_editor()}
   end
 
   def handle_event("show_starter", _params, socket) do
@@ -360,172 +246,73 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   def handle_event("tag_parent", %{"id" => id}, socket) do
     parent_id = String.to_integer(id)
 
-    case Traits.get_trait_with_full_survey_data!(parent_id) do
-      {:ok, trait} ->
-        existing =
-          socket.assigns.bands
-          |> Enum.flat_map(& &1.trait_groups)
-          |> Enum.find(&(&1.parent_trait_id == parent_id))
+    existing =
+      socket.assigns.bands
+      |> Enum.flat_map(& &1.trait_groups)
+      |> Enum.find(&(&1.parent_trait_id == parent_id))
 
-        selected_ids = if existing, do: Enum.map(existing.traits, & &1.id), else: []
-
-        form =
-          %TraitGroup{}
-          |> TraitGroup.changeset(%{
-            "creator_id" => socket.assigns.creator.id,
-            "title" => (existing && existing.title) || trait.trait_name
-          })
-          |> to_form(as: :trait_group, id: "trait-group-form")
-
-        {:noreply,
-         socket
-         |> assign(:show_modal, true)
-         |> assign(:selected_parent_trait, trait)
-         |> assign(:trait_group_form, form)
-         |> assign(:selected_ids, selected_ids)
-         |> assign(:zip_search_term, "")
-         |> assign(:selected_zips, [])
-         |> assign(:zip_search_results, [])
-         |> assign(:zip_search_limit, 1000)
-         |> assign(:modal_heading, "Tag: #{trait.trait_name}")
-         |> assign(:modal_submit_label, "Save tags")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "That tag is not available")}
-    end
-  end
-
-  def handle_event("close_modal", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_modal, false)
-     |> assign(:selected_parent_trait, nil)
-     |> assign(:trait_group_form, nil)}
-  end
-
-  def handle_event("validate_trait_group", params, socket) do
-    socket = assign(socket, :selected_ids, Targeting.trait_ids_from_params(params))
-    target = List.wrap(params["_target"])
-
-    cond do
-      List.first(target) == "search" ->
-        {:noreply, assign_zip_search(socket, params)}
-
-      List.first(target) == "trait_group" ->
-        {:noreply, assign_trait_group_form(socket, params)}
-
-      true ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("change_zip_limit", %{"limit" => limit_value}, socket) do
-    limit =
-      case limit_value do
-        "all" -> :all
-        value -> String.to_integer(value)
-      end
-
-    socket = assign(socket, :zip_search_limit, limit)
-    search_term = Map.get(socket.assigns, :zip_search_term, "")
-
-    socket =
-      if socket.assigns.selected_parent_trait &&
-           socket.assigns.selected_parent_trait.input_type == "single_select_zip" &&
-           String.length(String.trim(search_term)) >= 2 do
-        results =
-          Traits.search_zip_codes(socket.assigns.selected_parent_trait.id, search_term, limit)
-
-        assign(socket, :zip_search_results, results)
-      else
-        socket
-      end
-
-    {:noreply, socket}
-  end
-
-  def handle_event(
-        "save_trait_group",
-        %{"trait_group" => trait_group_params, "trait_ids" => trait_ids},
-        socket
-      ) do
-    trait_ids_list =
-      trait_ids
-      |> List.wrap()
-      |> Enum.map(&String.to_integer/1)
-
-    save_starter_group(socket, trait_group_params, trait_ids_list)
-  end
-
-  def handle_event("save_trait_group", %{"trait_group" => trait_group_params}, socket) do
-    if socket.assigns.selected_parent_trait &&
-         socket.assigns.selected_parent_trait.input_type == "single_select_zip" do
-      if socket.assigns.selected_zips == [] do
-        {:noreply, put_flash(socket, :error, "Please select at least one zip code")}
-      else
-        trait_ids_list = Enum.map(socket.assigns.selected_zips, & &1.id)
-        save_starter_group(socket, trait_group_params, trait_ids_list)
-      end
-    else
-      {:noreply, put_flash(socket, :error, "Please select at least one tag")}
-    end
-  end
-
-  def handle_event("add_selected_zips", %{"selected_ids" => selected_ids}, socket) do
-    selected_ids = if is_list(selected_ids), do: selected_ids, else: [selected_ids]
-    new_zip_ids = Enum.map(selected_ids, &String.to_integer/1)
-
-    new_zips =
-      Enum.map(new_zip_ids, fn id ->
-        trait = Repo.get!(Qlarius.YouData.Traits.Trait, id)
-        %{id: trait.id, zip_code: trait.trait_name, location: trait.meta_1}
-      end)
-
-    updated_zips =
-      (socket.assigns.selected_zips ++ new_zips)
-      |> Enum.uniq_by(& &1.id)
-      |> Enum.sort_by(&String.to_integer(&1.zip_code))
-
-    {:noreply, assign(socket, :selected_zips, updated_zips)}
-  end
-
-  def handle_event("add_selected_zips", _params, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_event("add_all_visible_zips", _params, socket) do
-    visible_zips =
-      Traits.search_zip_codes(
-        socket.assigns.selected_parent_trait.id,
-        socket.assigns.zip_search_term,
-        Map.get(socket.assigns, :zip_search_limit, 1000)
+    parent_name =
+      Enum.find_value(
+        socket.assigns.content_tag_parents ++ socket.assigns.audience_tag_parents,
+        fn parent -> parent.id == parent_id && parent.trait_name end
       )
 
-    updated_zips =
-      (socket.assigns.selected_zips ++ visible_zips)
-      |> Enum.uniq_by(& &1.id)
-      |> Enum.sort_by(&String.to_integer(&1.zip_code))
-
-    {:noreply, assign(socket, :selected_zips, updated_zips)}
-  end
-
-  def handle_event("remove_selected_zips", %{"selected_ids" => selected_ids}, socket) do
-    selected_ids = if is_list(selected_ids), do: selected_ids, else: [selected_ids]
-    remove_ids = Enum.map(selected_ids, &String.to_integer/1)
-    updated_zips = Enum.reject(socket.assigns.selected_zips, &(&1.id in remove_ids))
-
-    {:noreply, assign(socket, :selected_zips, updated_zips)}
-  end
-
-  def handle_event("remove_selected_zips", _params, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_event("clear_all_zips", _params, socket) do
-    {:noreply, assign(socket, :selected_zips, [])}
+    {:noreply,
+     socket
+     |> assign(:editor_parent_trait_id, parent_id)
+     |> assign(
+       :editor_preselected_ids,
+       if(existing, do: Enum.map(existing.traits, & &1.id), else: [])
+     )
+     |> assign(:editor_title, (existing && existing.title) || parent_name)
+     |> assign(:editor_heading, parent_name && "Tag: #{parent_name}")}
   end
 
   @impl true
+  def handle_info({TraitGroupEditorComponent, :saved, _group}, socket) do
+    send_update(TargetEditorComponent, id: target_editor_id(), reload: true)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Tag saved")
+     |> assign(:starter_open, false)
+     |> close_starter_editor()
+     |> assign_bands(socket.assigns.target)}
+  end
+
+  def handle_info({TraitGroupEditorComponent, :closed}, socket) do
+    {:noreply, close_starter_editor(socket)}
+  end
+
+  def handle_info({TraitGroupEditorComponent, :failed, _message}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "That tag is not available")
+     |> close_starter_editor()}
+  end
+
+  def handle_info({TargetEditorComponent, {:flash, kind, message}}, socket) do
+    {:noreply, put_flash(socket, kind, message)}
+  end
+
+  def handle_info({TargetEditorComponent, :changed}, socket) do
+    {:noreply, assign_bands(socket, socket.assigns.target)}
+  end
+
+  def handle_info({TargetEditorComponent, :populating}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "Populating audience “#{socket.assigns.target.title}”...")
+     |> push_navigate(
+       to: inspect_path(socket.assigns.creator, socket.assigns.target, socket.assigns.attach)
+     )}
+  end
+
+  def handle_info({TargetEditorComponent, :done}, socket) do
+    {:noreply,
+     push_navigate(socket, to: index_path(socket.assigns.creator, socket.assigns.attach))}
+  end
+
   def handle_info(msg, socket) do
     case msg do
       {:target_populated, target_id, _timestamp} ->
@@ -552,6 +339,8 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
           socket.assigns.live_action == :edit && socket.assigns.target &&
               socket.assigns.target.id == target_id ->
+            send_update(TargetEditorComponent, id: target_editor_id(), reload: true)
+
             {:noreply,
              socket
              |> put_flash(:info, "Audience population complete")
@@ -566,70 +355,15 @@ defmodule QlariusWeb.Creators.AudiencesLive do
     end
   end
 
-  defp save_starter_group(socket, trait_group_params, trait_ids_list) do
-    if trait_ids_list == [] do
-      {:noreply, put_flash(socket, :error, "Please select at least one tag")}
-    else
-      case ContentAudiences.create_starter_group(
-             socket.assigns.current_scope,
-             socket.assigns.target,
-             socket.assigns.selected_parent_trait.id,
-             trait_ids_list,
-             title: trait_group_params["title"]
-           ) do
-        {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Tag saved")
-           |> assign(:show_modal, false)
-           |> assign(:starter_open, false)
-           |> reload_edit_data()}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Could not save tags: #{inspect(reason)}")}
-      end
-    end
-  end
-
-  defp assign_trait_group_form(socket, params) do
-    trait_group_params = Map.get(params, "trait_group", %{})
-
-    form =
-      %TraitGroup{}
-      |> TraitGroup.changeset(trait_group_params)
-      |> Map.put(:action, :validate)
-      |> to_form(as: :trait_group, id: "trait-group-form")
-
-    assign(socket, :trait_group_form, form)
-  end
-
-  defp assign_zip_search(socket, params) do
-    search_term = params |> Map.get("search", "") |> to_string() |> String.trim()
-    trait_group_params = Map.get(params, "trait_group", %{})
-
-    form =
-      %TraitGroup{}
-      |> TraitGroup.changeset(trait_group_params)
-      |> Map.put(:action, :validate)
-      |> to_form(as: :trait_group, id: "trait-group-form")
-
-    socket = assign(socket, :trait_group_form, form)
-
-    if socket.assigns.selected_parent_trait &&
-         socket.assigns.selected_parent_trait.input_type == "single_select_zip" &&
-         String.length(search_term) >= 2 do
-      limit = Map.get(socket.assigns, :zip_search_limit, 1000)
-
-      results =
-        Traits.search_zip_codes(socket.assigns.selected_parent_trait.id, search_term, limit)
-
-      socket
-      |> assign(:zip_search_term, search_term)
-      |> assign(:zip_search_results, results)
-    else
-      socket
-      |> assign(:zip_search_term, search_term)
-      |> assign(:zip_search_results, [])
+  defp starter_saver(scope, target) do
+    fn attrs ->
+      ContentAudiences.create_starter_group(
+        scope,
+        target,
+        attrs.parent_trait_id,
+        attrs.trait_ids,
+        title: attrs.title
+      )
     end
   end
 
@@ -659,11 +393,8 @@ defmodule QlariusWeb.Creators.AudiencesLive do
                   creator={@creator}
                   target={@target}
                   bands={@bands}
-                  outermost_band={@outermost_band}
-                  available_trait_groups={@available_trait_groups}
                   target_form={@target_form}
                   editing_target_info={@editing_target_info}
-                  expanding_target={@expanding_target}
                   attach={@attach}
                   marketers={@marketers}
                   starter_skipped={@starter_skipped}
@@ -671,16 +402,11 @@ defmodule QlariusWeb.Creators.AudiencesLive do
                   content_tag_parents={@content_tag_parents}
                   audience_tag_parents={@audience_tag_parents}
                   tagged_by_parent={@tagged_by_parent}
-                  show_modal={@show_modal}
-                  selected_parent_trait={@selected_parent_trait}
-                  trait_group_form={@trait_group_form}
-                  selected_ids={@selected_ids}
-                  zip_search_term={@zip_search_term}
-                  zip_search_results={@zip_search_results}
-                  selected_zips={@selected_zips}
-                  zip_search_limit={@zip_search_limit}
-                  modal_heading={@modal_heading}
-                  modal_submit_label={@modal_submit_label}
+                  editor_parent_trait_id={@editor_parent_trait_id}
+                  editor_preselected_ids={@editor_preselected_ids}
+                  editor_title={@editor_title}
+                  editor_heading={@editor_heading}
+                  on_save={starter_saver(@current_scope, @target)}
                 />
               <% :inspect -> %>
                 <.inspect_view
@@ -847,11 +573,8 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   attr :creator, :map, required: true
   attr :target, :map, required: true
   attr :bands, :list, required: true
-  attr :outermost_band, :any, required: true
-  attr :available_trait_groups, :list, required: true
   attr :target_form, :any, required: true
   attr :editing_target_info, :boolean, required: true
-  attr :expanding_target, :boolean, required: true
   attr :attach, :any, required: true
   attr :marketers, :list, required: true
   attr :starter_skipped, :boolean, required: true
@@ -859,16 +582,11 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   attr :content_tag_parents, :list, required: true
   attr :audience_tag_parents, :list, required: true
   attr :tagged_by_parent, :map, required: true
-  attr :show_modal, :boolean, required: true
-  attr :selected_parent_trait, :any, required: true
-  attr :trait_group_form, :any, required: true
-  attr :selected_ids, :list, required: true
-  attr :zip_search_term, :string, required: true
-  attr :zip_search_results, :list, required: true
-  attr :selected_zips, :list, required: true
-  attr :zip_search_limit, :any, required: true
-  attr :modal_heading, :any, required: true
-  attr :modal_submit_label, :string, required: true
+  attr :editor_parent_trait_id, :any, required: true
+  attr :editor_preselected_ids, :list, required: true
+  attr :editor_title, :any, required: true
+  attr :editor_heading, :any, required: true
+  attr :on_save, :any, required: true
 
   defp edit_view(assigns) do
     empty? = audience_empty?(assigns.bands)
@@ -896,18 +614,16 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
     ~H"""
     <.page>
-      <Targeting.trait_group_modal
-        :if={@show_modal && @selected_parent_trait}
-        show_modal={@show_modal}
-        parent_trait={@selected_parent_trait}
-        form={@trait_group_form}
-        zip_search_term={@zip_search_term}
-        zip_search_results={@zip_search_results}
-        selected_zips={@selected_zips}
-        zip_search_limit={@zip_search_limit}
-        heading={@modal_heading}
-        submit_label={@modal_submit_label}
-        selected_ids={@selected_ids}
+      <.live_component
+        module={TraitGroupEditorComponent}
+        id="trait-group-editor"
+        owner={{:creator, @creator.id}}
+        parent_trait_id={@editor_parent_trait_id}
+        preselected_ids={@editor_preselected_ids}
+        title={@editor_title}
+        heading={@editor_heading}
+        submit_label="Save tags"
+        on_save={@on_save}
       />
 
       <.audience_header
@@ -968,12 +684,12 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         </button>
       </div>
 
-      <Targeting.band_editor
+      <.live_component
+        module={TargetEditorComponent}
+        id={target_editor_id()}
+        target={@target}
+        owner={{:creator, @creator.id}}
         copy={Targeting.copy(:audience)}
-        bands={@bands}
-        outermost_band={@outermost_band}
-        available_trait_groups={@available_trait_groups}
-        expanding_target={@expanding_target}
       />
 
       <.panel
@@ -1063,16 +779,18 @@ defmodule QlariusWeb.Creators.AudiencesLive do
     bands == [] or Enum.all?(bands, fn band -> band.trait_groups == [] end)
   end
 
+  # Keyed on each trait's own parent so a multi-topic group shows under every
+  # topic it covers. Anti-Trait Groups are left out: the starter cards describe
+  # who the audience welcomes.
   defp tagged_by_parent(bands) do
-    for band <- bands, tg <- band.trait_groups, reduce: %{} do
+    for band <- bands,
+        tg <- band.trait_groups,
+        tg.role != "anti",
+        trait <- tg.traits || [],
+        trait.parent_trait_id,
+        reduce: %{} do
       acc ->
-        names = Enum.map(tg.traits || [], & &1.trait_name)
-
-        if tg.parent_trait_id do
-          Map.put(acc, tg.parent_trait_id, names)
-        else
-          acc
-        end
+        Map.update(acc, trait.parent_trait_id, [trait.trait_name], &(&1 ++ [trait.trait_name]))
     end
   end
 

@@ -1,7 +1,8 @@
 defmodule Qlarius.YouData.TraitRelationships do
   @moduledoc """
-  Links between traits that should not be true together, or that usually
-  come as a pair. A parent id means any value of that parent.
+  Links between traits: ones that should not be true together, ones that
+  usually come as a pair, and ones a marketer targeting the first will want to
+  keep out (`excludes`, directed). A parent id means any value of that parent.
   """
 
   import Ecto.Query
@@ -61,14 +62,40 @@ defmodule Qlarius.YouData.TraitRelationships do
     Repo.delete(relationship)
   end
 
-  def list_for_parent(parent_id, kind \\ nil) do
+  def list_for_parent(parent_id, kind \\ nil, direction \\ nil) do
     ids = family_ids(parent_id)
 
     TraitRelationship
-    |> where([r], r.trait_id in ^ids or r.related_trait_id in ^ids)
+    |> direction_filter(ids, direction)
     |> kind_filter(kind)
     |> order_by([r], asc: r.id)
     |> preload([:trait, :related_trait])
+    |> Repo.all()
+  end
+
+  # `from` keeps rows where the family is the subject (`trait_id`), `to` where
+  # it is the object (`related_trait_id`). Only meaningful for directed kinds.
+  defp direction_filter(query, ids, "from"), do: where(query, [r], r.trait_id in ^ids)
+  defp direction_filter(query, ids, "to"), do: where(query, [r], r.related_trait_id in ^ids)
+
+  defp direction_filter(query, ids, _),
+    do: where(query, [r], r.trait_id in ^ids or r.related_trait_id in ^ids)
+
+  @doc """
+  `excludes` rows whose subject is one of `trait_ids`: the answers a marketer
+  targeting those traits will or may want to keep out. Each row carries the
+  excluded trait with its parent. Inactive excluded traits are left out.
+  """
+  def excludes_from([]), do: []
+
+  def excludes_from(trait_ids) do
+    from(r in TraitRelationship,
+      join: t in Trait,
+      on: t.id == r.related_trait_id,
+      where: r.kind == "excludes" and r.trait_id in ^trait_ids and t.is_active == true,
+      order_by: [asc: r.severity, asc: r.id],
+      preload: [:trait, related_trait: :parent_trait]
+    )
     |> Repo.all()
   end
 
@@ -101,7 +128,43 @@ defmodule Qlarius.YouData.TraitRelationships do
     |> inactive_or_skip(right)
     |> self_family(relationship, left, right, parents)
     |> both_kinds(relationship, left, right)
+    |> excludes_shape(relationship, left, right)
   end
+
+  # An excludes row is advice for a marketer, so the checks are about whether
+  # the advice can act: same-topic pairs are already separated by the include
+  # group, a reverse row is a symmetric claim that should be made on purpose,
+  # and a conflicts row on the same pair means the person is already flagged.
+  defp excludes_shape(warnings, %{kind: "excludes"}, left, right) do
+    warnings
+    |> then(fn acc ->
+      if left.parent_trait_id && left.parent_trait_id == right.parent_trait_id,
+        do: ["excludes an answer under its own parent" | acc],
+        else: acc
+    end)
+    |> then(fn acc ->
+      if Repo.exists?(
+           from r in TraitRelationship,
+             where:
+               r.kind == "excludes" and r.trait_id == ^right.id and r.related_trait_id == ^left.id
+         ),
+         do: ["the reverse excludes row is also present" | acc],
+         else: acc
+    end)
+    |> then(fn acc ->
+      {small, large} = if left.id < right.id, do: {left.id, right.id}, else: {right.id, left.id}
+
+      if Repo.exists?(
+           from r in TraitRelationship,
+             where:
+               r.kind == "conflicts" and r.trait_id == ^small and r.related_trait_id == ^large
+         ),
+         do: ["this pair also conflicts" | acc],
+         else: acc
+    end)
+  end
+
+  defp excludes_shape(warnings, _, _, _), do: warnings
 
   defp parent_map(traits) do
     ids = traits |> Enum.map(& &1.parent_trait_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
@@ -148,6 +211,8 @@ defmodule Qlarius.YouData.TraitRelationships do
         _ -> false
       end
   end
+
+  defp both_kinds(warnings, %{kind: "excludes"}, _left, _right), do: warnings
 
   defp both_kinds(warnings, relationship, left, right) do
     other = if relationship.kind == "conflicts", do: "requires", else: "conflicts"

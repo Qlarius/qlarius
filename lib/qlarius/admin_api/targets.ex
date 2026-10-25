@@ -12,6 +12,7 @@ defmodule Qlarius.AdminApi.Targets do
   alias Qlarius.Repo
 
   alias Qlarius.Sponster.Campaigns.{
+    AntiGroupSuggestions,
     Campaign,
     Target,
     TargetBand,
@@ -265,12 +266,31 @@ defmodule Qlarius.AdminApi.Targets do
             {acc ++ [next], next}
           end)
 
-        if Enum.any?(planned, &(&1 == [])) do
-          {:error, :empty_band}
-        else
-          {:ok, planned}
+        cond do
+          Enum.any?(planned, &(&1 == [])) ->
+            {:error, :empty_band}
+
+          Enum.any?(planned, &(Targets.include_groups(&1) == [])) ->
+            {:error, :include_group_required}
+
+          (overlap = both_roles_overlap(groups)) != [] ->
+            {:error, {:trait_in_both_roles, overlap}}
+
+          true ->
+            {:ok, Enum.map(planned, &include_first/1)}
         end
     end
+  end
+
+  # Include groups attach before Anti-Trait Groups so a band is never anti-only
+  # mid-build.
+  defp include_first(groups), do: Targets.include_groups(groups) ++ Targets.anti_groups(groups)
+
+  defp both_roles_overlap(groups) do
+    groups
+    |> Targets.anti_groups()
+    |> Enum.flat_map(&Targets.opposite_role_overlap(groups, &1))
+    |> Enum.uniq()
   end
 
   defp load_groups(ids, owner) when is_list(ids) do
@@ -294,12 +314,92 @@ defmodule Qlarius.AdminApi.Targets do
 
   defp band_plan(groups) do
     ids = Enum.map(groups, & &1.id)
+    reach = Targets.reach_for_groups(ids)
 
     %{
       trait_group_ids: ids,
-      estimated_reach: length(Targets.me_file_ids_matching_groups(ids)),
+      include_group_ids: groups |> Targets.include_groups() |> Enum.map(& &1.id),
+      anti_group_ids: groups |> Targets.anti_groups() |> Enum.map(& &1.id),
+      estimated_reach: reach.reach,
+      included: reach.included,
+      removed: reach.removed,
       reach_note: "Near-zero reach on a local database is expected."
     }
+  end
+
+  @doc """
+  Anti-Trait Group suggestions for a target, shaped for JSON.
+  """
+  def suggestions(target) do
+    data = AntiGroupSuggestions.for_target(target.id)
+
+    %{
+      target_id: target.id,
+      frozen: data.frozen?,
+      count: AntiGroupSuggestions.count(data),
+      topics: Enum.map(data.topics, &suggestion_topic/1),
+      dismissed: Enum.map(data.dismissed, &suggestion_topic/1)
+    }
+  end
+
+  defp suggestion_topic(%{parent: parent, traits: traits}) do
+    %{
+      parent_trait_id: parent && parent.id,
+      parent_trait_name: parent && parent.trait_name,
+      traits:
+        Enum.map(traits, fn row ->
+          %{
+            trait_id: row.trait.id,
+            trait_name: row.trait.trait_name,
+            severity: row.severity,
+            because: row.because,
+            note: row.note
+          }
+        end)
+    }
+  end
+
+  def dismiss_suggestion(target, parent_trait_id) do
+    case int(parent_trait_id) do
+      nil ->
+        {:error, :parent_trait_id_required}
+
+      id ->
+        with {:ok, _} <- AntiGroupSuggestions.dismiss(target.id, id) do
+          {:ok, suggestions(target)}
+        end
+    end
+  end
+
+  def reopen_suggestion(target, parent_trait_id) do
+    case int(parent_trait_id) do
+      nil ->
+        {:error, :parent_trait_id_required}
+
+      id ->
+        :ok = AntiGroupSuggestions.reopen(target.id, id)
+        {:ok, suggestions(target)}
+    end
+  end
+
+  @doc """
+  Attaches an existing Anti-Trait Group to a target's bands. `band_ids` chooses
+  bands; default is every band.
+  """
+  def attach_anti_group(target, params) do
+    band_ids = params["band_ids"] && params["band_ids"] |> List.wrap() |> Enum.map(&int/1)
+
+    with {:ok, group} <- load_anti_group(params["trait_group_id"], owner_of(target)),
+         {:ok, attached} <-
+           Targets.attach_anti_group(target.id, group.id, band_ids: band_ids) do
+      {:ok, %{result: "attached", trait_group_id: group.id, band_ids: attached}}
+    end
+  end
+
+  defp load_anti_group(id, owner) do
+    with {:ok, [group]} <- load_groups([id], owner) do
+      if TraitGroup.anti?(group), do: {:ok, group}, else: {:error, :anti_group_required}
+    end
   end
 
   defp current_bands(target) do
@@ -328,7 +428,9 @@ defmodule Qlarius.AdminApi.Targets do
           %{
             id: band.id,
             label: Targets.band_label(band, bands),
-            trait_groups: Enum.map(band.trait_groups, & &1.id)
+            trait_groups: Enum.map(band.trait_groups, & &1.id),
+            include_groups: band.trait_groups |> Targets.include_groups() |> Enum.map(& &1.id),
+            anti_groups: band.trait_groups |> Targets.anti_groups() |> Enum.map(& &1.id)
           }
         end)
     }

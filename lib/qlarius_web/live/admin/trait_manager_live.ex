@@ -846,7 +846,14 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
   defp relationship_label(%{kind: "conflicts", severity: "soft"}), do: "conflicts · soft"
   defp relationship_label(%{kind: "conflicts"}), do: "conflicts · hard"
+  defp relationship_label(%{kind: "excludes", severity: "soft"}), do: "excludes · may not want"
+  defp relationship_label(%{kind: "excludes"}), do: "excludes · will not want"
   defp relationship_label(%{kind: kind}), do: kind
+
+  # Directed kinds read left to right; conflicts is the same either way.
+  defp relationship_joiner(%{kind: "conflicts"}), do: "and"
+  defp relationship_joiner(%{kind: "requires"}), do: "→ usually has"
+  defp relationship_joiner(%{kind: "excludes"}), do: "→ keep out"
 
   defp relationship_error(changeset) do
     changeset.errors
@@ -864,6 +871,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
       <h3 class="text-sm font-semibold">Relationships</h3>
       <p class="mt-1 text-xs text-base-content/60">
         Hard conflicts light both tags red. Soft conflicts light them yellow. Requires lights only the first trait, when the second is missing.
+        Excludes is marketer advice, read left to right: a target that includes the first trait will (hard) or may (soft) want to keep out people with the second. It never flags a person's data.
       </p>
       <ul :if={@trait_relationships != []} class="mt-3 space-y-2">
         <li
@@ -872,7 +880,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         >
           <span class="min-w-0">
             <span class="font-medium">{relationship_label(relationship)}</span>
-            {relationship.trait.trait_name} and {relationship.related_trait.trait_name}
+            {relationship.trait.trait_name} {relationship_joiner(relationship)} {relationship.related_trait.trait_name}
             <span :if={relationship.note} class="block text-xs text-base-content/60">
               {relationship.note}
             </span>
@@ -894,12 +902,13 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
       >
         <div class="grid grid-cols-2 gap-2">
           <select name="kind" class="select select-sm w-full">
-            <option value="conflicts">Conflicts</option>
-            <option value="requires">Requires</option>
+            <option value="conflicts">Conflicts (both ways)</option>
+            <option value="requires">Requires (first → second)</option>
+            <option value="excludes">Excludes (targeting first keeps out second)</option>
           </select>
           <select name="severity" class="select select-sm w-full">
-            <option value="hard">Hard</option>
-            <option value="soft">Soft</option>
+            <option value="hard">Hard (will not want)</option>
+            <option value="soft">Soft (may not want)</option>
           </select>
           <select name="trait_id" class="select select-sm w-full">
             <option value={@parent_trait.id}>{@parent_trait.trait_name}</option>
