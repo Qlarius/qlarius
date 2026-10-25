@@ -505,11 +505,13 @@ defmodule QlariusWeb.Components.Targeting do
               <span
                 :for={{tg, dropped?} <- band_chips(band, @bands)}
                 class={[
-                  "inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
+                  "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm",
+                  chip_role_class(tg),
                   dropped? && "text-base-content/70"
                 ]}
                 title={dropped? && "Dropped in the next ring"}
               >
+                <.role_badge group={tg} />
                 {tg.title}
                 <.icon
                   :if={dropped?}

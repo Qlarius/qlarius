@@ -88,6 +88,19 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLiveTest do
     assert has_element?(view, "span[title='Anti-Trait Group: removes anyone with these answers']")
   end
 
+  test "inspect uses the keep-out styling on anti-groups", %{conn: conn, marketer: marketer} do
+    diet = parent_trait_fixture("Diet")
+    include = trait_group_fixture(%{marketer_id: marketer.id}, [trait_fixture(diet, "Keto")])
+    anti = anti_trait_group_fixture(%{marketer_id: marketer.id}, [trait_fixture(diet, "Vegan")])
+    target = target_fixture(%{marketer_id: marketer.id}, [[include, anti]])
+
+    {:ok, view, _html} = live(conn, ~p"/marketer/targets/#{target.id}/inspect")
+
+    assert has_element?(view, "span[class*='border-error/40']", anti.title)
+    assert has_element?(view, "span[class*='border-error/40'] [aria-label='keep out']")
+    refute has_element?(view, "span[class*='border-error/40']", include.title)
+  end
+
   test "done on an empty target explains what is missing", %{conn: conn, marketer: marketer} do
     target = target_fixture(%{marketer_id: marketer.id}, [])
     {:ok, view, _html} = live(conn, ~p"/marketer/targets/#{target.id}/edit")
