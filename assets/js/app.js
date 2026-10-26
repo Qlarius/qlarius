@@ -2693,19 +2693,9 @@ Hooks.VideoPlayer = {
     
     // Installed app (iOS or Android): fullscreen each time playback starts,
     // including replay. Completion leaves it and returns to the page.
-    // iOS ignores webkitExitFullscreen once `ended` has fired, so ask to
-    // leave in the last moment of playback instead.
     if (isPWA) {
       this._enterFullscreenOnPlay = () => this.enterPlaybackFullscreen()
       this.video.addEventListener('play', this._enterFullscreenOnPlay)
-      this._exitNearEnd = () => {
-        const video = this.video
-        if (this._exitRequested || !video.duration || !isFinite(video.duration)) return
-        if (video.currentTime < video.duration - 0.3) return
-        if (!this.inPlaybackFullscreen() && !(detectIosPwa() && video.playsInline === false)) return
-        this.requestPlaybackExit()
-      }
-      this.video.addEventListener('timeupdate', this._exitNearEnd)
     }
     
     // Countdown starts once the poster is painted, so the slide-over
@@ -2723,7 +2713,6 @@ Hooks.VideoPlayer = {
         this.pushEvent('video_watched_complete', {})
       }
       
-      this._exitRequested = true
       this.exitPlaybackFullscreen()
       this.showPosterWithPlayIcon()
     })
@@ -2804,7 +2793,7 @@ Hooks.VideoPlayer = {
     const video = this.video
     // Reloading to bring the poster back can emit a play event. That is not
     // the ad starting again.
-    if (this._posterRestored || this._exitRequested) return
+    if (this._posterRestored) return
     if (this.inPlaybackFullscreen()) return
     if (detectIosPwa()) this.enterIosFullscreen()
     else this.enterElementFullscreen()
@@ -2827,21 +2816,12 @@ Hooks.VideoPlayer = {
     if (typeof request === 'function') request.call(video).catch(() => {})
   },
 
-  requestPlaybackExit() {
-    if (this._exitRequested) return
-    this._exitRequested = true
-    this.exitPlaybackFullscreen()
-  },
-
   exitPlaybackFullscreen() {
     const video = this.video
     const leave = () => {
-      // The iOS system player can be up while webkitDisplayingFullscreen is
-      // already false, and it only leaves if asked on the element itself.
-      try {
-        if (typeof video.webkitExitFullscreen === 'function') video.webkitExitFullscreen()
-      } catch (_e) {}
-      if (document.fullscreenElement && document.exitFullscreen) {
+      if (video.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === 'function') {
+        video.webkitExitFullscreen()
+      } else if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {})
       } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
         document.webkitExitFullscreen()
@@ -2881,7 +2861,6 @@ Hooks.VideoPlayer = {
   
   hidePosterAndPlay() {
     this._posterRestored = false
-    this._exitRequested = false
     this._posterAfterExit = false
     const posterOverlay = document.getElementById('video-poster-overlay')
     if (posterOverlay) {
@@ -2959,9 +2938,6 @@ Hooks.VideoPlayer = {
     this._posterSettled = true
     if (this._enterFullscreenOnPlay) {
       this.video.removeEventListener('play', this._enterFullscreenOnPlay)
-    }
-    if (this._exitNearEnd) {
-      this.video.removeEventListener('timeupdate', this._exitNearEnd)
     }
     if (this._onFullscreenExit) {
       this.video.removeEventListener('webkitendfullscreen', this._onFullscreenExit)
