@@ -33,6 +33,7 @@ import {
   syncExtensionWithSessionDebounced
 } from "./hooks/extension_bridge"
 import {
+  broadcastWidgetLogout,
   clearAuthedTokens,
   installReloadGuard,
   isWidgetDocument,
@@ -1888,6 +1889,7 @@ Hooks.SponsterWidgetBridge = {
     // `/logout` to pass CSRF with, so drop our token and remount anonymous.
     if (tokenSession) {
       clearAuthedTokens()
+      broadcastWidgetLogout()
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: "sponster_widget_collapse" }, "*")
       }
@@ -3327,7 +3329,7 @@ window.addEventListener("phx:close-modal", (e) => {
 // the server pushes after a token-backed authed mount, and treat the host
 // page's extension hint as a reason to re-probe.
 installReloadGuard(liveSocket)
-listenForSessionTokens()
+listenForSessionTokens(liveSocket)
 listenForParentExtensionHint(({authed}) => {
   if (authed) syncExtensionWithSessionDebounced({reset: true})
 })

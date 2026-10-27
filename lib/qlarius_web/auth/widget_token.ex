@@ -102,13 +102,18 @@ defmodule QlariusWeb.Auth.WidgetToken do
       "session_sync_id" => sync_id,
       "user_token" => user_token,
       "live_socket_id" => "users_sessions:#{Base.url_encode64(user_token)}",
-      "widget_token_session" => true
+      "widget_token_session" => true,
+      "widget_token_kind" => Atom.to_string(kind)
     }
     |> drop_nil()
   end
 
   def session_for(%{kind: :anon, sync_id: sync_id}) do
-    drop_nil(%{"session_sync_id" => sync_id, "widget_token_session" => true})
+    drop_nil(%{
+      "session_sync_id" => sync_id,
+      "widget_token_session" => true,
+      "widget_token_kind" => "anon"
+    })
   end
 
   @doc false

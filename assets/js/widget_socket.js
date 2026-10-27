@@ -181,13 +181,67 @@ export function reconnectWidgetSocket(liveSocket, { onOpen } = {}) {
   liveSocket.connect()
 }
 
-// Server pushes a renewable session token after a token-backed authed
-// mount (`QlariusWeb.WidgetSessionHooks`).
-export function listenForSessionTokens() {
+// --- sibling relay ---------------------------------------------------------
+
+// Sibling widget iframes on one publisher page share no cookie either, so a
+// sign-in in one would leave the others anonymous. `BroadcastChannel` is
+// same-origin and, in cookie-partitioning browsers, scoped to the top-level
+// site, which is exactly the set of frames that should share the session.
+const RELAY_CHANNEL = "qadabra:widget-auth"
+let relayChannel = null
+
+function relay() {
+  if (relayChannel) return relayChannel
+  if (typeof BroadcastChannel !== "function") return null
+  try {
+    relayChannel = new BroadcastChannel(RELAY_CHANNEL)
+  } catch (_e) {
+    relayChannel = null
+  }
+  return relayChannel
+}
+
+function relayPost(message) {
+  const ch = relay()
+  if (!ch) return
+  try {
+    ch.postMessage(message)
+  } catch (_e) {}
+}
+
+export function broadcastWidgetLogout() {
   if (!isWidgetDocument()) return
+  relayPost({ type: "clear" })
+}
+
+// Server pushes a renewable session token after a token-backed authed
+// mount (`QlariusWeb.WidgetSessionHooks`). `relay` is set only on the mount
+// that consumed a one-shot hand-off; that widget shares the token with its
+// siblings, which then mount from it without relaying again.
+export function listenForSessionTokens(liveSocket) {
+  if (!isWidgetDocument()) return
+
   window.addEventListener("phx:qadabra:widget-session-token", (e) => {
-    setSessionToken(e.detail?.token)
+    const token = e.detail?.token
+    setSessionToken(token)
+    if (e.detail?.relay && token) relayPost({ type: "session-token", token })
   })
+
+  const ch = relay()
+  if (!ch) return
+  ch.onmessage = (e) => {
+    const data = e.data || {}
+    if (data.type === "session-token" && typeof data.token === "string") {
+      if (data.token === currentToken) return
+      setSessionToken(data.token)
+      reconnectWidgetSocket(liveSocket)
+      return
+    }
+    if (data.type === "clear") {
+      clearAuthedTokens()
+      reconnectWidgetSocket(liveSocket)
+    }
+  }
 }
 
 // --- parent page hints -----------------------------------------------------

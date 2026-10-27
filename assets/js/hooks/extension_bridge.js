@@ -8,6 +8,7 @@
 // Publisher host pages never call this; only Qadabra hosts + widget iframes.
 
 import {
+  broadcastWidgetLogout,
   clearAuthedTokens,
   isWidgetDocument,
   pageSyncId,
@@ -407,7 +408,10 @@ function wireExtensionPageListener() {
       if (event.data.widget_token) setUpgradeToken(event.data.widget_token)
       // Extension logout: a token-backed widget has no cookie partition to
       // clear, so drop the client token and remount anonymous.
-      if (event.data.reason === "extension_logout") clearAuthedTokens()
+      if (event.data.reason === "extension_logout") {
+        clearAuthedTokens()
+        broadcastWidgetLogout()
+      }
       reconnectLiveSocket()
       return
     }

@@ -79,10 +79,23 @@ defmodule QlariusWeb.Widgets.CookielessMountTest do
 
       {:ok, view, _html} = live(init_test_session(conn, session), "/widgets/ads_ext/")
 
-      assert_push_event(view, "qadabra:widget-session-token", %{token: token})
+      assert_push_event(view, "qadabra:widget-session-token", %{token: token, relay: true})
 
       assert {:ok, %{kind: :session, user_token: ^user_token, sync_id: @sync_id}} =
                WidgetToken.verify(token)
+    end
+
+    test "a mount from a relayed session token does not ask to relay again", %{conn: conn} do
+      user = registered_user_fixture()
+      user_token = Accounts.generate_user_session_token(user)
+
+      session =
+        %{kind: :session, user_token: user_token, sync_id: @sync_id}
+        |> WidgetToken.session_for()
+
+      {:ok, view, _html} = live(init_test_session(conn, session), "/widgets/ads_ext/")
+
+      assert_push_event(view, "qadabra:widget-session-token", %{relay: false})
     end
 
     test "pushes nothing for a cookie-backed authed mount", %{conn: conn} do

@@ -6,8 +6,13 @@ defmodule QlariusWeb.WidgetSessionHooks do
   cookie (`session["widget_token_session"]`), the browser is withholding
   the widget cookie. For an authed mount this hook pushes a renewable
   `:session` widget token so the client can reconnect without losing the
-  user. `clear_widget_session/1` lets a widget log out in that mode, since
-  `POST /logout` cannot pass CSRF without a session cookie.
+  user. `relay: true` marks the first mount after a one-shot `:authed`
+  hand-off; the client then shares the session token with sibling widget
+  iframes on the same page (same-origin `BroadcastChannel`), which have no
+  cookie either. Mounts from a relayed `:session` token do not relay again,
+  so siblings cannot ping-pong. `clear_widget_session/1` lets a widget log
+  out in that mode, since `POST /logout` cannot pass CSRF without a session
+  cookie.
   """
 
   import Phoenix.Component, only: [assign: 3]
@@ -31,7 +36,8 @@ defmodule QlariusWeb.WidgetSessionHooks do
       if connected?(socket) and token_session? and is_binary(user_token) and
            socket.assigns[:current_scope] do
         push_event(socket, "qadabra:widget-session-token", %{
-          token: WidgetToken.sign_session(user_token, sync_id)
+          token: WidgetToken.sign_session(user_token, sync_id),
+          relay: session["widget_token_kind"] == "authed"
         })
       else
         socket

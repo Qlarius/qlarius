@@ -23,7 +23,8 @@ defmodule QlariusWeb.WidgetSocketTest do
 
       assert WidgetSocket.session_from(%{"widget_token" => token}, %{session: nil}) == %{
                "session_sync_id" => @sync_id,
-               "widget_token_session" => true
+               "widget_token_session" => true,
+               "widget_token_kind" => "anon"
              }
     end
 

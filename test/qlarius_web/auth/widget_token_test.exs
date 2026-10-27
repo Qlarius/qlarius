@@ -13,13 +13,18 @@ defmodule QlariusWeb.Auth.WidgetTokenTest do
 
     assert WidgetToken.session_for(payload) == %{
              "session_sync_id" => @sync_id,
-             "widget_token_session" => true
+             "widget_token_session" => true,
+             "widget_token_kind" => "anon"
            }
   end
 
   test "anon token without a sync id yields a session without one" do
     assert {:ok, payload} = WidgetToken.verify(WidgetToken.sign_anon(nil))
-    assert WidgetToken.session_for(payload) == %{"widget_token_session" => true}
+
+    assert WidgetToken.session_for(payload) == %{
+             "widget_token_session" => true,
+             "widget_token_kind" => "anon"
+           }
   end
 
   test "authed token is accepted once and mirrors the cookie session keys" do
@@ -33,18 +38,22 @@ defmodule QlariusWeb.Auth.WidgetTokenTest do
              "session_sync_id" => @sync_id,
              "user_token" => user_token,
              "live_socket_id" => "users_sessions:#{Base.url_encode64(user_token)}",
-             "widget_token_session" => true
+             "widget_token_session" => true,
+             "widget_token_kind" => "authed"
            }
 
     assert {:error, :used} = WidgetToken.verify(token)
   end
 
-  test "session token is reusable" do
+  test "session token is reusable and marks its kind" do
     user_token = :crypto.strong_rand_bytes(32)
     token = WidgetToken.sign_session(user_token, @sync_id)
 
+    assert {:ok, %{kind: :session, user_token: ^user_token} = payload} =
+             WidgetToken.verify(token)
+
     assert {:ok, %{kind: :session, user_token: ^user_token}} = WidgetToken.verify(token)
-    assert {:ok, %{kind: :session, user_token: ^user_token}} = WidgetToken.verify(token)
+    assert WidgetToken.session_for(payload)["widget_token_kind"] == "session"
   end
 
   test "rejects garbage, empty, and non-binary input" do
