@@ -44,12 +44,32 @@
     return "https://qadabra.app";
   })();
 
+  // One id per host page, shared by every Qadabra widget iframe on it, so
+  // a sign-in in one widget reaches the others even when the browser
+  // withholds the widget session cookie.
+  var syncId = (function () {
+    if (window.__qadabraSyncId) return window.__qadabraSyncId;
+    var id;
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      id = window.crypto.randomUUID();
+    } else {
+      id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    }
+    window.__qadabraSyncId = id;
+    return id;
+  })();
+
   var widgetSrc =
     qlariusOrigin +
     "/widgets/ads_ext/" +
     encodeURIComponent(splitCode) +
     "?host_url=" +
     encodeURIComponent(document.URL) +
+    "&sync_id=" +
+    encodeURIComponent(syncId) +
     "&force_theme=light";
 
   var iframe = document.createElement("iframe");

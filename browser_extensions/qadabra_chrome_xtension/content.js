@@ -31,11 +31,21 @@ function publishExtensionId() {
   );
 }
 
-function askPageReconnect(reason) {
-  window.postMessage(
-    { type: "qadabra:auth:please-reconnect", reason: reason || "extension" },
-    window.location.origin
-  );
+// `widgetToken` is the one-shot socket token the exchange returns. Widget
+// iframes in browsers that block third-party cookies never receive the
+// Set-Cookie, so the page needs it to reconnect authed.
+function askPageReconnect(reason, widgetToken) {
+  const message = { type: "qadabra:auth:please-reconnect", reason: reason || "extension" };
+  if (widgetToken) message.widget_token = widgetToken;
+  window.postMessage(message, window.location.origin);
+}
+
+function isWidgetDocument() {
+  return !!document.querySelector("meta[name='widget-socket']");
+}
+
+function pageSyncId() {
+  return new URLSearchParams(window.location.search).get("sync_id");
 }
 
 function csrfToken() {
@@ -110,23 +120,38 @@ async function mintIntoVault() {
   return !!stored?.ok;
 }
 
+// Resolves `{ ok, widgetToken }`. The endpoint takes no CSRF token (there
+// is no session to tie one to in a cookieless iframe); the vault token is
+// the credential.
 async function exchangeVault(vault) {
-  if (await logoutGuardActive()) return false;
+  if (await logoutGuardActive()) return { ok: false };
+
+  const body = { token: vault.token, device_id: vault.device_id };
+  if (isWidgetDocument()) {
+    const syncId = pageSyncId();
+    if (syncId) body.sync_id = syncId;
+  }
 
   const res = await fetch("/auth/extension_exchange", {
     method: "POST",
     credentials: "include",
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
-      "x-csrf-token": csrfToken()
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      token: vault.token,
-      device_id: vault.device_id
-    })
+    body: JSON.stringify(body)
   });
-  return res.status === 204;
+
+  if (!res.ok) return { ok: false };
+
+  let widgetToken = null;
+  try {
+    const payload = await res.json();
+    widgetToken = payload?.widget_token || null;
+  } catch (_err) {
+    // 204 / empty body: cookie path only.
+  }
+  return { ok: true, widgetToken };
 }
 
 // Clear THIS frame's partitioned Phoenix session, then remount LiveViews.
@@ -216,10 +241,10 @@ async function reconcileFromVault() {
   }
 
   try {
-    const ok = await exchangeVault(vault);
+    const { ok, widgetToken } = await exchangeVault(vault);
     if (ok) {
       settledKey = "1:1";
-      askPageReconnect("extension_exchange");
+      askPageReconnect("extension_exchange", widgetToken);
     }
   } catch (_err) {
     // Best-effort; page bridge may still retry.

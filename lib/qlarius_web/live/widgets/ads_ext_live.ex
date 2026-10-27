@@ -68,9 +68,14 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     # In-iframe disconnect must not navigate the embed document (that paints
     # a blank full-height AdsExt page over the third-party host). Clear the
     # session via fetch + LiveSocket reconnect — same pattern as AuthFinalize.
+    # Without a session cookie the fetch cannot pass CSRF, so a token-backed
+    # session is cleared here and the client only drops its token.
+    token_session? = QlariusWeb.WidgetSessionHooks.clear_widget_session(socket)
+
     {:noreply,
      push_event(socket, "qadabra:session-logout", %{
-       csrf_token: Plug.CSRFProtection.get_csrf_token()
+       csrf_token: Plug.CSRFProtection.get_csrf_token(),
+       token_session: token_session?
      })}
   end
 

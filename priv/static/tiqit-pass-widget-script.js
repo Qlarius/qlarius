@@ -17,6 +17,24 @@
     return "https://qadabra.app";
   }
 
+  // One id per host page, shared by every Qadabra widget iframe on it, so
+  // a sign-in in one widget reaches the others even when the browser
+  // withholds the widget session cookie.
+  function pageSyncId() {
+    if (window.__qadabraSyncId) return window.__qadabraSyncId;
+    var id;
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      id = window.crypto.randomUUID();
+    } else {
+      id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    }
+    window.__qadabraSyncId = id;
+    return id;
+  }
+
   function revealGatedContent(marker) {
     var el = marker.nextElementSibling;
     while (el) {
@@ -53,7 +71,14 @@
     var marker = document.getElementById("tiqit-pass-hide-start");
     var baseUrl = resolveBaseUrl();
     var iframeUrl =
-      baseUrl + "/widgets/tiqit_pass/" + encodeURIComponent(catalogId) + "?force_theme=light";
+      baseUrl +
+      "/widgets/tiqit_pass/" +
+      encodeURIComponent(catalogId) +
+      "?host_url=" +
+      encodeURIComponent(document.URL) +
+      "&sync_id=" +
+      encodeURIComponent(pageSyncId()) +
+      "&force_theme=light";
 
     console.log("[Tiqit Pass] Creating iframe with URL:", iframeUrl);
 

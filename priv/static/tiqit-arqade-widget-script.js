@@ -23,6 +23,28 @@
     return 'https://qadabra.app';
   }
 
+  // One id per host page, shared by every Qadabra widget iframe on it, so
+  // a sign-in in one widget reaches the others even when the browser
+  // withholds the widget session cookie.
+  function pageSyncId() {
+    if (window.__qadabraSyncId) return window.__qadabraSyncId;
+    let id;
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      id = window.crypto.randomUUID();
+    } else {
+      id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    }
+    window.__qadabraSyncId = id;
+    return id;
+  }
+
+  function widgetUrl(baseUrl, path) {
+    return `${baseUrl}${path}?host_url=${encodeURIComponent(document.URL)}&sync_id=${encodeURIComponent(pageSyncId())}&force_theme=light`;
+  }
+
   function initTiqitArqadeWidget() {
     console.log('[Tiqit Arqade] Initializing widget...');
     const marker = document.getElementById('tiqit-paywall-hide-start');
@@ -58,7 +80,7 @@
     }
 
     const baseUrl = resolveBaseUrl();
-    const iframeUrl = `${baseUrl}/widgets/arqade/${pieceId}?force_theme=light`;
+    const iframeUrl = widgetUrl(baseUrl, `/widgets/arqade/${encodeURIComponent(pieceId)}`);
     console.log('[Tiqit Arqade] Creating iframe with URL:', iframeUrl);
 
     const purchaseIframe = document.createElement('iframe');
@@ -154,7 +176,7 @@
     
     const timerIframe = document.createElement('iframe');
     timerIframe.id = 'tiqit-arqade-timer-iframe';
-    timerIframe.src = `${baseUrl}/widgets/arqade/${data.piece_id}?force_theme=light`;
+    timerIframe.src = widgetUrl(baseUrl, `/widgets/arqade/${encodeURIComponent(data.piece_id)}`);
     timerIframe.style.width = '100%';
     timerIframe.style.height = '80px';
     timerIframe.style.border = 'none';

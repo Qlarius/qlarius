@@ -23,7 +23,7 @@ defmodule QlariusWeb.Router do
   pipeline :widgets do
     plug :accepts, ["html"]
     plug :fetch_session
-    plug QlariusWeb.Plugs.EnsureSessionSyncId
+    plug QlariusWeb.Plugs.EnsureSessionSyncId, accept_query: true
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -164,9 +164,14 @@ defmodule QlariusWeb.Router do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
-    post "/extension_exchange", ExtensionExchangeController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:auth_exchange]
+
+    post "/extension_exchange", ExtensionExchangeController, :create
   end
 
   # Cheap authed? probe — session cookie only, no Scope.for_user/1.
@@ -322,6 +327,9 @@ defmodule QlariusWeb.Router do
     live_session :widgets,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
+        # Hands cookieless (token-backed) authed mounts a renewable widget
+        # token; see `WidgetSocket`.
+        QlariusWeb.WidgetSessionHooks,
         {QlariusWeb.Layouts, :set_current_path},
         # Seed `@base_path = "/widgets"` for every LV in this
         # scope. Arcade LVs read it to build same-scope internal
@@ -384,13 +392,31 @@ defmodule QlariusWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  # Vault token redemption from widget iframes. Browsers that block
+  # third-party cookies never send the iframe's session cookie, so there is
+  # no session for a CSRF token to match against; the signed, device-bound
+  # vault token and the per-IP rate limit are the gate. The response also
+  # carries a short-lived widget socket token for when `Set-Cookie` is
+  # dropped.
+  pipeline :auth_exchange do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug QlariusWeb.Plugs.EnsureSessionSyncId
+    plug :put_secure_browser_headers
+  end
+
   scope "/auth", QlariusWeb.Auth do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
-    post "/extension_exchange", ExtensionExchangeController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  scope "/auth", QlariusWeb.Auth do
+    pipe_through [:auth_exchange]
+
+    post "/extension_exchange", ExtensionExchangeController, :create
   end
 
   scope "/auth", QlariusWeb.Auth do

@@ -32,6 +32,19 @@ import {
   startExtensionAuthBridge,
   syncExtensionWithSessionDebounced
 } from "./hooks/extension_bridge"
+import {
+  clearAuthedTokens,
+  installReloadGuard,
+  isWidgetDocument,
+  listenForParentExtensionHint,
+  listenForSessionTokens,
+  pageSyncId,
+  reconnectWidgetSocket,
+  requestStorageAccess,
+  setUpgradeToken,
+  widgetSocketPath,
+  widgetToken
+} from "./widget_socket"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
@@ -219,6 +232,13 @@ function reconnectLiveSocket() {
   const socket = window.liveSocket
   if (!socket) {
     window.location.reload()
+    return
+  }
+
+  // Widget iframes never fall back to a timed reload: a slow reconnect
+  // must leave the current state on screen instead of starting a loop.
+  if (isWidgetDocument()) {
+    reconnectWidgetSocket(socket, {onOpen: () => syncExtensionWithSessionDebounced()})
     return
   }
 
@@ -1831,8 +1851,8 @@ Hooks.SponsterWidgetBridge = {
     })
     // Mirror AuthFinalize: clear session in-place, keep the third-party
     // host page, remount this LV anonymous (no iframe navigation).
-    this.handleEvent("qadabra:session-logout", ({ csrf_token }) => {
-      this.sessionLogout(csrf_token)
+    this.handleEvent("qadabra:session-logout", ({ csrf_token, token_session }) => {
+      this.sessionLogout(csrf_token, token_session)
     })
     this.onMessage = (e) => {
       if (e.data?.type === "open_sponster_drawer") {
@@ -1856,11 +1876,23 @@ Hooks.SponsterWidgetBridge = {
     this.lastReportedCollapsedHeight = height
     window.parent.postMessage({ type: "sponster_widget_collapsed_height", height }, '*')
   },
-  async sessionLogout(csrfTokenOverride) {
+  async sessionLogout(csrfTokenOverride, tokenSession = false) {
     try {
       await globalExtensionLogout()
     } catch (_e) {
       // Extension optional; continue clearing the browser session.
+    }
+
+    // Cookieless widget: the server already deleted the session token
+    // (`WidgetSessionHooks.clear_widget_session/1`). There is no cookie for
+    // `/logout` to pass CSRF with, so drop our token and remount anonymous.
+    if (tokenSession) {
+      clearAuthedTokens()
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "sponster_widget_collapse" }, "*")
+      }
+      reconnectLiveSocket()
+      return
     }
 
     const csrf =
@@ -3242,12 +3274,20 @@ if (isExtension) {
   })
 }
 
-const liveSocket = new LiveSocket("/live", Socket, {
+// Widget embeds (`<meta name="widget-socket">`) connect to `/widgets/live`,
+// where `QlariusWeb.WidgetSocket` accepts a signed `widget_token` in place
+// of the session cookie that cookie-blocking browsers withhold. Every other
+// page keeps `/live` untouched.
+const liveSocket = new LiveSocket(widgetSocketPath(), Socket, {
   longPollFallbackMs: 2500,
   params: () => {
     const params = {
       _csrf_token: csrfToken,
       extension: isExtension ? 'true' : null
+    }
+
+    if (isWidgetDocument()) {
+      params.widget_token = widgetToken()
     }
 
     const bg = readPwaBackgroundPending()
@@ -3283,11 +3323,22 @@ window.addEventListener("phx:close-modal", (e) => {
   }
 })
 
+// Widget iframes: cap automatic reloads, keep the renewable session token
+// the server pushes after a token-backed authed mount, and treat the host
+// page's extension hint as a reason to re-probe.
+installReloadGuard(liveSocket)
+listenForSessionTokens()
+listenForParentExtensionHint(({authed}) => {
+  if (authed) syncExtensionWithSessionDebounced({reset: true})
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 installPwaBackgroundTracker(liveSocket, {isExtension})
 
-// Extension SSO: silent exchange / vault mint on Qadabra-origin loads.
+// Extension SSO: silent exchange / vault mint on Qadabra-origin loads. Runs
+// alongside the anonymous connect above; a successful exchange upgrades the
+// socket in place via `reconnectLiveSocket`.
 startExtensionAuthBridge()
 
 function attachLiveViewDebugLogging() {
@@ -3871,14 +3922,30 @@ Hooks.AuthSheetPhone = {
 // OAuth-style popup auth for iframe AuthSheet. Opens sync on click;
 // blocked popups fall back to same-tab navigation. On success the popup
 // posts `qadabra:auth:popup-done` and the opener reconnects LiveView
-// (cookie already set on the shared Qadabra host).
+// (cookie already set on the shared Qadabra host). In a widget iframe the
+// popup is told our origin so `/auth/popup_done` can also hand back a
+// one-shot `widget_token` for browsers that withhold the cookie.
 Hooks.AuthPopup = {
   mounted() {
     this.onClick = (e) => {
       e.preventDefault()
-      const url = this.el.dataset.authUrl
+      let url = this.el.dataset.authUrl
       const fallback = this.el.dataset.fallbackUrl || url
       if (!url) return
+
+      if (isWidgetDocument()) {
+        try {
+          const u = new URL(url, window.location.href)
+          u.searchParams.set("opener_origin", window.location.origin)
+          const syncId = pageSyncId()
+          if (syncId) u.searchParams.set("sync_id", syncId)
+          url = u.toString()
+        } catch (_e) {}
+        // Still inside the click gesture: a granted Storage Access lets the
+        // next reconnect carry the real cookie. Not awaited — `window.open`
+        // must stay synchronous with the gesture.
+        requestStorageAccess().catch(() => {})
+      }
 
       // Do not set noopener — popup_done needs window.opener.
       const popup = window.open(url, "qadabra_auth", "popup=yes,width=480,height=720")
@@ -3906,6 +3973,7 @@ Hooks.AuthPopup = {
         try {
           popup.close()
         } catch (_e) {}
+        if (event.data.widget_token) setUpgradeToken(event.data.widget_token)
         mintTokenIntoExtension({ force: true }).finally(() => {
           reconnectLiveSocket()
         })
@@ -3931,11 +3999,40 @@ Hooks.AuthPopup = {
 // See docs/qlink_auth_refactor_plan.md §5.9.
 Hooks.ConnectPage = {
   mounted() {
+    // A widget popup arrives with `opener_origin` (+ `sync_id`). Keep them
+    // in this window so `/auth/popup_done` can hand the opener a
+    // widget_token even after OAuth / magic-link round trips.
+    try {
+      const q = new URLSearchParams(window.location.search)
+      const openerOrigin = q.get("opener_origin")
+      if (openerOrigin) {
+        sessionStorage.setItem(
+          "qadabra:popup-opener",
+          JSON.stringify({opener_origin: openerOrigin, sync_id: q.get("sync_id")})
+        )
+      }
+    } catch (_e) {}
+
     this.handleEvent("qadabra:close-popup", () => {
       try {
         window.close()
       } catch (_e) {}
     })
+  }
+}
+
+function popupDoneUrl() {
+  try {
+    const raw = sessionStorage.getItem("qadabra:popup-opener")
+    if (!raw) return "/auth/popup_done"
+    const {opener_origin, sync_id} = JSON.parse(raw)
+    if (!opener_origin) return "/auth/popup_done"
+    sessionStorage.removeItem("qadabra:popup-opener")
+    const q = new URLSearchParams({opener_origin})
+    if (sync_id) q.set("sync_id", sync_id)
+    return `/auth/popup_done?${q.toString()}`
+  } catch (_e) {
+    return "/auth/popup_done"
   }
 }
 
@@ -3973,7 +4070,7 @@ Hooks.AuthFinalize = {
         }
         // Connect popup: hand off to opener via /auth/popup_done.
         if (this.el.dataset.authPopup === "true") {
-          window.location.href = "/auth/popup_done"
+          window.location.href = popupDoneUrl()
           return
         }
         // Server SessionSync.broadcast/2 remounts sibling widget LVs;

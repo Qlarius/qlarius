@@ -7,6 +7,14 @@
 //
 // Publisher host pages never call this; only Qadabra hosts + widget iframes.
 
+import {
+  clearAuthedTokens,
+  isWidgetDocument,
+  pageSyncId,
+  reconnectWidgetSocket,
+  setUpgradeToken
+} from "../widget_socket"
+
 const PROBE_TIMEOUT_MS = 800
 
 function csrfToken() {
@@ -112,6 +120,12 @@ function reconnectLiveSocket() {
     return
   }
 
+  // Widget iframes: no timed reload fallback (see widget_socket.js).
+  if (isWidgetDocument()) {
+    reconnectWidgetSocket(socket)
+    return
+  }
+
   const timeout = setTimeout(() => window.location.reload(), 5000)
   const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
   if (rawSocket && typeof rawSocket.onOpen === "function") {
@@ -170,12 +184,29 @@ export async function exchangeExtensionToken() {
   const vault = await sendToExtension({ type: "qadabra:auth:get-token" })
   if (!vault?.token || !vault?.device_id) return false
 
+  // Widget iframes pass the host page's shared sync id so the sign-in
+  // broadcast reaches sibling widgets that never received a cookie.
+  const body = { token: vault.token, device_id: vault.device_id }
+  if (isWidgetDocument()) {
+    const syncId = pageSyncId()
+    if (syncId) body.sync_id = syncId
+  }
+
   const res = await fetchJson("/auth/extension_exchange", {
     method: "POST",
-    body: JSON.stringify({ token: vault.token, device_id: vault.device_id })
+    body: JSON.stringify(body)
   })
 
-  if (res.status === 204) {
+  if (res.ok) {
+    // The response carries a one-shot widget_token for browsers that drop
+    // the Set-Cookie inside a third-party iframe; the reconnect below
+    // mounts authed either way.
+    try {
+      const payload = await res.json()
+      if (payload?.widget_token) setUpgradeToken(payload.widget_token)
+    } catch (_e) {
+      // 204 or non-JSON body: cookie path only.
+    }
     lastSyncResult = "exchanged"
     reconnectLiveSocket()
     return true
@@ -371,7 +402,12 @@ function wireExtensionPageListener() {
 
     if (event.data?.type === "qadabra:auth:please-reconnect") {
       // Content script already exchanged or cleared this frame's session.
+      // Inside a cookieless widget it forwards the exchange's widget_token.
       lastSyncResult = null
+      if (event.data.widget_token) setUpgradeToken(event.data.widget_token)
+      // Extension logout: a token-backed widget has no cookie partition to
+      // clear, so drop the client token and remount anonymous.
+      if (event.data.reason === "extension_logout") clearAuthedTokens()
       reconnectLiveSocket()
       return
     }
@@ -383,7 +419,8 @@ function wireExtensionPageListener() {
   })
 }
 
-export function syncExtensionWithSessionDebounced() {
+export function syncExtensionWithSessionDebounced(opts = {}) {
+  if (opts.reset) lastSyncResult = null
   if (syncInFlight) return syncInFlight
   syncInFlight = syncExtensionWithSession().finally(() => {
     syncInFlight = null

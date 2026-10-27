@@ -182,7 +182,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          slide_over_active: false,
          slide_over_title: "Now playing",
          show_gift_welcome:
-           in_app_group? and not full_viewport_embed? and gift_welcome_params?(params)
+           in_app_group? and not full_viewport_embed? and gift_welcome_params?(params) and
+             not is_nil(scope)
        )
        |> assign(loading_scope_assigns(scope))
        |> maybe_load_group_page(group_id, scope)
@@ -214,7 +215,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           gift_header_label: session["gift_header_label"],
           show_gift_welcome:
             socket.assigns.in_app_group? and not socket.assigns.full_viewport_embed? and
-              gift_welcome_params?(params),
+              gift_welcome_params?(params) and not is_nil(refreshed),
           show_connect_modal: false,
           show_share_gift_modal: false,
           show_auth_sheet: false,

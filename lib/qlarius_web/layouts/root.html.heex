@@ -37,6 +37,13 @@
     <meta name="application-name" content="Qadabra" />
     <meta name="apple-mobile-web-app-title" content="Qadabra" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <%= if assigns[:embed_document] do %>
+      <meta name="widget-socket" content="/widgets/live" />
+      <meta
+        name="widget-token"
+        content={QlariusWeb.Auth.WidgetToken.sign_anon(assigns[:session_sync_id])}
+      />
+    <% end %>
     <meta
       name="qadabra-extension-ids"
       content={

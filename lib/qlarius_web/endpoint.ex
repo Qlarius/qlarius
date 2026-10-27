@@ -18,13 +18,15 @@ defmodule QlariusWeb.Endpoint do
       check_origin: {QlariusWeb.Endpoint, :check_ws_origin, []}
     ]
 
-  # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
-  # This isn't a good long-term solution; I just need to get the demo working.
-  # Both transports must bypass the origin check: widgets embed in
-  # third-party pages whose origin is unknown at deploy time, and when
-  # the browser (or a restrictive network) falls back from WS to
-  # longpoll the request would otherwise be rejected against PHX_HOST.
-  socket "/widgets/live", Phoenix.LiveView.Socket,
+  # Widget iframes on publisher sites. Both transports must bypass the
+  # origin check: publisher origins are unknown at deploy time, and when
+  # the browser (or a restrictive network) falls back from WS to longpoll
+  # the request would otherwise be rejected against PHX_HOST. Phoenix's
+  # CSRF check stays on (one of the two is required). `WidgetSocket`
+  # substitutes a signed `widget_token` when the browser withholds the
+  # session cookie, so a missing cookie mounts anonymously instead of
+  # failing the join.
+  socket "/widgets/live", QlariusWeb.WidgetSocket,
     websocket: [
       connect_info: [:x_headers, session: @session_options],
       check_origin: false

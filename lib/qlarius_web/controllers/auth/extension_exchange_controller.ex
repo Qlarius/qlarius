@@ -16,8 +16,10 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
   alias Qlarius.Accounts
   alias Qlarius.Auth.AuditLog
   alias Qlarius.Auth.RateLimit
-  alias QlariusWeb.Auth.ExtensionIdentityToken
+  alias QlariusWeb.Auth.{ExtensionIdentityToken, WidgetToken}
   alias QlariusWeb.UserAuth
+
+  @uuid ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
 
   plug :accepts, ["json"]
 
@@ -53,7 +55,9 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
 
       case RateLimit.check_extension_exchange_per_ip(ip) do
         :ok ->
-          do_exchange(conn, token, Map.get(params, "device_id"), ip)
+          conn
+          |> put_widget_sync_id(Map.get(params, "sync_id"))
+          |> do_exchange(token, Map.get(params, "device_id"), ip)
 
         {:error, {:rate_limited, _}} ->
           AuditLog.log(:"extension_exchange.denied", %{ip: ip, reason: :rate_limited})
@@ -190,9 +194,17 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
             user ->
               AuditLog.log(:"extension_exchange.allowed", %{ip: ip, user_id: user.id})
 
-              conn
-              |> UserAuth.log_in_user_from_finalize(user, remember_me: true)
-              |> send_resp(204, "")
+              conn = UserAuth.log_in_user_from_finalize(conn, user, remember_me: true)
+
+              # Widget iframes in cookie-blocking browsers never receive the
+              # Set-Cookie above; the socket token carries the session instead.
+              widget_token =
+                WidgetToken.sign_authed(
+                  get_session(conn, :user_token),
+                  get_session(conn, :session_sync_id)
+                )
+
+              json(conn, %{widget_token: widget_token})
           end
         end
 
@@ -209,6 +221,18 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
         send_json_error(conn, 422, "invalid_token")
     end
   end
+
+  # A widget iframe passes the page's shared sync id so the sign-in
+  # broadcast reaches sibling widgets that never got a cookie.
+  defp put_widget_sync_id(conn, sync_id) when is_binary(sync_id) do
+    if Regex.match?(@uuid, sync_id) do
+      put_session(conn, :session_sync_id, String.downcase(sync_id))
+    else
+      conn
+    end
+  end
+
+  defp put_widget_sync_id(conn, _), do: conn
 
   defp device_id_mismatch?(%{device_id: expected}, provided)
        when is_binary(provided) and provided != "" do
