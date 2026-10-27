@@ -34,8 +34,10 @@ defmodule QlariusWeb.Components.WalletBalance do
   # plain amount chip. WalletPulse reads `innerText` for the amount, so the
   # label stays out of the text.
   #
-  # A labelled pill with a real balance opens /wallet in a new tab. The
-  # installed app already has Wallet in the shell, so that link is inert there.
+  # A labelled pill with a real balance opens /wallet in a new tab. The link is
+  # absolute on the public app host (qadabra.app) so it resolves when the pill
+  # renders on qlinkin.bio or inside a publisher-embedded widget. The installed
+  # app already has Wallet in the shell, so that link is inert there.
   def wallet_balance(assigns) do
     labelled? = assigns.footer_label not in [nil, ""]
     # READY and confirmation dialogs stay put. Dialogs drop the icon.
@@ -45,13 +47,14 @@ defmodule QlariusWeb.Components.WalletBalance do
       assigns
       |> assign(:labelled?, labelled?)
       |> assign(:open_wallet?, open_wallet?)
+      |> assign(:wallet_href, Qlarius.Qlink.Urls.wallet_url())
       |> assign(:pill_class, pill_class(assigns, labelled?, open_wallet?))
 
     ~H"""
     <a
       :if={@open_wallet?}
       id={@id}
-      href="/wallet"
+      href={@wallet_href}
       target="_blank"
       rel="noopener noreferrer"
       phx-hook="WalletPulse"
@@ -121,7 +124,10 @@ defmodule QlariusWeb.Components.WalletBalance do
   defp pill_class(assigns, labelled?, open_wallet?) do
     [
       "wallet-balance-pill",
-      if(assigns.compact?, do: "wallet-balance-pill--compact", else: "wallet-balance-pill--default"),
+      if(assigns.compact?,
+        do: "wallet-balance-pill--compact",
+        else: "wallet-balance-pill--default"
+      ),
       labelled? && "wallet-balance-pill--labelled",
       open_wallet? && "wallet-balance-pill--link",
       if(assigns.anon_strobe?, do: "wallet-strip-anon-focus")

@@ -131,6 +131,24 @@ defmodule Qlarius.Qlink.Urls do
   end
 
   @doc """
+  Main-app `/wallet` URL for links rendered on other hosts (qlinkin.bio
+  pages, publisher-embedded widgets). Absolute on the public app host in
+  production so the link leaves the vanity domain; a relative path when the
+  public host is localhost so dev keeps working on whatever port is bound.
+  """
+  @spec wallet_url() :: String.t()
+  def wallet_url do
+    if localhost_public_host?(), do: "/wallet", else: public_app_url("/wallet")
+  end
+
+  defp localhost_public_host? do
+    case Application.get_env(:qlarius, :public_app_host) do
+      host when is_binary(host) -> String.starts_with?(host, ["localhost", "127.0.0.1"])
+      _ -> true
+    end
+  end
+
+  @doc """
   Outbound "More Sponster Info" URL: lands on the app host first so
   `?ref=` can stamp `qadabra_referral_code`, then
   `SponsterInfoRedirectController` redirects to `qadabra.co/sponster`.
@@ -153,7 +171,6 @@ defmodule Qlarius.Qlink.Urls do
 
     public_app_url(path)
   end
-
 
   @doc """
   Main-app `MeFileLive` URL (`/me_file`) from a Qlink request URI.
