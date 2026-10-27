@@ -4049,6 +4049,14 @@ Hooks.AuthFinalize = {
       document.querySelector("meta[name='csrf-token']")?.getAttribute("content") ||
       ""
 
+    // Widget iframes pass the host page's shared sync id so the sign-in
+    // broadcast reaches sibling widgets that never received a cookie.
+    const body = { token }
+    if (isWidgetDocument()) {
+      const syncId = pageSyncId()
+      if (syncId) body.sync_id = syncId
+    }
+
     try {
       const res = await fetch("/auth/finalize_session", {
         method: "POST",
@@ -4058,10 +4066,19 @@ Hooks.AuthFinalize = {
           "x-csrf-token": csrf,
           Accept: "application/json"
         },
-        body: JSON.stringify({ token })
+        body: JSON.stringify(body)
       })
 
-      if (res.status === 204) {
+      if (res.status === 200 || res.status === 204) {
+        // Cookie-blocking browsers drop the Set-Cookie inside a third-party
+        // iframe; the response's one-shot widget_token carries the session
+        // into the next socket connect instead.
+        try {
+          const payload = await res.json()
+          if (payload?.widget_token) setUpgradeToken(payload.widget_token)
+        } catch (_e) {
+          // 204 or non-JSON body: cookie path only.
+        }
         // Echo identity into the browser extension vault when present.
         try {
           await mintTokenIntoExtension({ force: true })
@@ -4074,10 +4091,10 @@ Hooks.AuthFinalize = {
           return
         }
         // Server SessionSync.broadcast/2 remounts sibling widget LVs;
-        // reconnect this socket for the new session cookie.
+        // reconnect this socket for the new session cookie or widget_token.
         reconnectLiveSocket()
       } else {
-        let reason = "unknown"
+        let reason = res.status === 403 ? "forbidden" : "unknown"
         try {
           const body = await res.json()
           reason = body.error || reason

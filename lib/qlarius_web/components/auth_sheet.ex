@@ -1140,6 +1140,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp classify_finalize_reason("invalid_token"), do: :token_invalid
   defp classify_finalize_reason("missing_token"), do: :missing_token
   defp classify_finalize_reason("network"), do: :client_network
+  defp classify_finalize_reason("forbidden"), do: :forbidden
   defp classify_finalize_reason(_), do: :unknown
 
   # Runs the two `send_code` rate-limit gates and collapses the result

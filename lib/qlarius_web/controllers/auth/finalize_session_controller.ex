@@ -15,12 +15,14 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
   alias Qlarius.Accounts
   alias Qlarius.Auth.AuditLog
   alias Qlarius.Auth.RateLimit
-  alias QlariusWeb.Auth.FinalizeToken
+  alias QlariusWeb.Auth.{FinalizeToken, WidgetToken}
   alias QlariusWeb.UserAuth
+
+  @uuid ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
 
   plug :accepts, ["json"]
 
-  def create(conn, %{"token" => token}) when is_binary(token) do
+  def create(conn, %{"token" => token} = params) when is_binary(token) do
     # B8: per-IP gate before cryptographic verification. Cheap check,
     # and denies noisy probes without burning ETS bucket space on
     # `FinalizeTokenSweeper` `jti`s.
@@ -28,7 +30,9 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
 
     case RateLimit.check_finalize_per_ip(ip) do
       :ok ->
-        do_create(conn, token, ip)
+        conn
+        |> put_widget_sync_id(Map.get(params, "sync_id"))
+        |> do_create(token, ip)
 
       {:error, {:rate_limited, _retry_after_s}} ->
         AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :rate_limited})
@@ -61,12 +65,21 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
               user_id: user.id
             })
 
-            conn
-            |> UserAuth.log_in_user_from_finalize(user,
-              resume: Map.get(payload, :resume),
-              remember_me: true
-            )
-            |> send_resp(204, "")
+            conn =
+              UserAuth.log_in_user_from_finalize(conn, user,
+                resume: Map.get(payload, :resume),
+                remember_me: true
+              )
+
+            # Widget iframes in cookie-blocking browsers never receive the
+            # Set-Cookie above; the socket token carries the session instead.
+            widget_token =
+              WidgetToken.sign_authed(
+                get_session(conn, :user_token),
+                get_session(conn, :session_sync_id)
+              )
+
+            json(conn, %{widget_token: widget_token})
         end
 
       {:error, :expired} ->
@@ -82,6 +95,18 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
         send_json_error(conn, 422, "invalid_token")
     end
   end
+
+  # A widget iframe passes the page's shared sync id so the sign-in
+  # broadcast reaches sibling widgets that never got a cookie.
+  defp put_widget_sync_id(conn, sync_id) when is_binary(sync_id) do
+    if Regex.match?(@uuid, sync_id) do
+      put_session(conn, :session_sync_id, String.downcase(sync_id))
+    else
+      conn
+    end
+  end
+
+  defp put_widget_sync_id(conn, _), do: conn
 
   defp send_json_error(conn, status, code) do
     conn

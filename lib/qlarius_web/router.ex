@@ -163,7 +163,6 @@ defmodule QlariusWeb.Router do
   scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
     pipe_through [:auth_finalize]
 
-    post "/finalize_session", FinalizeSessionController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
   end
@@ -171,6 +170,7 @@ defmodule QlariusWeb.Router do
   scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
     pipe_through [:auth_exchange]
 
+    post "/finalize_session", FinalizeSessionController, :create
     post "/extension_exchange", ExtensionExchangeController, :create
   end
 
@@ -392,12 +392,12 @@ defmodule QlariusWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
-  # Vault token redemption from widget iframes. Browsers that block
-  # third-party cookies never send the iframe's session cookie, so there is
-  # no session for a CSRF token to match against; the signed, device-bound
-  # vault token and the per-IP rate limit are the gate. The response also
-  # carries a short-lived widget socket token for when `Set-Cookie` is
-  # dropped.
+  # Token redemption from widget iframes (finalize token after OTP, vault
+  # token from the extension). Browsers that block third-party cookies
+  # never send the iframe's session cookie, so there is no session for a
+  # CSRF token to match against; the signed, single-use / device-bound
+  # token and the per-IP rate limit are the gate. Responses also carry a
+  # short-lived widget socket token for when `Set-Cookie` is dropped.
   pipeline :auth_exchange do
     plug :accepts, ["json"]
     plug :fetch_session
@@ -408,7 +408,6 @@ defmodule QlariusWeb.Router do
   scope "/auth", QlariusWeb.Auth do
     pipe_through [:auth_finalize]
 
-    post "/finalize_session", FinalizeSessionController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
   end
@@ -416,6 +415,7 @@ defmodule QlariusWeb.Router do
   scope "/auth", QlariusWeb.Auth do
     pipe_through [:auth_exchange]
 
+    post "/finalize_session", FinalizeSessionController, :create
     post "/extension_exchange", ExtensionExchangeController, :create
   end
 
