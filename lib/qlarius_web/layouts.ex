@@ -784,7 +784,7 @@ defmodule QlariusWeb.Layouts do
           badge={@current_scope.ads_count}
         />
         <.mobile_bottom_nav_item
-          icon="hero-ellipsis-horizontal"
+          icon="hero-squares-2x2"
           label="More"
           on_click={toggle_sponster_sidebar(:on)}
           active={false}
