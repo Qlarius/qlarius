@@ -907,6 +907,15 @@ if (!window.__qlariusMobileBrowserOkListener) {
   })
 }
 
+// Install sheet's Install pill scrolls to the steps without a URL hash, so
+// iOS Add to Home Screen saves a clean URL.
+if (!window.__qlariusScrollIntoViewListener) {
+  window.__qlariusScrollIntoViewListener = true
+  window.addEventListener('qlarius:scroll-into-view', (e) => {
+    e.target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
 // Canonical referral storage key. Legacy `qlarius_referral_code` is
 // read once and migrated; all writes use `qadabra_referral_code`.
 const REFERRAL_STORAGE_KEY = "qadabra_referral_code"

@@ -4,6 +4,8 @@ defmodule QlariusWeb.HiLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.Components.SurfaceComponents
 
+  alias QlariusWeb.Components.PWAInstallPrompt
+
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(params, session, socket) do
@@ -291,39 +293,34 @@ defmodule QlariusWeb.HiLive do
           </div>
 
           <div class="flex-1 flex items-center justify-center px-4 pb-12">
-            <.surface_panel class="w-full max-w-md">
-              <div class="space-y-6 text-center">
-                <div class="flex justify-center">
-                  <div class="flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
-                    <.icon name="hero-device-phone-mobile" class="w-9 h-9 text-primary" />
-                  </div>
-                </div>
-
-                <div>
-                  <h1 class="text-2xl font-bold mb-2">Welcome to Qadabra</h1>
-                  <p class="text-base text-base-content/70">
-                    Install for the best experience, or sign in from your mobile browser.
-                  </p>
-                </div>
-
-                <div class="flex flex-col gap-3">
+            <div class="app-sheet app-sheet--card w-full max-w-md rounded-[1.25rem] p-5 shadow-xl space-y-5">
+              <PWAInstallPrompt.listing_header>
+                <:action>
                   <button
                     type="button"
                     phx-click="show_install_guide"
-                    class="btn btn-primary btn-lg w-full rounded-full text-lg normal-case"
+                    class="ios-pill ios-pill--lg"
                   >
-                    Install as app
+                    Install
                   </button>
-                  <button
-                    type="button"
-                    phx-click={store_mobile_browser_ok_click()}
-                    class="btn btn-outline btn-lg w-full rounded-full text-lg normal-case"
-                  >
-                    Continue in browser
-                  </button>
-                </div>
+                </:action>
+              </PWAInstallPrompt.listing_header>
+
+              <div>
+                <p class="text-[17px] font-semibold">A new way to install</p>
+                <p class="ios-secondary mt-1 text-[15px] leading-snug">
+                  Qadabra installs straight from your browser, with no app store in the middle. It's smaller than a photo, opens instantly from your Home Screen, and updates itself without app store hold ups.
+                </p>
               </div>
-            </.surface_panel>
+
+              <button
+                type="button"
+                phx-click={store_mobile_browser_ok_click()}
+                class="ios-secondary w-full cursor-pointer text-center text-[15px]"
+              >
+                Continue in browser
+              </button>
+            </div>
           </div>
         </div>
       <% end %>
@@ -340,29 +337,21 @@ defmodule QlariusWeb.HiLive do
             />
           </div>
 
-          <div class="flex-1 flex items-center justify-center px-4 pb-24">
-            <div class="w-full max-w-2xl">
-              <%= if @device_type == :ios_phone do %>
-                <.ios_install_guide />
-              <% else %>
-                <.android_install_guide />
-              <% end %>
-
-              <p class="mt-8 text-center text-sm text-base-content/60">
-                <.icon name="hero-information-circle" class="inline w-4 h-4" />
-                Installation takes less space than a photo and can be uninstalled anytime.
-              </p>
-
-              <p class="mt-6 text-center">
+          <div class="flex-1 flex items-start justify-center px-4 pb-24">
+            <PWAInstallPrompt.install_sheet
+              platform={if @device_type == :ios_phone, do: :ios, else: :android}
+              variant={:page}
+            >
+              <:footer>
                 <button
                   type="button"
                   phx-click={store_mobile_browser_ok_click()}
-                  class="link link-hover text-sm text-base-content/60"
+                  class="ios-secondary cursor-pointer text-[15px]"
                 >
                   Continue in browser instead
                 </button>
-              </p>
-            </div>
+              </:footer>
+            </PWAInstallPrompt.install_sheet>
           </div>
         </div>
       <% end %>
@@ -469,227 +458,6 @@ defmodule QlariusWeb.HiLive do
           </div>
         </div>
       <% end %>
-    </div>
-    """
-  end
-
-  defp install_guide_header(assigns) do
-    ~H"""
-    <div class="mb-8">
-      <div class="flex items-center justify-center gap-4 mb-4">
-        <div class="flex-shrink-0 flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
-          <.icon name="hero-device-phone-mobile" class="w-9 h-9 text-primary" />
-        </div>
-        <h1 class="text-3xl sm:text-4xl font-bold">3-Step Easy Install</h1>
-      </div>
-
-      <p class="text-base text-base-content/70 text-center mb-4">
-        Get the full mobile experience in the latest, lightest installation possible. No app store, no downloads, no waiting. Just 3 taps and you're ready to go.
-      </p>
-
-      <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
-        <div class="flex items-center gap-2">
-          <.icon name="hero-lock-closed" class="w-4 h-4 text-primary" />
-          <span>Full privacy & control</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <.icon name="hero-bell" class="w-4 h-4 text-primary" />
-          <span>Push notifications</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <.icon name="hero-rocket-launch" class="w-4 h-4 text-primary" />
-          <span>Instant updates</span>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp ios_install_guide(assigns) do
-    ~H"""
-    <.install_guide_header />
-
-    <div class="space-y-6">
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            1
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">Tap the Share button</h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              Look for it at the bottom of this browser window
-            </p>
-            <div class="p-3 flex items-center gap-2 bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <span class="text-base-content/50">
-                <.icon name="hero-ellipsis-horizontal-circle" class="w-6 h-6 text-base-content/50" />
-                +
-              </span>
-              <span class="text-base-content/70">
-                <.icon name="hero-arrow-up-on-square" class="w-6 h-6 text-base-content" />
-              </span>
-              <span class="font-medium">
-                Share
-              </span>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
-
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            2
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">Select "Add to Home Screen"</h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              Scroll down in the share menu if you don't see it
-            </p>
-            <div class="p-3 flex items-center gap-2 bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="3"
-                  width="18"
-                  height="18"
-                  rx="4"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <path
-                  d="M12 8v8M8 12h8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-              <span class="font-medium">Add to Home Screen</span>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
-
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            3
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">Tap "Add"</h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              The app will be added to your home screen.
-            </p>
-            <div class="p-3 flex items-center justify-start bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <svg class="h-7" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="1"
-                  y="1"
-                  width="50"
-                  height="26"
-                  rx="13"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  opacity="0.3"
-                />
-                <text
-                  x="26"
-                  y="18.5"
-                  font-family="system-ui, -apple-system, sans-serif"
-                  font-size="13"
-                  font-weight="600"
-                  fill="currentColor"
-                  text-anchor="middle"
-                >
-                  Add
-                </text>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
-
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">That's it.</h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              Find the new app icon on your home screen. Tap to launch!
-            </p>
-            <div class="p-3 flex items-center gap-3 bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <img src="/images/qadabra_logo_squares_color.svg" class="w-12 h-12 rounded-xl" />
-              <div>
-                <p class="font-bold">Qadabra</p>
-                <p class="text-xs text-base-content/60">Tap to launch</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
-    </div>
-    """
-  end
-
-  defp android_install_guide(assigns) do
-    ~H"""
-    <.install_guide_header />
-
-    <div class="space-y-6">
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            1
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">Tap the menu (⋮)</h3>
-            <p class="text-sm text-base-content/70">
-              Usually in the top-right corner of Chrome
-            </p>
-          </div>
-        </div>
-      </.surface_panel>
-
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            2
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">
-              Select "Install app" or "Add to Home screen"
-            </h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              The wording may vary by browser
-            </p>
-            <div class="p-3 flex items-center gap-2 bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <.icon name="hero-arrow-down-tray" class="w-6 h-6 text-base-content" />
-              <span class="font-medium">Install app</span>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
-
-      <.surface_panel>
-        <div class="flex gap-4">
-          <div class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-            3
-          </div>
-          <div class="flex-1">
-            <h3 class="font-bold text-lg mb-2">Tap "Install"</h3>
-            <p class="text-sm text-base-content/70 mb-3">
-              The app will be added to your home screen. Tap the icon to launch!
-            </p>
-            <div class="p-3 flex items-center gap-3 bg-base-300/70 dark:bg-white/5 rounded-lg">
-              <img src="/images/qadabra_logo_squares_color.svg" class="w-12 h-12 rounded-xl" />
-              <div>
-                <p class="font-bold">Qadabra</p>
-                <p class="text-xs text-base-content/60">Tap to launch</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </.surface_panel>
     </div>
     """
   end

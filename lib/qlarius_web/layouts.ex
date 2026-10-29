@@ -553,6 +553,12 @@ defmodule QlariusWeb.Layouts do
                 >
                 </div>
               <% end %>
+              <QlariusWeb.Components.PWAInstallPrompt.install_banner
+                :if={assigns[:soft_install?]}
+                show_banner={assigns[:show_install_banner] || false}
+                is_ios={assigns[:is_ios] || false}
+                is_android={assigns[:is_android] || false}
+              />
               <div class={[
                 "page-canvas flex flex-col",
                 if(@fixed_viewport, do: "h-full min-h-0", else: "min-h-full")
@@ -742,11 +748,6 @@ defmodule QlariusWeb.Layouts do
         aria-hidden="true"
       />
       <%= if assigns[:soft_install?] do %>
-        <QlariusWeb.Components.PWAInstallPrompt.install_banner
-          show_banner={assigns[:show_install_banner] || false}
-          is_ios={assigns[:is_ios] || false}
-          is_android={assigns[:is_android] || false}
-        />
         <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
           assigns[:show_ios_guide] || false
         } />

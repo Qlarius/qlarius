@@ -1908,6 +1908,194 @@
     cursor: default;
   }
 
+  /* PWA install prompt, modelled on Safari's Smart App Banner and the App
+     Store product sheet. iOS system colours replace theme tokens so the prompt
+     reads as platform chrome, not app UI. */
+  .smart-banner,
+  .app-sheet {
+    --ios-bg: #f2f2f7;
+    --ios-cell: #ffffff;
+    --ios-label: #000000;
+    --ios-secondary: rgb(60 60 67 / 0.6);
+    --ios-separator: rgb(60 60 67 / 0.2);
+    --ios-fill: rgb(120 120 128 / 0.16);
+    --ios-blue: #007aff;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: var(--ios-label);
+    -webkit-font-smoothing: antialiased;
+
+    @variant dark {
+      --ios-bg: #1c1c1e;
+      --ios-cell: #2c2c2e;
+      --ios-label: #ffffff;
+      --ios-secondary: rgb(235 235 245 / 0.6);
+      --ios-separator: rgb(84 84 88 / 0.6);
+      --ios-fill: rgb(118 118 128 / 0.24);
+      --ios-blue: #0a84ff;
+    }
+  }
+
+  /* In the page flow, like Safari's banner: it pushes the header down and
+     scrolls away with the page. Height animates through grid rows (0fr to
+     1fr) because `height: auto` can't transition. The push-in is a keyframe
+     animation so LiveView patches can't re-collapse it; dismissal collapses
+     via `phx-remove`. */
+  .smart-banner {
+    @apply relative grid w-full shrink-0;
+    grid-template-rows: 1fr;
+    background: var(--ios-bg);
+    animation: smart-banner-push 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  @keyframes smart-banner-push {
+    from {
+      grid-template-rows: 0fr;
+      opacity: 0;
+    }
+    to {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+  }
+
+  .smart-banner--collapsed {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+
+  .smart-banner--open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .smart-banner--animating {
+    animation: none;
+    transition:
+      grid-template-rows 300ms cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 250ms ease-out;
+  }
+
+  .smart-banner__clip {
+    @apply min-h-0 overflow-hidden;
+    border-bottom: 0.5px solid var(--ios-separator);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .smart-banner {
+      animation: none;
+    }
+
+    .smart-banner--animating {
+      transition: none;
+    }
+  }
+
+  .smart-banner__row {
+    @apply mx-auto flex max-w-xl items-center gap-3 py-2.5 pr-4 pl-2;
+  }
+
+  .smart-banner__close {
+    @apply flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full;
+    color: var(--ios-secondary);
+  }
+
+  .ios-secondary {
+    color: var(--ios-secondary);
+  }
+
+  .app-icon {
+    @apply shrink-0 bg-white object-cover;
+    border-radius: 22.5%;
+    box-shadow: 0 0 0 0.5px var(--ios-separator);
+  }
+
+  .ios-pill {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-full px-4 py-1 text-[15px] font-semibold text-white no-underline;
+    background: var(--ios-blue);
+  }
+
+  .ios-pill:active {
+    opacity: 0.7;
+  }
+
+  .ios-pill--lg {
+    @apply px-7 py-1.5 text-base;
+  }
+
+  .app-sheet {
+    background: var(--ios-bg);
+  }
+
+  .app-sheet--card {
+    background: var(--ios-cell);
+  }
+
+  .app-sheet__grabber {
+    @apply mx-auto mt-2 h-[5px] w-9 rounded-full;
+    background: var(--ios-separator);
+  }
+
+  .app-sheet__close {
+    @apply flex h-8 w-8 cursor-pointer items-center justify-center rounded-full;
+    background: var(--ios-fill);
+    color: var(--ios-secondary);
+  }
+
+  .app-sheet__info {
+    @apply flex overflow-x-auto;
+    border-top: 0.5px solid var(--ios-separator);
+    border-bottom: 0.5px solid var(--ios-separator);
+  }
+
+  .app-sheet__info-cell {
+    @apply flex min-w-[5.5rem] flex-1 flex-col items-center gap-1 px-2 py-3 text-center;
+  }
+
+  .app-sheet__info-cell + .app-sheet__info-cell {
+    border-left: 0.5px solid var(--ios-separator);
+  }
+
+  .app-sheet__info-label {
+    @apply text-[11px] font-semibold tracking-wide uppercase;
+    color: var(--ios-secondary);
+  }
+
+  .app-sheet__heading {
+    @apply px-1 text-[22px] leading-tight font-bold;
+  }
+
+  .app-sheet__group {
+    @apply overflow-hidden rounded-2xl;
+    background: var(--ios-cell);
+  }
+
+  .app-sheet__row {
+    @apply flex items-start gap-3 pl-4;
+  }
+
+  .app-sheet__row-body {
+    @apply min-w-0 flex-1 py-3 pr-4;
+  }
+
+  .app-sheet__row + .app-sheet__row .app-sheet__row-body {
+    border-top: 0.5px solid var(--ios-separator);
+  }
+
+  .app-sheet__tile {
+    @apply mt-3 flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[8px] text-white;
+  }
+
+  .app-sheet__glyph {
+    @apply mt-2.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full;
+    background: var(--ios-fill);
+    color: var(--ios-label);
+  }
+
+  .app-sheet__preview {
+    @apply mt-2 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[15px];
+    background: var(--ios-fill);
+  }
+
   /* Wallet strip (wallet pill + top up / Connect) in Arqade, tip jar and
      Tiqit Pass: a full-width row with a hairline above, the pill and its
      action kept together as one centred unit. When funded, an arrow points
