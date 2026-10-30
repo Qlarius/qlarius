@@ -3263,21 +3263,40 @@ window.addEventListener("phx:scroll-tag-option-into-view", (event) => {
   })
 })
 
+// Filtered MeFile results should start at the top. The focused search field is
+// fixed at the bottom, and the browser scrolls it into view after the results
+// render, which hides them. Scroll once the patch is painted, then once more
+// after that browser scroll. A touch on the list cancels the follow-up.
 Hooks.MeFilePanelScroll = {
   mounted() {
+    this._timers = []
+    this._onTouchStart = (event) => {
+      if (event.target.closest && event.target.closest("#mefile-floating-toolbar")) return
+      this._clearTimers()
+    }
+    document.addEventListener("touchstart", this._onTouchStart, { passive: true })
     this.handleEvent("scroll-mefile-tags-to-top", () => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => this._scrollPanelToTop())
-      })
+      this._clearTimers()
+      this._scrollPanelToTop()
+      requestAnimationFrame(() => this._scrollPanelToTop())
+      this._timers = [100, 300].map((ms) => setTimeout(() => this._scrollPanelToTop(), ms))
     })
   },
-
+  destroyed() {
+    document.removeEventListener("touchstart", this._onTouchStart)
+    this._clearTimers()
+  },
+  _clearTimers() {
+    this._timers.forEach((id) => clearTimeout(id))
+    this._timers = []
+  },
   _scrollPanelToTop() {
-    const tagsDisplay = document.getElementById("mefile-tags-display")
-    const scrollContainer = tagsDisplay?.closest(".panel-scroll")
-    if (scrollContainer) {
-      scrollContainer.scrollTop = 0
+    let el = document.getElementById("mefile-tags-display")
+    while (el) {
+      if (el.scrollTop !== 0) el.scrollTop = 0
+      el = el.parentElement
     }
+    if (window.scrollY !== 0) window.scrollTo(0, 0)
   },
 }
 
