@@ -730,7 +730,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :search_form_id, :string, default: "mefile-tag-search-form"
   attr :search_label, :string, default: "Search tags"
   attr :search_placeholder, :string, default: nil
-  attr :search_debounce, :string, default: nil
+  attr :search_debounce, :string, default: "250"
 
   def mefile_floating_toolbar(assigns) do
     ~H"""
@@ -752,7 +752,6 @@ defmodule QlariusWeb.MeFileHTML do
         >
           <.tag_search_input
             tag_search={@tag_search}
-            autofocus={true}
             compact={true}
             form_id={@search_form_id}
             input_id={@search_input_id}

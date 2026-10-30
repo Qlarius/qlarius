@@ -6781,16 +6781,16 @@ html.ios-pwa.qai-keyboard-open .qai-composer-area {
 
 /*
  * Any phone keyboard, not just Qai's. The KeyboardLift hook (on the floating
- * search) publishes the visible area and adds this class. The shell follows
- * it and hides the tab bar, and a transform contains position:fixed
+ * search) publishes the settled visible height and adds this class. The shell
+ * stays at the top of the layout viewport (tracking offsetTop is what jittered
+ * the page) and hides the tab bar. The transform contains position:fixed
  * descendants (the search, bottom sheets) so they sit in that visible area
- * instead of under the keyboard. The transform is only present while the
- * keyboard is up.
+ * instead of under the keyboard. It is only present while the keyboard is up.
  */
 html.keyboard-open .mobile-shell {
   position: fixed;
   inset-inline: 0;
-  top: var(--vv-top, 0px);
+  top: 0;
   height: var(--vv-height, 100vh);
   transform: translateZ(0);
   --mobile-bottom-nav-offset: 0px;

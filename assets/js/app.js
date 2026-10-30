@@ -431,45 +431,45 @@ Hooks.QaiKeyboard = {
 // one, so a fixed control at the bottom (the floating search) ends up behind
 // it. While it's up, pin the shell to the visible area via the html.keyboard-open
 // rules. Pinch zoom also shrinks the visual viewport, so only an unzoomed
-// shrink counts. Key off the height shrink alone: once the browser pans the
-// visual viewport to reveal the field, offsetTop swallows that shrink and the
-// pin would turn itself off.
+// shrink counts. The shell stays at top: 0; writing --vv-top on every frame
+// (and the browser's pan) is what jittered the page.
+//
+// Publish the height only once it has settled: the same height on two frames
+// in a row, or ~100ms after the last resize. Open at 150px covered, close
+// below 80px, so a frame in between can't flip the class. When the layout
+// viewport already resized with the keyboard (interactive-widget=resizes-content,
+// visualViewport.height matching innerHeight), skip the pin; the browser did it.
 //
 // Focusing the search field also makes the browser scroll the page so the
 // input (fixed at the bottom) is "visible", which shoves the first results
-// above the screen. While that field is focused, put the page back at the top
-// unless the person has started dragging the list themselves.
+// above the screen. Put the page back at the top once on focus and once more
+// at 300ms, and only if it isn't already there.
 Hooks.KeyboardLift = {
   mounted() {
     this._vv = window.visualViewport
     this._root = document.documentElement
     this._frame = null
+    this._settleTimer = null
+    this._pendingHeight = null
     this._open = false
     this._userScrolling = false
     this._correcting = false
     this._pinUntil = 0
     this._pinTimers = []
-    this._sync = () => {
+    this._onResize = () => {
+      if (this._settleTimer) clearTimeout(this._settleTimer)
+      this._settleTimer = setTimeout(() => this._commit(), 100)
       if (this._frame) return
       this._frame = requestAnimationFrame(() => {
         this._frame = null
-        this._apply()
+        if (!this._vv) return
+        const height = Math.round(this._vv.height)
+        if (height === this._pendingHeight) this._commit()
+        this._pendingHeight = height
       })
     }
-    this._onVvScroll = () => {
-      this._sync()
-      this._keepResultsAtTop()
-    }
-    if (this._vv) {
-      this._vv.addEventListener("resize", this._sync)
-      this._vv.addEventListener("scroll", this._onVvScroll)
-    }
+    if (this._vv) this._vv.addEventListener("resize", this._onResize)
     this._onFocusIn = (event) => {
-      if (!this._isSearchField(event.target)) return
-      this._userScrolling = false
-      this._pinTop()
-    }
-    this._onInput = (event) => {
       if (!this._isSearchField(event.target)) return
       this._userScrolling = false
       this._pinTop()
@@ -483,21 +483,17 @@ Hooks.KeyboardLift = {
       this._keepResultsAtTop()
     }
     this.el.addEventListener("focusin", this._onFocusIn)
-    this.el.addEventListener("input", this._onInput)
     document.addEventListener("touchstart", this._onTouchStart, { passive: true })
     document.addEventListener("scroll", this._onScroll, true)
-    this._apply()
+    this._commit()
   },
   destroyed() {
-    if (this._vv) {
-      this._vv.removeEventListener("resize", this._sync)
-      this._vv.removeEventListener("scroll", this._onVvScroll)
-    }
+    if (this._vv) this._vv.removeEventListener("resize", this._onResize)
     this.el.removeEventListener("focusin", this._onFocusIn)
-    this.el.removeEventListener("input", this._onInput)
     document.removeEventListener("touchstart", this._onTouchStart)
     document.removeEventListener("scroll", this._onScroll, true)
     if (this._frame) cancelAnimationFrame(this._frame)
+    if (this._settleTimer) clearTimeout(this._settleTimer)
     this._clearPinTimers()
     this._reset()
   },
@@ -509,12 +505,10 @@ Hooks.KeyboardLift = {
     return this._isSearchField(active) && this.el.contains(active)
   },
   _pinTop() {
-    this._pinUntil = Date.now() + 1500
+    this._pinUntil = Date.now() + 350
     this._scrollPageToTop()
     this._clearPinTimers()
-    this._pinTimers = [50, 150, 300, 500, 800, 1200].map((ms) =>
-      setTimeout(() => this._keepResultsAtTop(), ms)
-    )
+    this._pinTimers = [setTimeout(() => this._keepResultsAtTop(), 300)]
   },
   _clearPinTimers() {
     this._pinTimers.forEach((id) => clearTimeout(id))
@@ -525,7 +519,13 @@ Hooks.KeyboardLift = {
     if (Date.now() >= this._pinUntil) return
     this._scrollPageToTop()
   },
+  // Android with interactive-widget=resizes-content shrinks the layout viewport
+  // together with the visual one. Pinning on top of that fights the browser.
+  _layoutResized() {
+    return this._vv && Math.abs(this._vv.height - window.innerHeight) < 1
+  },
   _scrollPageToTop() {
+    if (this._layoutResized()) return
     this._correcting = true
     document.querySelectorAll(".mobile-shell .panel-scroll").forEach((el) => {
       if (el.scrollTop !== 0) el.scrollTop = 0
@@ -533,24 +533,32 @@ Hooks.KeyboardLift = {
     if (window.scrollY !== 0) window.scrollTo(0, 0)
     this._correcting = false
   },
-  _apply() {
+  _commit() {
+    if (this._settleTimer) {
+      clearTimeout(this._settleTimer)
+      this._settleTimer = null
+    }
     if (!this._vv) return
 
     const vv = this._vv
     const unzoomed = Math.abs(vv.scale - 1) < 0.01
     const covered = this._root.clientHeight - vv.height
+    const openAt = this._open ? 80 : 150
+    const shouldOpen = unzoomed && !this._layoutResized() && covered >= openAt
 
-    if (!unzoomed || covered < 120) {
+    if (!shouldOpen) {
       this._open = false
+      this._height = null
       return this._reset()
     }
 
-    const justOpened = !this._open
     this._open = true
     this._root.classList.add("keyboard-open")
-    this._root.style.setProperty("--vv-height", `${Math.round(vv.height)}px`)
-    this._root.style.setProperty("--vv-top", `${Math.round(vv.offsetTop)}px`)
-    if (justOpened && this._searchFocused()) this._pinTop()
+    const height = `${Math.round(vv.height)}px`
+    if (this._height !== height) {
+      this._height = height
+      this._root.style.setProperty("--vv-height", height)
+    }
   },
   _reset() {
     this._root.classList.remove("keyboard-open")
