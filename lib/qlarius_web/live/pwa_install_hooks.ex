@@ -1,48 +1,29 @@
 defmodule QlariusWeb.PWAInstallHooks do
   @moduledoc """
-  LiveView hooks for PWA install tracking and mobile-browser redirects.
+  LiveView hooks for PWA install tracking and the install banner.
 
-  Authenticated users on mobile Safari/Chrome are sent to `/hi` for install
-  instructions so iOS saves the correct home-screen URL.
+  Signed-in app pages (`:install_banner` in the `:current_scope` live session)
+  show a dismissible install banner to phone browsers that aren't the installed
+  app. Dismissing hides it for 7 days.
 
-  The exception is a new user arriving from a gift claim (`welcome=gift`): they
-  stay on the page with their tiqit and get a dismissible install banner instead.
+  A gift landing (`welcome=gift`) gets no banner, so a recipient reaches the
+  tiqit without an install pitch in the way. `/hi` has its own install flow.
   """
 
   import Phoenix.Component, only: [assign: 3]
 
-  import Phoenix.LiveView,
-    only: [attach_hook: 4, detach_hook: 3, put_flash: 3, push_navigate: 2]
-
-  use Phoenix.VerifiedRoutes,
-    endpoint: QlariusWeb.Endpoint,
-    router: QlariusWeb.Router,
-    statics: QlariusWeb.static_paths()
+  import Phoenix.LiveView, only: [attach_hook: 4, detach_hook: 3, put_flash: 3]
 
   @dismissal_days 7
 
-  def on_mount(:require_pwa_on_mobile, params, session, socket) do
-    is_mobile = session["is_mobile"] || false
-    is_pwa = session["is_pwa"] || false
-    mobile_browser_ok = session["mobile_browser_ok"] || false
-
-    cond do
-      soft_install_params?(params) ->
-        {:cont, assign(socket, :soft_install?, true)}
-
-      is_mobile && !is_pwa && !mobile_browser_ok ->
-        {:halt, push_navigate(socket, to: ~p"/hi")}
-
-      true ->
-        {:cont, assign(socket, :soft_install?, false)}
-    end
+  def on_mount(:install_banner, params, _session, socket) do
+    {:cont, assign(socket, :soft_install?, !gift_landing?(params))}
   end
 
   def on_mount(:default, _params, session, socket) do
     {:cont,
      socket
      |> assign(:is_pwa, session["is_pwa"] || false)
-     |> assign(:mobile_browser_ok, session["mobile_browser_ok"] || false)
      |> assign(:soft_install?, socket.assigns[:soft_install?] == true)
      |> assign(:show_install_banner, false)
      |> assign(:show_ios_guide, false)
@@ -51,8 +32,8 @@ defmodule QlariusWeb.PWAInstallHooks do
      |> attach_hook(:pwa_install_events, :handle_event, &handle_pwa_events/3)}
   end
 
-  defp soft_install_params?(%{"welcome" => "gift"}), do: true
-  defp soft_install_params?(_params), do: false
+  defp gift_landing?(%{"welcome" => "gift"}), do: true
+  defp gift_landing?(_params), do: false
 
   defp handle_pwa_events(
          "check_pwa_state",
@@ -65,15 +46,10 @@ defmodule QlariusWeb.PWAInstallHooks do
       |> assign(:is_android, is_android)
       |> assign(:is_pwa, is_pwa)
 
-    cond do
-      socket.assigns[:soft_install?] ->
-        {:halt, assign(socket, :show_install_banner, show_install_banner?(socket))}
-
-      redirect_to_hi?(socket, is_ios, is_android, is_pwa) ->
-        {:halt, push_navigate(socket, to: ~p"/hi")}
-
-      true ->
-        {:halt, socket}
+    if socket.assigns[:soft_install?] do
+      {:halt, assign(socket, :show_install_banner, show_install_banner?(socket))}
+    else
+      {:halt, socket}
     end
   end
 
@@ -133,12 +109,6 @@ defmodule QlariusWeb.PWAInstallHooks do
   defp show_install_banner?(socket) do
     %{is_ios: is_ios, is_android: is_android, is_pwa: is_pwa} = socket.assigns
     (is_ios || is_android) && !is_pwa && !recently_dismissed?(get_user_id(socket))
-  end
-
-  defp redirect_to_hi?(socket, is_ios, is_android, is_pwa) do
-    is_mobile = is_ios || is_android
-    mobile_browser_ok = socket.assigns[:mobile_browser_ok] || false
-    is_mobile && !is_pwa && !mobile_browser_ok && !!socket.assigns[:current_scope]
   end
 
   defp get_user_id(socket) do

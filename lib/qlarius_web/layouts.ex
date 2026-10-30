@@ -739,7 +739,7 @@ defmodule QlariusWeb.Layouts do
         current_scope={@current_scope}
       />
 
-      <%!-- PWA detection: redirects phone browsers to /hi, or shows the soft install prompt on welcome=gift visits --%>
+      <%!-- PWA detection: shows phone browsers the install banner (not on welcome=gift landings) --%>
       <div
         :if={@current_scope}
         phx-hook="PWAInstall"

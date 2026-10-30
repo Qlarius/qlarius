@@ -77,35 +77,46 @@ defmodule QlariusWeb.GiftWelcomeTest do
       refute has_element?(view, "#gift-welcome-card")
     end
 
-    test "a phone browser with welcome=gift stays on the page and gets the install banner", %{
+    test "a phone browser on a gift landing gets no install banner", %{conn: conn, group: group} do
+      conn = put_req_header(conn, "user-agent", @iphone_safari)
+
+      {:ok, view, _html} = live(conn, ~p"/arqade/group/#{group.id}?welcome=gift")
+      check_pwa_state(view)
+
+      assert has_element?(view, "#gift-welcome-card")
+      refute has_element?(view, "#pwa-install-banner")
+    end
+
+    test "a phone browser elsewhere stays on the page and gets the install banner", %{
       conn: conn,
       group: group
     } do
       conn = put_req_header(conn, "user-agent", @iphone_safari)
 
-      {:ok, view, _html} = live(conn, ~p"/arqade/group/#{group.id}?welcome=gift")
+      {:ok, view, _html} = live(conn, ~p"/arqade/group/#{group.id}")
       refute has_element?(view, "#pwa-install-banner")
 
-      render_hook(view, "check_pwa_state", %{
-        "is_ios" => true,
-        "is_android" => false,
-        "is_pwa" => false
-      })
-
+      check_pwa_state(view)
       assert has_element?(view, "#pwa-install-banner")
 
       render_click(view, "show_ios_guide", %{})
-      assert render(view) =~ "Select &quot;Add to Home Screen&quot;"
+      assert render(view) =~ "Tap Add to Home Screen"
 
       render_click(view, "dismiss_install_banner", %{})
       refute has_element?(view, "#pwa-install-banner")
-    end
 
-    test "a phone browser without welcome=gift is still sent to /hi", %{conn: conn, group: group} do
-      conn = put_req_header(conn, "user-agent", @iphone_safari)
-
-      assert {:error, {:live_redirect, %{to: "/hi"}}} = live(conn, ~p"/arqade/group/#{group.id}")
+      {:ok, view, _html} = live(conn, ~p"/home")
+      check_pwa_state(view)
+      refute has_element?(view, "#pwa-install-banner")
     end
+  end
+
+  defp check_pwa_state(view) do
+    render_hook(view, "check_pwa_state", %{
+      "is_ios" => true,
+      "is_android" => false,
+      "is_pwa" => false
+    })
   end
 
   describe "Home" do

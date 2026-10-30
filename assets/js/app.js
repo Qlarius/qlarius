@@ -897,8 +897,8 @@ Hooks.PWADetect = {
   }
 }
 
-// Persist "continue in browser" so protected routes skip /hi PWA redirect.
-const MOBILE_BROWSER_OK_COOKIE = 'mobile_browser_ok=true; path=/; max-age=31536000; SameSite=Lax'
+// Persist "continue in browser" on /hi for 7 days, then /hi offers install again.
+const MOBILE_BROWSER_OK_COOKIE = 'mobile_browser_ok=true; path=/; max-age=604800; SameSite=Lax'
 
 if (!window.__qlariusMobileBrowserOkListener) {
   window.__qlariusMobileBrowserOkListener = true
