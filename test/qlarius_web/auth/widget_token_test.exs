@@ -63,6 +63,36 @@ defmodule QlariusWeb.Auth.WidgetTokenTest do
     assert {:error, :invalid} = WidgetToken.verify(%{})
   end
 
+  describe "lifetimes" do
+    @salt "qadabra widget socket v1"
+
+    defp aged(payload, seconds_ago) do
+      Phoenix.Token.sign(QlariusWeb.Endpoint, @salt, payload,
+        signed_at: System.system_time(:second) - seconds_ago
+      )
+    end
+
+    test "anon tokens expire after a day" do
+      assert {:ok, %{kind: :anon}} =
+               WidgetToken.verify(aged(%{kind: :anon, sync_id: @sync_id}, 60))
+
+      assert {:error, :expired} =
+               WidgetToken.verify(aged(%{kind: :anon, sync_id: @sync_id}, 25 * 60 * 60))
+    end
+
+    test "authed hand-offs expire after two minutes" do
+      payload = %{kind: :authed, user_token: "u", sync_id: @sync_id, jti: "jti-aged-1"}
+      assert {:error, :expired} = WidgetToken.verify(aged(payload, 180))
+    end
+
+    test "session tokens outlive a day and expire after thirty" do
+      payload = %{kind: :session, user_token: "u", sync_id: @sync_id}
+
+      assert {:ok, %{kind: :session}} = WidgetToken.verify(aged(payload, 20 * 24 * 60 * 60))
+      assert {:error, :expired} = WidgetToken.verify(aged(payload, 31 * 24 * 60 * 60))
+    end
+  end
+
   test "rejects tokens signed with another salt" do
     other = Phoenix.Token.sign(QlariusWeb.Endpoint, "some other salt", %{kind: :anon})
     assert {:error, :invalid} = WidgetToken.verify(other)

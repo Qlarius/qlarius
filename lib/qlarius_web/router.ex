@@ -378,9 +378,12 @@ defmodule QlariusWeb.Router do
   end
 
   # Bridge "am I signed in?" probe — must stay cheap (no Scope.for_user/1).
+  # `protect_from_forgery` is a no-op gate for GET but persists the CSRF
+  # token the response hands back for a follow-up mint.
   pipeline :auth_session_probe do
     plug :accepts, ["json"]
     plug :fetch_session
+    plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
 

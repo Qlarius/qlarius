@@ -38,6 +38,7 @@ import {
   installReloadGuard,
   isWidgetDocument,
   listenForParentExtensionHint,
+  listenForRefusedStoredToken,
   listenForSessionTokens,
   pageSyncId,
   reconnectWidgetSocket,
@@ -3326,6 +3327,10 @@ const liveSocket = new LiveSocket(widgetSocketPath(), Socket, {
 
     if (isWidgetDocument()) {
       params.widget_token = widgetToken()
+      // A stored session token carries an older page's sync id; the
+      // server swaps in this page's so sibling widgets share one topic.
+      const syncId = pageSyncId()
+      if (syncId) params.sync_id = syncId
     }
 
     const bg = readPwaBackgroundPending()
@@ -3366,6 +3371,7 @@ window.addEventListener("phx:close-modal", (e) => {
 // page's extension hint as a reason to re-probe.
 installReloadGuard(liveSocket)
 listenForSessionTokens(liveSocket)
+listenForRefusedStoredToken()
 listenForParentExtensionHint(({authed}) => {
   if (authed) syncExtensionWithSessionDebounced({reset: true})
 })

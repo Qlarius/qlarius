@@ -12,11 +12,12 @@ defmodule QlariusWeb.Auth.WidgetToken do
       only by the extension exchange and the Connect popup, lives two
       minutes, and is accepted once.
     * `:session` — a continuation. Same payload as `:authed` but
-      multi-use and a day long. `QlariusWeb.WidgetSessionHooks` pushes one
-      to the client after a token-backed authed mount so socket reconnects
-      (network blips, longpoll fallback) do not drop the user back to
-      anonymous. It is only as good as the DB session token inside it:
-      logout deletes that token and every mount using it becomes anonymous.
+      multi-use and 30 days long. `QlariusWeb.WidgetSessionHooks` pushes
+      one to the client after a token-backed authed mount; the client keeps
+      it in the widget origin's storage so reconnects and later page loads
+      on the same publisher site do not drop the user back to anonymous.
+      It is only as good as the DB session token inside it: logout deletes
+      that token and every mount using it becomes anonymous.
 
   `QlariusWeb.WidgetSocket` verifies these on connect and turns them into
   the session map the cookie would have held.
@@ -26,8 +27,11 @@ defmodule QlariusWeb.Auth.WidgetToken do
 
   @salt "qadabra widget socket v1"
   @anon_max_age_seconds 24 * 60 * 60
-  @session_max_age_seconds 24 * 60 * 60
+  @session_max_age_seconds 30 * 24 * 60 * 60
   @authed_max_age_seconds 120
+  # Longest lifetime of any kind; the first verify pass uses it, then each
+  # kind is re-checked against its own window.
+  @max_lifetime_seconds @session_max_age_seconds
   @jti_table :qadabra_widget_token_jti
 
   @type kind :: :anon | :authed | :session
@@ -64,9 +68,9 @@ defmodule QlariusWeb.Auth.WidgetToken do
           {:ok, %{kind: kind(), sync_id: String.t() | nil, user_token: String.t() | nil}}
           | {:error, :invalid | :expired | :used}
   def verify(token) when is_binary(token) and token != "" do
-    case Phoenix.Token.verify(Endpoint, @salt, token, max_age: @anon_max_age_seconds) do
+    case Phoenix.Token.verify(Endpoint, @salt, token, max_age: @max_lifetime_seconds) do
       {:ok, %{kind: :anon} = payload} ->
-        {:ok, %{kind: :anon, sync_id: string_or_nil(payload[:sync_id]), user_token: nil}}
+        verify_anon(token, payload)
 
       {:ok, %{kind: :session, user_token: user_token} = payload} when is_binary(user_token) ->
         {:ok,
@@ -124,6 +128,19 @@ defmodule QlariusWeb.Auth.WidgetToken do
 
   @doc false
   def jti_table, do: @jti_table
+
+  defp verify_anon(token, payload) do
+    case Phoenix.Token.verify(Endpoint, @salt, token, max_age: @anon_max_age_seconds) do
+      {:ok, _} ->
+        {:ok, %{kind: :anon, sync_id: string_or_nil(payload[:sync_id]), user_token: nil}}
+
+      {:error, :expired} ->
+        {:error, :expired}
+
+      {:error, _} ->
+        {:error, :invalid}
+    end
+  end
 
   defp verify_authed(token, user_token, jti, payload) do
     case Phoenix.Token.verify(Endpoint, @salt, token, max_age: @authed_max_age_seconds) do

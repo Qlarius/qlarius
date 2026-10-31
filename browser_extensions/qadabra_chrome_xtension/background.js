@@ -253,6 +253,16 @@ async function handleAuthMessage(message) {
       await clearToken();
       return { ok: true };
     }
+    case "qadabra:auth:drop-token": {
+      // The server refused the vault token (expired / invalidated). Remove
+      // it without the logout guard or the "anonymous" fan-out: frames with
+      // a live web session re-mint on their next reconcile instead of
+      // being signed out.
+      const env = await getQadabraEnv();
+      await chrome.storage.local.remove(qadabraTokenKey(env.id));
+      await refreshEnvBadge();
+      return { ok: true };
+    }
     case "qadabra:auth:logout": {
       await globalLogout();
       return { ok: true };

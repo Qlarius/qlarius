@@ -32,22 +32,61 @@ defmodule QlariusWeb.WidgetSocket do
   @impl Phoenix.Socket
   def id(socket), do: Phoenix.LiveView.Socket.id(socket)
 
+  @uuid ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
+
   @doc """
-  The session LiveView will mount with. The cookie session wins when the
-  browser sent it and the CSRF token matched; a `widget_token` fills in
-  otherwise; nothing valid means an anonymous session.
+  The session LiveView will mount with.
+
+  A cookie session that names a user wins. Otherwise a user-bearing
+  `widget_token` (`:authed` / `:session`) takes over — browsers with
+  per-site ephemeral cookie jars (Brave) do send a cookie, just an
+  anonymous one, and it must not shadow a valid token. With neither, the
+  anonymous cookie session or the `:anon` token session is used; a refused
+  token is flagged with `"widget_token_refused"` so the client drops it.
+
+  A `:session` token the client kept from an earlier page load carries
+  that page's sync id. The loader mints a fresh id per host page load, so
+  a `sync_id` connect param (the same UUID the iframe URL carries) replaces
+  the token's id and keeps sibling widgets on one PubSub topic.
   """
   @spec session_from(map(), map()) :: map()
   def session_from(params, connect_info) do
-    case Map.get(connect_info, :session) do
-      session when is_map(session) ->
-        session
+    cookie = Map.get(connect_info, :session)
 
-      _ ->
-        case WidgetToken.verify(params["widget_token"]) do
-          {:ok, payload} -> WidgetToken.session_for(payload)
-          {:error, _} -> %{}
-        end
+    if is_map(cookie) and is_binary(cookie["user_token"]) do
+      cookie
+    else
+      case WidgetToken.verify(params["widget_token"]) do
+        {:ok, %{kind: kind} = payload} when kind in [:authed, :session] ->
+          payload |> WidgetToken.session_for() |> put_param_sync_id(params)
+
+        {:ok, payload} when is_map(cookie) ->
+          cookie |> Map.put_new("session_sync_id", payload.sync_id) |> drop_nil()
+
+        {:ok, payload} ->
+          WidgetToken.session_for(payload)
+
+        {:error, _} ->
+          flag_refused(if(is_map(cookie), do: cookie, else: %{}), params["widget_token"])
+      end
     end
   end
+
+  defp flag_refused(session, token) when is_binary(token) and token != "" do
+    Map.put(session, "widget_token_refused", true)
+  end
+
+  defp flag_refused(session, _token), do: session
+
+  defp drop_nil(map), do: map |> Enum.reject(fn {_k, v} -> is_nil(v) end) |> Map.new()
+
+  defp put_param_sync_id(session, %{"sync_id" => id}) when is_binary(id) do
+    if Regex.match?(@uuid, id) do
+      Map.put(session, "session_sync_id", String.downcase(id))
+    else
+      session
+    end
+  end
+
+  defp put_param_sync_id(session, _params), do: session
 end

@@ -5,7 +5,9 @@ defmodule Qlarius.Accounts.UserToken do
 
   @rand_size 32
 
-  @session_validity_in_days 10
+  # The remember-me cookie stores the session token itself, so this window
+  # is the real "stay signed in" lifetime; the cookie's own max_age matches.
+  @session_validity_in_days 60
   @remember_me_validity_in_days 60
 
   schema "user_tokens" do

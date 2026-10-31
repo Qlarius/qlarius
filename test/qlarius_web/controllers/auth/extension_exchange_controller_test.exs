@@ -15,7 +15,9 @@ defmodule QlariusWeb.Auth.ExtensionExchangeControllerTest do
     Application.put_env(
       :qlarius,
       :auth_sheet,
-      Keyword.put(previous, :extension_exchange_enabled, true)
+      previous
+      |> Keyword.put(:extension_exchange_enabled, true)
+      |> Keyword.put(:extension_token_emit, true)
     )
 
     on_exit(fn -> Application.put_env(:qlarius, :auth_sheet, previous) end)
@@ -73,5 +75,40 @@ defmodule QlariusWeb.Auth.ExtensionExchangeControllerTest do
 
     assert %{pipe_through: [:auth_exchange]} =
              Phoenix.Router.route_info(QlariusWeb.Router, "POST", "/auth/extension_exchange", "")
+  end
+
+  describe "GET /auth/session_status" do
+    test "reports anonymous and hands back a CSRF token that the mint accepts", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("accept", "application/json")
+        |> get(~p"/auth/session_status")
+
+      assert %{"authed" => false, "csrf_token" => csrf} = json_response(conn, 200)
+      assert is_binary(csrf) and csrf != ""
+
+      # Same browser, next request: the token from the probe passes
+      # protect_from_forgery on the CSRF-guarded mint endpoint (401 means we
+      # got past CSRF and failed only on the missing user).
+      conn =
+        conn
+        |> recycle()
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("x-csrf-token", csrf)
+        |> post(~p"/auth/extension_token", Jason.encode!(%{device_id: "dev-1"}))
+
+      assert %{"error" => "unauthenticated"} = json_response(conn, 401)
+    end
+
+    test "reports authed for a signed-in session", %{conn: conn, user: user} do
+      conn =
+        conn
+        |> log_in_user(user)
+        |> put_req_header("accept", "application/json")
+        |> get(~p"/auth/session_status")
+
+      assert %{"authed" => true, "csrf_token" => _} = json_response(conn, 200)
+    end
   end
 end

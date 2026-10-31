@@ -19,8 +19,10 @@ defmodule Qlarius.Auth.RateLimit do
       but a loud attacker can still probe signed-token space; this
       is belt-and-suspenders).
 
-    * `check_extension_exchange_per_ip/1` — 40 attempts per hour, keyed
-      by IP. Caps `POST /auth/extension_exchange` probes.
+    * `check_extension_exchange_per_ip/1` — 120 attempts per hour, keyed
+      by client IP (`QlariusWeb.Plugs.ClientIp`). Caps
+      `POST /auth/extension_exchange` probes; a publisher page with several
+      widget iframes redeems once per frame per page load.
 
   All functions return `:ok` when allowed, or
   `{:error, {:rate_limited, retry_after_seconds}}` when denied. The
@@ -60,7 +62,7 @@ defmodule Qlarius.Auth.RateLimit do
   @per_ip_finalize_limit 20
 
   @per_ip_extension_exchange_window_ms 60 * 60 * 1_000
-  @per_ip_extension_exchange_limit 40
+  @per_ip_extension_exchange_limit 120
 
   @type result :: :ok | {:error, {:rate_limited, non_neg_integer()}}
 

@@ -20,7 +20,7 @@ and no counter (the `MAX_RELOADS` jitter path only covers socket close code
 
 | File | Change |
 | --- | --- |
-| `lib/qlarius_web/auth/widget_token.ex` (new) | `Phoenix.Token`s with their own salt. `:anon` (1 day, sync id only), `:authed` (120 s, single-use jti via ETS, user session token), `:session` (1 day, multi-use, user session token — see Variance 1). `session_for/1` builds the same map the cookie would hold plus a `"widget_token_session" => true` marker. |
+| `lib/qlarius_web/auth/widget_token.ex` (new) | `Phoenix.Token`s with their own salt. `:anon` (1 day, sync id only), `:authed` (120 s, single-use jti via ETS, user session token), `:session` (30 days, multi-use, user session token, kept in the widget origin's `localStorage` so later page loads on the same publisher site mount authed; a `sync_id` connect param replaces the token's page id — see Variance 1). `session_for/1` builds the same map the cookie would hold plus a `"widget_token_session" => true` marker. |
 | `lib/qlarius_web/widget_socket.ex` (new) | `use Phoenix.Socket` with the two LiveView channels. `connect/3` resolves the session as cookie → `widget_token` param → `%{}` and hands it to `Phoenix.LiveView.Socket.connect/3`. Never `nil`. |
 | `lib/qlarius_web/endpoint.ex` | `socket "/widgets/live"` now uses `QlariusWeb.WidgetSocket`. `check_origin: false` and Phoenix's CSRF check are unchanged. |
 | `lib/qlarius_web/live/widget_session_hooks.ex` (new) | `on_mount` in the `/widgets` live_session. For a token-backed authed mount it pushes `qadabra:widget-session-token` with a `:session` token. `clear_widget_session/1` deletes the DB session token and broadcasts `:anonymous` so a cookieless widget can log out. |
@@ -146,3 +146,13 @@ mix esbuild qlarius                        # bundles; output dir is untracked
 ```
 
 Formatted with `mix format` on touched `.ex`/`.exs`/`.heex` files only. JS files follow the surrounding style (no project formatter configured for them).
+
+## Follow-up (Oct 31): sticky widget auth and extension bridge fixes
+
+* `:session` widget tokens last 30 days and persist in `localStorage` on the widget origin. `WidgetSocket.session_from/2` prefers a user-bearing token over an *anonymous* cookie session (Brave's ephemeral third-party jar sends one) and flags refused tokens (`"widget_token_refused"`) so `WidgetSessionHooks` can push `qadabra:widget-anonymous-mount` and the client drops the stored copy. Brave wipes third-party storage when the site's tabs close, so there the extension vault stays the durable path.
+* `/auth/session_status` returns `csrf_token`; bridges use it for `/auth/extension_token`. The exchange renews the session, which made every earlier-rendered frame's `csrf-token` meta stale and its mint fail with 403 (vault never filled).
+* The bridge and content script treat a token-authed widget as signed in (`data-qadabra-widget-authed` on `<html>`) and record the content script's exchange, so a frame redeems the vault once instead of two or three times per load.
+* An expired/invalidated vault token is dropped quietly (`qadabra:auth:drop-token`); the content script only clears a frame's session on vault removal when the logout guard is set. Previously the 7-day vault expiry cascaded into `POST /logout` in every Qadabra frame. Vault tokens now last 30 days.
+* `QlariusWeb.Plugs.ClientIp` (prod: `trust_proxy_ip_headers`) restores the visitor IP behind Cloudflare so the exchange rate limit (now 120/hour) is per visitor rather than one shared bucket.
+* `@session_validity_in_days` is 60: the remember-me cookie stores the session token, so the 10-day session window was the real "stay signed in" limit.
+* `QADABRA_EXTENSION_IDS` (runtime env) appends extra extension IDs (e.g. an unpacked build) to the CORS allowlist and the `qadabra-extension-ids` meta.

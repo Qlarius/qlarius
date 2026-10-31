@@ -77,6 +77,17 @@ async function logoutGuardActive() {
   }
 }
 
+// Widget pages flag a token-backed authed mount on <html> (widget_socket.js)
+// because a cookieless iframe looks anonymous to /auth/session_status.
+function widgetTokenAuthed() {
+  return document.documentElement.dataset.qadabraWidgetAuthed === "true";
+}
+
+// Resolves `{ authed, csrf }`. The csrf in the response matches the session
+// the browser holds *now*; the page's meta goes stale once an exchange
+// renews the session, and a mint with the stale value is refused (403).
+let freshCsrf = null;
+
 async function sessionAuthed() {
   try {
     const res = await fetch("/auth/session_status", {
@@ -85,6 +96,7 @@ async function sessionAuthed() {
     });
     if (!res.ok) return false;
     const body = await res.json();
+    if (body.csrf_token) freshCsrf = body.csrf_token;
     return !!body.authed;
   } catch (_err) {
     return false;
@@ -103,7 +115,7 @@ async function mintIntoVault() {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "x-csrf-token": csrfToken()
+      "x-csrf-token": freshCsrf || csrfToken()
     },
     body: JSON.stringify({ device_id: device.device_id })
   });
@@ -141,6 +153,24 @@ async function exchangeVault(vault) {
     },
     body: JSON.stringify(body)
   });
+
+  if (res.status === 422) {
+    try {
+      const payload = await res.json();
+      if (
+        payload?.error === "token_expired" ||
+        payload?.error === "token_invalidated" ||
+        payload?.error === "invalid_token"
+      ) {
+        // Dead vault token: drop it quietly so a cookie-authed frame can
+        // re-mint. Never a logout.
+        await runtimeSend({ type: "qadabra:auth:drop-token" });
+      }
+    } catch (_err) {
+      // ignore
+    }
+    return { ok: false };
+  }
 
   if (!res.ok) return { ok: false };
 
@@ -223,6 +253,14 @@ async function reconcileFromVault() {
   if (settledKey === "1:1" && vault.token) return;
   if (settledKey === "0:0" && !vault.token) return;
 
+  // A cookieless widget already signed in from its stored/relayed token
+  // needs no exchange; and it cannot mint (no cookie session), so leave an
+  // empty vault for a cookie-authed frame to fill.
+  if (isWidgetDocument() && widgetTokenAuthed()) {
+    settledKey = vault.token ? "1:1" : null;
+    return;
+  }
+
   const authed = await sessionAuthed();
 
   if (authed) {
@@ -286,9 +324,18 @@ chrome.storage.onChanged.addListener((changes, area) => {
       !change.newValue
   );
 
-  // Vault cleared — clear THIS partition's session (not just settle anon).
+  // Vault cleared by a logout (guard is set) — clear THIS partition's
+  // session too. Cleared because the server refused an expired token (no
+  // guard) — keep the session and re-mint from it if it is still signed in.
   if (tokenGone) {
-    clearPartitionSession();
+    logoutGuardActive().then((guarded) => {
+      if (guarded) {
+        clearPartitionSession();
+      } else {
+        settledKey = null;
+        reconcileDebounced();
+      }
+    });
     return;
   }
 

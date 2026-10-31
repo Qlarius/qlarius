@@ -85,6 +85,9 @@ defmodule QlariusWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
+  # Real client address behind Cloudflare/Gigalixir so per-IP rate limits
+  # are per visitor, not per proxy. No-op unless :trust_proxy_ip_headers.
+  plug QlariusWeb.Plugs.ClientIp
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,

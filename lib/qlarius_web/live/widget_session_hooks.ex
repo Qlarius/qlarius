@@ -32,15 +32,26 @@ defmodule QlariusWeb.WidgetSessionHooks do
       |> assign(:widget_token_session?, token_session?)
       |> assign(:widget_session_user_token, if(token_session?, do: user_token, else: nil))
 
+    authed? = not is_nil(socket.assigns[:current_scope])
+
     socket =
-      if connected?(socket) and token_session? and is_binary(user_token) and
-           socket.assigns[:current_scope] do
-        push_event(socket, "qadabra:widget-session-token", %{
-          token: WidgetToken.sign_session(user_token, sync_id),
-          relay: session["widget_token_kind"] == "authed"
-        })
-      else
-        socket
+      cond do
+        not connected?(socket) ->
+          socket
+
+        token_session? and is_binary(user_token) and authed? ->
+          push_event(socket, "qadabra:widget-session-token", %{
+            token: WidgetToken.sign_session(user_token, sync_id),
+            relay: session["widget_token_kind"] == "authed"
+          })
+
+        # The client sent a user-bearing token that no longer names a user
+        # (logged out, expired, refused): tell it to drop the stored copy.
+        not authed? and (session["widget_token_refused"] == true or is_binary(user_token)) ->
+          push_event(socket, "qadabra:widget-anonymous-mount", %{})
+
+        true ->
+          socket
       end
 
     {:cont, socket}

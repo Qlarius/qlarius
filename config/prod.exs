@@ -31,6 +31,10 @@ config :logger, level: :info
 
 config :qlarius, debug_enabled: false
 
+# Cloudflare fronts the app: take the visitor address from
+# `cf-connecting-ip` / `x-forwarded-for` so auth rate limits are per IP.
+config :qlarius, trust_proxy_ip_headers: true
+
 # AuthSheet production rollout (B6 stage 2).
 #
 # Keyword-list values on `config :app, :key, ...` are merged at the

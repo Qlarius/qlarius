@@ -40,14 +40,58 @@ defmodule QlariusWeb.WidgetSocketTest do
       assert WidgetSocket.session_from(%{}, %{}) == %{}
     end
 
-    test "missing cookie and garbage token is an empty map, never nil" do
-      assert WidgetSocket.session_from(%{"widget_token" => "junk"}, %{session: nil}) == %{}
+    test "missing cookie and garbage token is an anonymous session flagged as refused" do
+      assert WidgetSocket.session_from(%{"widget_token" => "junk"}, %{session: nil}) == %{
+               "widget_token_refused" => true
+             }
     end
 
     test "a reused authed token falls back to anonymous instead of failing" do
       token = WidgetToken.sign_authed("user-token", @sync_id)
       assert %{"user_token" => _} = WidgetSocket.session_from(%{"widget_token" => token}, %{})
-      assert WidgetSocket.session_from(%{"widget_token" => token}, %{}) == %{}
+
+      assert WidgetSocket.session_from(%{"widget_token" => token}, %{}) == %{
+               "widget_token_refused" => true
+             }
+    end
+
+    test "an anonymous cookie does not shadow a user-bearing token" do
+      cookie = %{"session_sync_id" => "cookie-sync", "_csrf_token" => "x"}
+      token = WidgetToken.sign_session("user-token", @sync_id)
+
+      assert %{"user_token" => "user-token", "widget_token_session" => true} =
+               WidgetSocket.session_from(%{"widget_token" => token}, %{session: cookie})
+    end
+
+    test "an anonymous cookie with an anon token keeps the cookie session" do
+      cookie = %{"session_sync_id" => "cookie-sync"}
+      token = WidgetToken.sign_anon(@sync_id)
+
+      assert WidgetSocket.session_from(%{"widget_token" => token}, %{session: cookie}) == cookie
+    end
+
+    test "an anonymous cookie with a refused token is flagged" do
+      cookie = %{"session_sync_id" => "cookie-sync"}
+
+      assert WidgetSocket.session_from(%{"widget_token" => "junk"}, %{session: cookie}) ==
+               Map.put(cookie, "widget_token_refused", true)
+    end
+
+    test "a sync_id param replaces the stored token's page id" do
+      token = WidgetToken.sign_session("user-token", @sync_id)
+      new_id = "1F2E3D4C-5B6A-4798-8899-AABBCCDDEEFF"
+
+      assert %{"session_sync_id" => "1f2e3d4c-5b6a-4798-8899-aabbccddeeff"} =
+               WidgetSocket.session_from(
+                 %{"widget_token" => token, "sync_id" => new_id},
+                 %{session: nil}
+               )
+
+      assert %{"session_sync_id" => @sync_id} =
+               WidgetSocket.session_from(
+                 %{"widget_token" => token, "sync_id" => "not-a-uuid"},
+                 %{session: nil}
+               )
     end
   end
 

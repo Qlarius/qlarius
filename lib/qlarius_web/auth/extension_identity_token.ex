@@ -12,8 +12,9 @@ defmodule QlariusWeb.Auth.ExtensionIdentityToken do
   alias QlariusWeb.Endpoint
 
   @salt "qadabra extension identity v1"
-  # 7 days
-  @max_age_seconds 7 * 24 * 60 * 60
+  # 30 days. An expired vault token is replaced quietly from a still-valid
+  # web session (bridge re-mint); it must never cascade into a logout.
+  @max_age_seconds 30 * 24 * 60 * 60
   @jti_table :qadabra_extension_identity_jti
 
   @type payload :: %{

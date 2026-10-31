@@ -10,6 +10,7 @@
 import {
   broadcastWidgetLogout,
   clearAuthedTokens,
+  hasAuthedWidgetToken,
   isWidgetDocument,
   pageSyncId,
   reconnectWidgetSocket,
@@ -94,15 +95,16 @@ function sendToExtension(message) {
 }
 
 async function fetchJson(url, options = {}) {
+  const { headers: extraHeaders, ...rest } = options
   const res = await fetch(url, {
     credentials: "same-origin",
+    ...rest,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
       "x-csrf-token": csrfToken(),
-      ...(options.headers || {})
-    },
-    ...options
+      ...(extraHeaders || {})
+    }
   })
   return res
 }
@@ -146,9 +148,11 @@ export async function probeExtension() {
 
 /**
  * Mint a vault token from the current Phoenix session.
- * @param {{ force?: boolean }} [opts] — `force: true` for intentional
- *   login (AuthFinalize / connect popup). Clears the post-logout guard.
- *   Default path refuses to mint while logout is settling.
+ * @param {{ force?: boolean, csrfToken?: string }} [opts] — `force: true`
+ *   for intentional login (AuthFinalize / connect popup); clears the
+ *   post-logout guard. Default path refuses to mint while logout is
+ *   settling. `csrfToken` overrides the page meta, which goes stale once
+ *   an exchange renews the session.
  */
 export async function mintTokenIntoExtension(opts = {}) {
   if (opts.force) {
@@ -163,6 +167,7 @@ export async function mintTokenIntoExtension(opts = {}) {
 
   const res = await fetchJson("/auth/extension_token", {
     method: "POST",
+    headers: opts.csrfToken ? { "x-csrf-token": opts.csrfToken } : {},
     body: JSON.stringify({ device_id: deviceRes.device_id })
   })
 
@@ -221,7 +226,10 @@ export async function exchangeExtensionToken() {
         body.error === "token_invalidated" ||
         body.error === "invalid_token"
       ) {
-        await sendToExtension({ type: "qadabra:auth:clear-token" })
+        // A dead vault token is dropped quietly. Any frame that still has
+        // a valid web session then re-mints on its next reconcile; this is
+        // never a logout.
+        await sendToExtension({ type: "qadabra:auth:drop-token" })
       }
     } catch (_e) {
       // ignore
@@ -229,6 +237,13 @@ export async function exchangeExtensionToken() {
   }
 
   return false
+}
+
+async function sessionStatus() {
+  const res = await fetchJson("/auth/session_status", { method: "GET" })
+  if (!res.ok) return { authed: false, csrfToken: null }
+  const body = await res.json()
+  return { authed: !!body.authed, csrfToken: body.csrf_token || null }
 }
 
 export async function globalExtensionLogout() {
@@ -279,13 +294,20 @@ export async function syncExtensionWithSession() {
   if (lastSyncResult === "minted" && extAuthed) return "noop"
   if (lastSyncResult === "exchanged" && extAuthed) return "noop"
 
+  // A cookieless widget that mounted from a user-bearing token is signed
+  // in even though `/auth/session_status` sees no cookie. Without this the
+  // bridge re-exchanged on every reconnect, rotating sessions and burning
+  // the per-IP exchange budget.
+  const tokenAuthed = isWidgetDocument() && hasAuthedWidgetToken()
+  if (tokenAuthed && extAuthed) {
+    lastSyncResult = "noop"
+    return "noop"
+  }
+
   let sessionAuthed = false
+  let freshCsrf = null
   try {
-    const statusRes = await fetchJson("/auth/session_status", { method: "GET" })
-    if (statusRes.ok) {
-      const body = await statusRes.json()
-      sessionAuthed = !!body.authed
-    }
+    ;({ authed: sessionAuthed, csrfToken: freshCsrf } = await sessionStatus())
   } catch (_e) {
     return "noop"
   }
@@ -302,9 +324,16 @@ export async function syncExtensionWithSession() {
       // Logout settling — content script clears this partition; do not remint.
       return "noop"
     }
-    await mintTokenIntoExtension()
+    await mintTokenIntoExtension({ csrfToken: freshCsrf })
     lastSyncResult = "minted"
     return "minted"
+  }
+
+  // Token-authed widget with an empty vault: minting needs the cookie
+  // session, which this frame does not have. Nothing to do here.
+  if (tokenAuthed) {
+    lastSyncResult = "noop"
+    return "noop"
   }
 
   if (extAuthed) {
@@ -404,7 +433,9 @@ function wireExtensionPageListener() {
     if (event.data?.type === "qadabra:auth:please-reconnect") {
       // Content script already exchanged or cleared this frame's session.
       // Inside a cookieless widget it forwards the exchange's widget_token.
-      lastSyncResult = null
+      // Record its exchange as ours so the post-reconnect sync does not
+      // redeem the vault a second time.
+      lastSyncResult = event.data.reason === "extension_exchange" ? "exchanged" : null
       if (event.data.widget_token) setUpgradeToken(event.data.widget_token)
       // Extension logout: a token-backed widget has no cookie partition to
       // clear, so drop the client token and remount anonymous.

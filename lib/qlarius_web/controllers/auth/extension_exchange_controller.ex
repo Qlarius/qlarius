@@ -27,7 +27,12 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
     # Lightweight probe — do not build a full Scope (offer counts, tags, …).
     # Bridge clients call this often; a Scope.for_user/1 here stampedes the DB.
     authed? = session_authed?(conn)
-    json(conn, %{authed: authed?})
+
+    # The exchange renews the session (new CSRF secret), which leaves the
+    # `csrf-token` meta of every frame rendered before it stale and their
+    # `/auth/extension_token` mint failing with 403. Hand bridges a token
+    # that matches the session this response carries.
+    json(conn, %{authed: authed?, csrf_token: Plug.CSRFProtection.get_csrf_token()})
   end
 
   defp session_authed?(conn) do

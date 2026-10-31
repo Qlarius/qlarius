@@ -52,29 +52,89 @@ export function hostOrigin() {
 
 // --- token holder ----------------------------------------------------------
 
-let currentToken = meta("widget-token")
+// The server's `:session` token outlives the page: it is kept in the widget
+// origin's storage (partitioned per publisher site in cookie-blocking
+// browsers, which is the right scope) so the next page load on the same
+// site mounts authed without an exchange or popup. Its authority is the DB
+// session token inside it; logout deletes that and the stored token is
+// then refused and dropped. Brave gives third-party frames ephemeral
+// storage, so there the extension vault remains the durable path.
+const SESSION_TOKEN_KEY = "qadabra:widget-session-token"
+
+function readStoredSessionToken() {
+  try {
+    return localStorage.getItem(SESSION_TOKEN_KEY) || null
+  } catch (_e) {
+    return null
+  }
+}
+
+function writeStoredSessionToken(token) {
+  try {
+    if (token) localStorage.setItem(SESSION_TOKEN_KEY, token)
+    else localStorage.removeItem(SESSION_TOKEN_KEY)
+  } catch (_e) {}
+}
+
+let currentToken = (isWidgetDocument() && readStoredSessionToken()) || meta("widget-token")
 let upgradeToken = null
+
+function publishAuthState() {
+  // Read by the extension content script, which cannot see module state.
+  if (hasAuthedWidgetToken()) {
+    document.documentElement.dataset.qadabraWidgetAuthed = "true"
+  } else {
+    delete document.documentElement.dataset.qadabraWidgetAuthed
+  }
+}
 
 export function widgetToken() {
   return upgradeToken || currentToken
 }
 
+// True when the socket will connect with a user-bearing token rather than
+// the anonymous meta token. Lets the bridge treat this frame as signed in
+// even though `/auth/session_status` sees no cookie.
+export function hasAuthedWidgetToken() {
+  if (upgradeToken) return true
+  return !!currentToken && currentToken !== meta("widget-token")
+}
+
 // A one-shot authed token from the exchange or the popup. Consumed on the
 // next connect; the server pushes a renewable session token afterwards.
 export function setUpgradeToken(token) {
-  if (typeof token === "string" && token) upgradeToken = token
+  if (typeof token === "string" && token) {
+    upgradeToken = token
+    publishAuthState()
+  }
 }
 
 export function setSessionToken(token) {
   if (typeof token !== "string" || !token) return
   currentToken = token
   upgradeToken = null
+  writeStoredSessionToken(token)
+  publishAuthState()
 }
 
 export function clearAuthedTokens() {
   upgradeToken = null
   currentToken = meta("widget-token")
+  writeStoredSessionToken(null)
+  publishAuthState()
 }
+
+// A stored token the server refused (expired, or its session was logged
+// out) mounts anonymous. Drop it so the next connect does not keep sending
+// it; the join reply tells us via `widget_token_session` + no user.
+export function listenForRefusedStoredToken() {
+  if (!isWidgetDocument()) return
+  window.addEventListener("phx:qadabra:widget-anonymous-mount", () => {
+    if (hasAuthedWidgetToken() && !upgradeToken) clearAuthedTokens()
+  })
+}
+
+if (isWidgetDocument()) publishAuthState()
 
 // --- reload cap ------------------------------------------------------------
 
