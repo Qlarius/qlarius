@@ -155,4 +155,4 @@ Formatted with `mix format` on touched `.ex`/`.exs`/`.heex` files only. JS files
 * An expired/invalidated vault token is dropped quietly (`qadabra:auth:drop-token`); the content script only clears a frame's session on vault removal when the logout guard is set. Previously the 7-day vault expiry cascaded into `POST /logout` in every Qadabra frame. Vault tokens now last 30 days.
 * `QlariusWeb.Plugs.ClientIp` (prod: `trust_proxy_ip_headers`) restores the visitor IP behind Cloudflare so the exchange rate limit (now 120/hour) is per visitor rather than one shared bucket.
 * `@session_validity_in_days` is 60: the remember-me cookie stores the session token, so the 10-day session window was the real "stay signed in" limit.
-* `QADABRA_EXTENSION_IDS` (runtime env) appends extra extension IDs (e.g. an unpacked build) to the CORS allowlist and the `qadabra-extension-ids` meta.
+* `QADABRA_CHROME_EXTENSION_IDS` (prod runtime env, comma-separated) appends extra Chrome extension IDs (e.g. an unpacked build) to the CORS allowlist and the `qadabra-extension-ids` meta.

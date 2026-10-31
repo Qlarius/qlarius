@@ -82,11 +82,12 @@ if config_env() == :prod do
 
   config :qlarius, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  # Extra browser-extension IDs (comma-separated) that pages may message
+  # Extra Chrome extension IDs (comma-separated) that pages may message
   # and that CORS accepts — e.g. an unpacked dev build pointed at prod.
-  # Appended to the store ID from config/config.exs.
-  extra_extension_ids =
-    (System.get_env("QADABRA_EXTENSION_IDS") || "")
+  # Appended to the store ID from config/config.exs. Safari and Firefox
+  # will get their own vars when those extensions exist.
+  extra_chrome_extension_ids =
+    (System.get_env("QADABRA_CHROME_EXTENSION_IDS") || "")
     |> String.split(",", trim: true)
     |> Enum.map(&String.trim/1)
     |> Enum.reject(&(&1 == ""))
@@ -95,10 +96,12 @@ if config_env() == :prod do
       id -> "chrome-extension://" <> id
     end)
 
-  if extra_extension_ids != [] do
+  if extra_chrome_extension_ids != [] do
     config :qlarius,
       cors_extension_ids:
-        Enum.uniq(Application.get_env(:qlarius, :cors_extension_ids, []) ++ extra_extension_ids)
+        Enum.uniq(
+          Application.get_env(:qlarius, :cors_extension_ids, []) ++ extra_chrome_extension_ids
+        )
   end
 
   config :qlarius, QlariusWeb.Endpoint,
