@@ -209,11 +209,13 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
             </div>
           <% else %>
             <div class="absolute inset-0 z-10 flex flex-col min-h-0 page-canvas">
+              <%!-- Eager: the drawer starts off-screen, and lazy loading waits
+                   until it opens, so the first open flashes blank. --%>
               <iframe
                 src={@info_iframe_src}
-                class="w-full flex-1 min-h-0 border-0"
+                class="w-full flex-1 min-h-0 border-0 bg-base-200"
                 title="What is Sponster?"
-                loading="lazy"
+                loading="eager"
                 referrerpolicy="no-referrer-when-downgrade"
               />
             </div>
@@ -352,12 +354,10 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
 
                   <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-base-200 w-full max-w-3xl mx-auto px-5 pt-6 pb-8 md:!flex-row md:items-start md:gap-0 md:px-8 md:pt-8 md:pb-8">
                     <div class="flex-1 min-w-0 flex flex-col items-center gap-5 md:pr-8">
-                      <.auto_split_controls
-                        split_amount={
-                          (@current_scope.user.me_file && @current_scope.user.me_file.split_amount) ||
-                            50
-                        }
-                      />
+                      <.auto_split_controls split_amount={
+                        (@current_scope.user.me_file && @current_scope.user.me_file.split_amount) ||
+                          50
+                      } />
 
                       <div class="border-divider-color w-full max-w-[18rem]"></div>
 
@@ -430,7 +430,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
           </div>
         <% end %>
       </div>
-
 
       <.sponster_announcer_bar
         id_prefix={@announcer_id_prefix}
