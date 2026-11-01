@@ -46,6 +46,12 @@ unchanged for callers who only need one publication.
 }
 ```
 
+`recipient.api_ref` is stored on that primary recipient. `is_primary` is
+true. `dry_run` previews the same `api_ref`, `is_primary`, `name`, and
+`site_url` a real create would save. Sending those keys again returns the
+same creator and recipient. A `recipient.api_ref` that already belongs to
+another recipient is `422 api_ref_conflict`.
+
 `recipient_type_id` defaults to 1. `GET /api/admin/creators` keeps
 `recipient` (the primary) and adds `recipients`. Each catalog includes
 `recipient_id`.

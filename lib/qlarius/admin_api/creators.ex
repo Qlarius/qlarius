@@ -58,7 +58,8 @@ defmodule Qlarius.AdminApi.Creators do
 
   def create(%Scope{} = scope, params, opts) do
     with :ok <- Prices.reject(params),
-         :ok <- locked?(params) do
+         :ok <- locked?(params),
+         :ok <- recipient_api_ref_available?(params) do
       Idempotent.create(Creator, params,
         fields: @fields,
         dry_run: opts[:dry_run],
@@ -97,25 +98,15 @@ defmodule Qlarius.AdminApi.Creators do
       |> Creator.changeset(Map.take(params, ["api_ref" | @fields]))
 
     recipient = params["recipient"] || %{}
+    recipient_changeset = recipient_changeset(scope, nil, recipient, params["name"])
 
     with true <- changeset.valid? || {:error, changeset},
+         true <- recipient_changeset.valid? || {:error, recipient_changeset},
          :ok <- image_url(params["image_url"]),
          :ok <- image_url(recipient["graphic_url"]),
          :ok <- site_url(recipient["site_url"]) do
       creator = Ecto.Changeset.apply_changes(changeset)
-
-      {:ok,
-       %{
-         creator
-         | recipient: %Recipient{
-             name: recipient["name"] || params["name"],
-             description: recipient["description"],
-             message: recipient["message"],
-             site_url: recipient["site_url"] || "https://example.com",
-             recipient_type_id: Params.integer(recipient["recipient_type_id"]) || 1,
-             user_id: scope.user.id
-           }
-       }}
+      {:ok, %{creator | recipient: Ecto.Changeset.apply_changes(recipient_changeset)}}
     else
       {:error, reason} -> {:error, reason}
     end
@@ -159,27 +150,74 @@ defmodule Qlarius.AdminApi.Creators do
   end
 
   defp insert_recipient(scope, creator, recipient_params) do
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-    name = recipient_params["name"] || creator.name
+    scope
+    |> recipient_changeset(creator, recipient_params, creator.name)
+    |> Repo.insert()
+  end
 
-    %Recipient{}
-    |> Recipient.changeset(%{
+  defp recipient_changeset(scope, creator, recipient_params, fallback_name) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    name = recipient_params["name"] || fallback_name
+
+    attrs = %{
       "user_id" => scope.user.id,
       "approved_by_user_id" => scope.user.id,
       "approval_date" => now,
       "name" => name,
       "description" => recipient_params["description"],
       "message" => recipient_params["message"] || "Thank you for supporting #{name}.",
-      "site_url" =>
-        recipient_params["site_url"] || Urls.public_app_url("/creators/#{creator.id}"),
+      "site_url" => recipient_site_url(recipient_params, creator),
       "contact_email" => recipient_params["contact_email"],
       "recipient_type_id" => recipient_params["recipient_type_id"] || 1,
       "split_code" => Ecto.UUID.generate(),
       "referral_code" => Referrals.generate_referral_code("recipient"),
       "target_amount" => "0.00",
-      "api_ref" => recipient_params["api_ref"]
-    })
-    |> Repo.insert()
+      "api_ref" => recipient_params["api_ref"],
+      "is_primary" => true
+    }
+
+    attrs =
+      case creator do
+        %Creator{id: id} when is_integer(id) -> Map.put(attrs, "creator_id", id)
+        _ -> attrs
+      end
+
+    Recipient.changeset(%Recipient{}, attrs)
+  end
+
+  defp recipient_site_url(%{"site_url" => url}, _creator) when is_binary(url) and url != "",
+    do: url
+
+  defp recipient_site_url(_params, %Creator{id: id}) when is_integer(id) do
+    Urls.public_app_url("/creators/#{id}")
+  end
+
+  defp recipient_site_url(_params, _), do: "https://example.com"
+
+  defp recipient_api_ref_available?(params) do
+    case get_in(params, ["recipient", "api_ref"]) do
+      ref when ref in [nil, ""] ->
+        :ok
+
+      ref ->
+        case Repo.get_by(Recipient, api_ref: ref) do
+          nil ->
+            :ok
+
+          recipient ->
+            case Repo.get_by(Creator, api_ref: params["api_ref"]) do
+              %Creator{} = creator ->
+                if recipient.creator_id == creator.id or creator.recipient_id == recipient.id do
+                  :ok
+                else
+                  {:error, {:recipient_api_ref_conflict, ref}}
+                end
+
+              _ ->
+                {:error, {:recipient_api_ref_conflict, ref}}
+            end
+        end
+    end
   end
 
   defp link_recipient(creator, recipient) do
