@@ -63,6 +63,13 @@
                   required
                 />
               </div>
+              <.input
+                :if={@recipients != []}
+                field={@form[:recipient_id]}
+                type="select"
+                label="Recipient"
+                options={Enum.map(@recipients, &{recipient_label(&1), &1.id})}
+              />
             </.panel>
 
             <.panel

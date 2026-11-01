@@ -27,9 +27,9 @@ still receive the app's default tiqit classes. Read them with
 
 ## Create a creator and its recipient
 
-`POST /api/admin/creators` creates the creator and one approved recipient in
-the same call. The token's admin user owns the recipient. Do not send a
-separate recipient create for that creator.
+`POST /api/admin/creators` creates the creator and its primary recipient in
+the same call. The token's admin user owns the recipient. That call is
+unchanged for callers who only need one publication.
 
 ```json
 {
@@ -46,11 +46,90 @@ separate recipient create for that creator.
 }
 ```
 
-`recipient_type_id` defaults to 1. `GET /api/admin/creators` keeps the
-catalog list and adds `api_ref` and `recipient` (including `split_code`).
+`recipient_type_id` defaults to 1. `GET /api/admin/creators` keeps
+`recipient` (the primary) and adds `recipients`. Each catalog includes
+`recipient_id`.
 
 `POST /api/admin/recipients` is only for a recipient that has no creator.
 The same approval rules apply. `split_code` is on the read, never the write.
+
+## Several publications under one creator
+
+A media company is one creator. Each sister publication is a recipient with
+its own ledger, `split_code`, tip jar, and Sponster bar. Exactly one
+recipient is primary. `creators.recipient_id` still points at that primary.
+
+`POST /api/admin/creators/:id/recipients` adds the next one. `api_ref` is
+required. The same key returns the existing row. `dry_run` is supported.
+The new row is approved, owned by the token's admin user, and gets a
+generated `split_code`. It is not primary.
+
+```json
+{
+  "api_ref": "cities-west.phg",
+  "name": "Phoenix Home & Garden",
+  "site_url": "https://phgmag.com"
+}
+```
+
+`PATCH /api/admin/creators/:id/recipients/:recipient_id` updates it. Send
+`is_primary: true` to make it the primary. You cannot clear the primary
+flag directly. Archive with
+`POST /api/admin/creators/:id/recipients/:recipient_id/archive`. Delete with
+`DELETE` on that path. Archive returns `409 has_dependents` when the
+recipient has ledger entries. Delete returns `409` when it has ledger
+entries or catalogs still point at it. Both return `422 primary_recipient`
+when it is still the primary and another publication exists.
+
+Give a catalog `recipient_id` on create or update. Omit it on create and the
+catalog uses the primary. A recipient from another creator is `422`. Tiqit
+revenue from that catalog's groups and pieces posts to that recipient's
+ledger. Tips and Sponster revenue already post to the recipient named by
+the widget's `split_code`.
+
+Cities West Media, with one catalog on each publication:
+
+```json
+{
+  "api_ref": "cities-west.creator",
+  "name": "Cities West Media",
+  "recipient": {
+    "api_ref": "cities-west.phoenix-magazine",
+    "name": "PHOENIX Magazine",
+    "site_url": "https://phoenixmag.com"
+  }
+}
+```
+
+Then `POST /api/admin/creators/:id/recipients` for Phoenix Home & Garden, and
+one catalog each:
+
+```json
+{
+  "api_ref": "cities-west.phoenix-magazine.catalog",
+  "name": "PHOENIX Magazine",
+  "url": "https://phoenixmag.com",
+  "type": "catalog",
+  "group_type": "section",
+  "piece_type": "article",
+  "recipient_id": 101
+}
+```
+
+```json
+{
+  "api_ref": "cities-west.phg.catalog",
+  "name": "Home & Garden",
+  "url": "https://phgmag.com",
+  "type": "catalog",
+  "group_type": "section",
+  "piece_type": "article",
+  "recipient_id": 102
+}
+```
+
+Use the recipient ids from the create responses. `name` is at most 30
+characters.
 
 ## Catalogs, groups, and pieces
 
@@ -74,9 +153,12 @@ not upload multipart.
 
 ## Embeds
 
-`GET /api/admin/creators/:id/embeds` returns `split_code`, `referral_code`,
-ids, and relative paths such as `/widgets/ads_ext/:split_code` and
-`/widgets/arqade/creator/:id`. Script paths are
+`GET /api/admin/creators/:id/embeds` keeps top-level `split_code`,
+`referral_code`, `widgets.sponster_bar`, and `widgets.insta_tip` for the
+primary recipient. `recipients` lists every active publication with its own
+`split_code`, `referral_code`, `sponster_bar`, `insta_tip`, and the catalogs
+that post to it. Paths stay relative, such as `/widgets/ads_ext/:split_code`
+and `/widgets/arqade/creator/:id`. Script paths are
 `/sponster-tipjar-widget-ext-script.js` and
 `/tiqit-arqade-widget-script.js`. The page that embeds them supplies the host.
 

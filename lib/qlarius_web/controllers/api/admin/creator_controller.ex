@@ -2,6 +2,7 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
   use QlariusWeb, :controller
 
   alias Qlarius.AdminApi.{Creators, Embeds}
+  import Ecto.Query
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, params) do
@@ -31,7 +32,9 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
   def update(conn, %{"id" => id} = params) do
     with {:ok, creator} <- Creators.fetch(id),
          {:ok, result} <-
-           Creators.update(conn.assigns.current_scope, creator, params, dry_run: Responder.dry_run?(params)) do
+           Creators.update(conn.assigns.current_scope, creator, params,
+             dry_run: Responder.dry_run?(params)
+           ) do
       json(conn, body(result))
     else
       {:error, reason} -> Responder.error(conn, reason)
@@ -59,7 +62,8 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
       id: creator.id,
       api_ref: creator.api_ref,
       name: creator.name,
-      recipient: recipient_json(loaded(creator.recipient)),
+      recipient: recipient_json(primary_recipient(creator)),
+      recipients: Enum.map(recipients_of(creator), &recipient_json/1),
       catalogs:
         Enum.map(loaded_list(creator.catalogs), fn catalog ->
           %{
@@ -68,7 +72,8 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
             name: catalog.name,
             type: catalog.type,
             group_type: catalog.group_type,
-            piece_type: catalog.piece_type
+            piece_type: catalog.piece_type,
+            recipient_id: catalog.recipient_id
           }
         end)
     }
@@ -97,9 +102,40 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
       split_code: recipient.split_code,
       referral_code: recipient.referral_code,
       recipient_type_id: recipient.recipient_type_id,
+      is_primary: recipient.is_primary,
+      creator_id: recipient.creator_id,
       user_id: recipient.user_id,
       approval_date: recipient.approval_date
     }
+  end
+
+  defp primary_recipient(creator) do
+    case recipients_of(creator) do
+      [] ->
+        loaded(creator.recipient)
+
+      recipients ->
+        Enum.find(recipients, & &1.is_primary) || loaded(creator.recipient) || hd(recipients)
+    end
+  end
+
+  defp recipients_of(%{id: nil, recipient: recipient}) when not is_nil(recipient), do: [recipient]
+
+  defp recipients_of(creator) do
+    case Map.get(creator, :recipients) do
+      %Ecto.Association.NotLoaded{} ->
+        Qlarius.Repo.all(
+          from r in Qlarius.Sponster.Recipient,
+            where: r.creator_id == ^creator.id,
+            order_by: [desc: r.is_primary, asc: r.name]
+        )
+
+      recipients when is_list(recipients) ->
+        recipients
+
+      _ ->
+        []
+    end
   end
 
   defp loaded(%Ecto.Association.NotLoaded{}), do: nil

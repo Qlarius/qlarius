@@ -72,6 +72,7 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     |> Repo.preload([
       :content_groups,
       :creator,
+      :recipient,
       :tiqit_classes,
       content_groups: [:tiqit_classes, content_pieces: :tiqit_classes]
     ])

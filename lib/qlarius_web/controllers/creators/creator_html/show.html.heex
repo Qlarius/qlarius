@@ -61,6 +61,7 @@
                         <tr>
                           <th class="font-semibold text-base-content">Image</th>
                           <th class="font-semibold text-base-content">Name</th>
+                          <th class="font-semibold text-base-content">Recipient</th>
                           <th class="font-semibold text-base-content text-right">Actions</th>
                         </tr>
                       </thead>
@@ -112,6 +113,11 @@
                                 </div>
                                 <span>{catalog.name}</span>
                               </div>
+                            </td>
+                            <td class="text-base-content/70">
+                              <%= if catalog.recipient do %>
+                                {catalog.recipient.name}
+                              <% end %>
                             </td>
                             <td class="text-right">
                               <div class="flex gap-2 justify-end">

@@ -39,9 +39,13 @@ defmodule Qlarius.Creators do
     Repo.get!(Creator, id)
     |> Repo.preload([
       :users,
+      :recipient,
+      recipients:
+        from(r in Qlarius.Sponster.Recipient, order_by: [desc: r.is_primary, asc: r.name]),
       qlink_pages: [:creator],
       catalogs: [
         :creator,
+        :recipient,
         :content_groups,
         :tiqit_classes,
         content_groups: [:content_pieces, :tiqit_classes]

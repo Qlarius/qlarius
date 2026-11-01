@@ -17,7 +17,9 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
   end
 
   def create(conn, params) do
-    case Recipients.create(conn.assigns.current_scope, params, dry_run: Responder.dry_run?(params)) do
+    case Recipients.create(conn.assigns.current_scope, params,
+           dry_run: Responder.dry_run?(params)
+         ) do
       {:ok, %{result: "created"} = result} -> conn |> put_status(201) |> json(body(result))
       {:ok, result} -> json(conn, body(result))
       {:error, reason} -> Responder.error(conn, reason)
@@ -45,10 +47,11 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
     }
   end
 
-  defp recipient_json(recipient) do
+  def recipient_json(recipient) do
     %{
       id: recipient.id,
       api_ref: recipient.api_ref,
+      creator_id: recipient.creator_id,
       name: recipient.name,
       description: recipient.description,
       message: recipient.message,
@@ -58,6 +61,8 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
       split_code: recipient.split_code,
       referral_code: recipient.referral_code,
       recipient_type_id: recipient.recipient_type_id,
+      is_primary: recipient.is_primary,
+      archived_at: recipient.archived_at,
       approval_date: recipient.approval_date,
       user_id: recipient.user_id
     }

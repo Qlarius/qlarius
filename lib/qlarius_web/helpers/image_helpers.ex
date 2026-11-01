@@ -136,10 +136,12 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
   end
 
   defp creator_for_recipient(recipient_id) do
-    Repo.one(
-      from c in Creator,
-        where: c.recipient_id == ^recipient_id,
-        limit: 1
-    )
+    case Repo.get(Recipient, recipient_id) do
+      %{creator_id: creator_id} when is_integer(creator_id) ->
+        Repo.get(Creator, creator_id)
+
+      _ ->
+        Repo.one(from c in Creator, where: c.recipient_id == ^recipient_id, limit: 1)
+    end
   end
 end

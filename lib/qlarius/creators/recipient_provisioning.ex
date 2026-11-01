@@ -22,8 +22,14 @@ defmodule Qlarius.Creators.RecipientProvisioning do
 
     cond do
       match?(%Recipient{}, creator.recipient) ->
-        ensure_ledger(creator.recipient)
-        {:ok, creator.recipient}
+        recipient = ensure_linked(creator, creator.recipient)
+        ensure_ledger(recipient)
+        {:ok, recipient}
+
+      primary = existing_primary(creator.id) ->
+        _ = point_creator(creator, primary)
+        ensure_ledger(primary)
+        {:ok, primary}
 
       true ->
         with {:ok, recipient} <- create_recipient_for_creator(creator, site_url),
@@ -37,8 +43,11 @@ defmodule Qlarius.Creators.RecipientProvisioning do
   @doc false
   def ensure_recipient_for_creator!(%Creator{} = creator) do
     case ensure_recipient_for_creator(creator) do
-      {:ok, recipient} -> recipient
-      {:error, reason} -> raise "could not provision recipient for creator #{creator.id}: #{inspect(reason)}"
+      {:ok, recipient} ->
+        recipient
+
+      {:error, reason} ->
+        raise "could not provision recipient for creator #{creator.id}: #{inspect(reason)}"
     end
   end
 
@@ -63,9 +72,39 @@ defmodule Qlarius.Creators.RecipientProvisioning do
   end
 
   defp link_creator(%Creator{} = creator, %Recipient{} = recipient) do
+    Repo.transaction(fn ->
+      recipient =
+        recipient
+        |> Ecto.Changeset.change(%{creator_id: creator.id, is_primary: true})
+        |> Repo.update!()
+
+      point_creator(creator, recipient)
+    end)
+  end
+
+  defp ensure_linked(%Creator{} = creator, %Recipient{creator_id: nil} = recipient) do
+    case recipient
+         |> Ecto.Changeset.change(%{creator_id: creator.id, is_primary: true})
+         |> Repo.update() do
+      {:ok, recipient} -> recipient
+      {:error, _} -> recipient
+    end
+  end
+
+  defp ensure_linked(_creator, %Recipient{} = recipient), do: recipient
+
+  defp existing_primary(creator_id) do
+    Repo.one(
+      from r in Recipient,
+        where: r.creator_id == ^creator_id and r.is_primary == true and is_nil(r.archived_at),
+        limit: 1
+    )
+  end
+
+  defp point_creator(%Creator{} = creator, %Recipient{} = recipient) do
     creator
     |> Ecto.Changeset.change(recipient_id: recipient.id)
-    |> Repo.update()
+    |> Repo.update!()
   end
 
   defp ensure_ledger(%Recipient{} = recipient) do

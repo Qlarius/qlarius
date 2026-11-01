@@ -4,6 +4,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
 
   alias Qlarius.ApiRef
   alias Qlarius.Creators.Creator
+  alias Qlarius.Sponster.Recipients
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
@@ -13,6 +14,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
 
   schema "catalogs" do
     belongs_to :creator, Creator
+    belongs_to :recipient, Qlarius.Sponster.Recipient
     has_many :content_groups, ContentGroup
 
     field :name, :string
@@ -163,12 +165,16 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
       :piece_type,
       :tiqit_undo_limit,
       :tiqit_up_enabled,
-      :api_ref
+      :api_ref,
+      :recipient_id
     ])
     |> validate_required([:name, :url, :type, :group_type, :piece_type])
     |> validate_number(:tiqit_undo_limit, greater_than_or_equal_to: 3)
     |> validate_length(:name, max: 30)
     |> ApiRef.validate()
+    |> default_primary_recipient()
+    |> validate_recipient()
+    |> foreign_key_constraint(:recipient_id)
     |> cast_assoc(
       :tiqit_classes,
       drop_param: :tiqit_class_drop,
@@ -182,5 +188,38 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     catalog
     |> changeset(attrs)
     |> put_change(:image, attrs["image"])
+  end
+
+  defp default_primary_recipient(changeset) do
+    cond do
+      not is_nil(changeset.data.id) ->
+        changeset
+
+      not is_nil(get_field(changeset, :recipient_id)) ->
+        changeset
+
+      true ->
+        case Recipients.primary_id(get_field(changeset, :creator_id)) do
+          nil -> changeset
+          id -> put_change(changeset, :recipient_id, id)
+        end
+    end
+  end
+
+  defp validate_recipient(changeset) do
+    recipient_id = get_field(changeset, :recipient_id)
+    creator_id = get_field(changeset, :creator_id)
+    assigning? = is_nil(changeset.data.id) or changed?(changeset, :recipient_id)
+
+    cond do
+      is_nil(recipient_id) or not assigning? ->
+        changeset
+
+      Recipients.belongs_to_creator?(recipient_id, creator_id) ->
+        changeset
+
+      true ->
+        add_error(changeset, :recipient_id, "must belong to this creator")
+    end
   end
 end

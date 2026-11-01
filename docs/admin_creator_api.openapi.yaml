@@ -84,11 +84,86 @@ paths:
         "200": {description: Updated or would_update}
   /creators/{id}/embeds:
     get:
-      summary: Relative widget paths and stable script URLs
+      summary: Widget paths for the primary recipient, plus a recipients array
+      description: >
+        Top-level split_code, referral_code, sponster_bar, and insta_tip stay
+        on the primary. recipients lists each publication with its own codes,
+        sponster_bar, insta_tip, and the catalogs that map to it.
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
         "200": {description: Embed payload}
+  /creators/{id}/recipients:
+    get:
+      summary: Recipients for a creator
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Recipient list, primary first}
+    post:
+      summary: Add a recipient under a creator
+      description: >
+        api_ref is required. The same key returns the existing row. dry_run is
+        supported. The recipient is auto-approved, owned by the token's admin
+        user, and receives a generated split_code. The first recipient is
+        primary; later ones are not. Example: creator Cities West Media,
+        then PHOENIX Magazine (https://phoenixmag.com) as the primary and
+        Phoenix Home & Garden (https://phgmag.com) as the second recipient,
+        each with one catalog.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "201": {description: Created}
+        "200": {description: Matched an existing api_ref}
+        "422": {description: Validation, missing api_ref, or a price field}
+  /creators/{id}/recipients/{recipient_id}:
+    get:
+      summary: One recipient of a creator
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - in: path
+          name: recipient_id
+          required: true
+          schema: {type: integer}
+      responses:
+        "200": {description: Recipient}
+    patch:
+      summary: Update a creator's recipient
+      description: Send is_primary true to make this the primary recipient.
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - in: path
+          name: recipient_id
+          required: true
+          schema: {type: integer}
+      responses:
+        "200": {description: Updated}
+        "422": {description: Validation, or clearing the only primary}
+    delete:
+      summary: Delete a recipient with no ledger activity
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - in: path
+          name: recipient_id
+          required: true
+          schema: {type: integer}
+      responses:
+        "200": {description: Deleted or would_delete}
+        "409": {description: Ledger entries or catalogs still reference it}
+        "422": {description: Still the primary while another recipient exists}
+  /creators/{id}/recipients/{recipient_id}/archive:
+    post:
+      summary: Archive a recipient
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - in: path
+          name: recipient_id
+          required: true
+          schema: {type: integer}
+      responses:
+        "200": {description: Archived or would_archive}
+        "409": {description: Ledger entries still exist}
+        "422": {description: Still the primary while another recipient exists}
   /creators/{id}/catalogs:
     get:
       summary: Catalogs for a creator
@@ -98,10 +173,15 @@ paths:
         "200": {description: Catalog list}
     post:
       summary: Create a catalog
+      description: >
+        Optional recipient_id assigns the catalog to one of this creator's
+        recipients. Omit it and the catalog uses the primary. Tiqit revenue
+        posts to that recipient's ledger.
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
         "201": {description: Created}
+        "422": {description: Validation, or a recipient from another creator}
   /recipients:
     get:
       summary: List recipients

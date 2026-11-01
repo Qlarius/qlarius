@@ -25,8 +25,9 @@ defmodule Qlarius.Tiqit.Arcade.PublicPage do
 
     try do
       group = Arcade.get_content_group!(content_group_id)
-      creator = group.catalog.creator
-      recipient = load_tipping_recipient(creator, group.id)
+      catalog = Repo.preload(group.catalog, [:recipient, creator: [:recipient, :users]])
+      creator = catalog.creator
+      recipient = catalog.recipient || load_tipping_recipient(creator, group.id)
 
       {:ok,
        %{
@@ -74,7 +75,8 @@ defmodule Qlarius.Tiqit.Arcade.PublicPage do
     end
   end
 
-  defp tiqit_arqade_url(group_id), do: Qlarius.Qlink.Urls.public_app_url("/tiqit/arqade/#{group_id}")
+  defp tiqit_arqade_url(group_id),
+    do: Qlarius.Qlink.Urls.public_app_url("/tiqit/arqade/#{group_id}")
 
   defp normalize_piece_id(nil, _group), do: nil
 

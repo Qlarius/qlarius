@@ -462,9 +462,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         :content_piece,
         :content_group,
         :catalog,
-        content_piece: [content_group: [catalog: :creator]],
-        content_group: [catalog: :creator],
-        catalog: :creator
+        content_piece: [content_group: [catalog: [:creator, :recipient]]],
+        content_group: [catalog: [:creator, :recipient]],
+        catalog: [:creator, :recipient]
       ])
 
     expires_at =
@@ -513,7 +513,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       {:ok, %{entry: debit_entry}} ->
         creator_entry =
           if creator && Decimal.compare(net_price, Decimal.new("0")) == :gt do
-            creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
+            ledger = sale_ledger(tiqit_class_catalog(tiqit_class), creator)
 
             creator_desc =
               if has_credit,
@@ -522,7 +522,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                 else: "Tiqit sale: #{content_title} (#{duration_label})"
 
             %{entry: entry} =
-              Wallets.apply_credit!(creator_ledger, net_price, %{
+              Wallets.apply_credit!(ledger, net_price, %{
                 description: creator_desc,
                 meta_1: "Tiqit Sale",
                 tiqit_id: tiqit.id
@@ -1382,36 +1382,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                    })
                  end
 
-                 if creator do
-                   creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-
-                   original_credit =
-                     Repo.one(
-                       from e in LedgerEntry,
-                         where: e.tiqit_id == ^tiqit.id,
-                         where: e.ledger_header_id == ^creator_ledger.id,
-                         where: is_nil(e.reversed_ledger_entry_id),
-                         order_by: [asc: e.id],
-                         limit: 1
-                     )
-
-                   if original_credit do
-                     Wallets.reverse_ledger_entry!(original_credit, %{
-                       description: "Tiqit undo: #{content_title} (#{duration_label})",
-                       meta_1: "Tiqit Undo"
-                     })
-                   else
-                     creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-                     refund_amount = tiqit.price || (tiqit.tiqit_class && tiqit.tiqit_class.price)
-
-                     Wallets.apply_entry!(creator_ledger, %{
-                       amt: Decimal.negate(refund_amount),
-                       payable_delta: Decimal.new("0.00"),
-                       description: "Tiqit undo: #{content_title} (#{duration_label})",
-                       meta_1: "Tiqit Undo"
-                     })
-                   end
-                 end
+                 reverse_sale_credit(tiqit, catalog, creator, content_title, duration_label)
 
                  # Sanitize consumer's original purchase entry before unlinking
                  sanitize_consumer_ledger_entries(tiqit, "*REFUNDED*")
@@ -1513,6 +1484,72 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     end
   end
 
+  defp sale_ledger(catalog, creator) do
+    catalog = catalog && Repo.preload(catalog, [:recipient, creator: :recipient])
+
+    creator =
+      case creator do
+        %Qlarius.Creators.Creator{} -> Repo.preload(creator, :recipient)
+        other -> other
+      end
+
+    recipient =
+      cond do
+        catalog && match?(%Qlarius.Sponster.Recipient{}, catalog.recipient) ->
+          catalog.recipient
+
+        catalog && catalog.creator &&
+            match?(%Qlarius.Sponster.Recipient{}, catalog.creator.recipient) ->
+          catalog.creator.recipient
+
+        match?(%Qlarius.Sponster.Recipient{}, creator && creator.recipient) ->
+          creator.recipient
+
+        true ->
+          nil
+      end
+
+    if recipient do
+      Wallets.get_or_create_recipient_ledger_header(recipient)
+    else
+      Wallets.get_or_create_creator_ledger_header(creator)
+    end
+  end
+
+  defp reverse_sale_credit(tiqit, catalog, creator, content_title, duration_label) do
+    description = "Tiqit undo: #{content_title} (#{duration_label})"
+
+    case sale_credit(tiqit.id) do
+      %LedgerEntry{} = credit ->
+        Wallets.reverse_ledger_entry!(credit, %{description: description, meta_1: "Tiqit Undo"})
+
+      nil ->
+        if creator do
+          refund_amount = tiqit.price || (tiqit.tiqit_class && tiqit.tiqit_class.price)
+
+          Wallets.apply_entry!(sale_ledger(catalog, creator), %{
+            amt: Decimal.negate(refund_amount),
+            payable_delta: Decimal.new("0.00"),
+            description: description,
+            meta_1: "Tiqit Undo"
+          })
+        end
+    end
+  end
+
+  defp sale_credit(tiqit_id) do
+    Repo.one(
+      from e in LedgerEntry,
+        join: h in assoc(e, :ledger_header),
+        where: e.tiqit_id == ^tiqit_id,
+        where: is_nil(e.reversed_ledger_entry_id),
+        where: not is_nil(h.recipient_id) or not is_nil(h.creator_id),
+        where: e.amt > 0,
+        order_by: [asc: e.id],
+        limit: 1
+    )
+  end
+
   defp tiqit_class_catalog(%TiqitClass{} = tc) do
     cond do
       tc.content_piece && tc.content_piece.content_group ->
@@ -1531,13 +1568,13 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
   defp tiqit_content_preload do
     [
-      content_piece: [content_group: [catalog: :creator]],
-      content_group: [catalog: :creator],
-      catalog: :creator,
+      content_piece: [content_group: [catalog: [:creator, :recipient]]],
+      content_group: [catalog: [:creator, :recipient]],
+      catalog: [:creator, :recipient],
       tiqit_class: [
-        content_piece: [content_group: [catalog: :creator]],
-        content_group: [catalog: :creator],
-        catalog: :creator
+        content_piece: [content_group: [catalog: [:creator, :recipient]]],
+        content_group: [catalog: [:creator, :recipient]],
+        catalog: [:creator, :recipient]
       ]
     ]
   end

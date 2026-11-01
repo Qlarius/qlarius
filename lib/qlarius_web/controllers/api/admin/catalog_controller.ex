@@ -64,6 +64,7 @@ defmodule QlariusWeb.Api.Admin.CatalogController do
       id: catalog.id,
       api_ref: catalog.api_ref,
       creator_id: catalog.creator_id,
+      recipient_id: catalog.recipient_id,
       name: catalog.name,
       url: catalog.url,
       type: catalog.type,
