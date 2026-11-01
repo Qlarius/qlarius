@@ -411,6 +411,76 @@ defmodule QlariusWeb.Api.Admin.CreatorApiTest do
     assert Enum.any?(body["endpoints"], &(&1["path"] == "/api/admin/creators/:id/recipients"))
   end
 
+  test "dry run and create keep the nested recipient as the primary", %{token: token} do
+    payload = %{
+      api_ref: "cities-west.creator",
+      name: "Cities West Media",
+      recipient: %{
+        api_ref: "cities-west.phoenix-magazine",
+        name: "PHOENIX Magazine",
+        site_url: "https://phoenixmag.com",
+        recipient_type_id: 1
+      }
+    }
+
+    preview = post_json(token, ~p"/api/admin/creators", Map.put(payload, :dry_run, true))
+    assert preview["result"] == "would_create"
+    assert preview["creator"]["recipient"]["api_ref"] == "cities-west.phoenix-magazine"
+    assert preview["creator"]["recipient"]["is_primary"] == true
+    assert preview["creator"]["recipient"]["name"] == "PHOENIX Magazine"
+    assert preview["creator"]["recipient"]["site_url"] == "https://phoenixmag.com"
+
+    preview_recipient = hd(preview["creator"]["recipients"])
+    assert preview_recipient["api_ref"] == "cities-west.phoenix-magazine"
+    assert preview_recipient["is_primary"] == true
+
+    created = post_created(token, ~p"/api/admin/creators", payload)
+    recipient = created["creator"]["recipient"]
+    assert recipient["api_ref"] == "cities-west.phoenix-magazine"
+    assert recipient["is_primary"] == true
+    assert hd(created["creator"]["recipients"])["id"] == recipient["id"]
+
+    creator = Repo.get!(Qlarius.Creators.Creator, created["creator"]["id"])
+    assert creator.recipient_id == recipient["id"]
+
+    saved = Repo.get!(Qlarius.Sponster.Recipient, recipient["id"])
+    assert saved.api_ref == "cities-west.phoenix-magazine"
+    assert saved.is_primary
+    assert saved.creator_id == creator.id
+
+    again = post_json(token, ~p"/api/admin/creators", payload)
+    assert again["result"] == "matched"
+    assert again["creator"]["id"] == creator.id
+    assert again["creator"]["recipient"]["id"] == recipient["id"]
+    assert again["creator"]["recipient"]["api_ref"] == "cities-west.phoenix-magazine"
+    assert again["creator"]["recipient"]["is_primary"] == true
+
+    conflict =
+      token
+      |> authed()
+      |> post(~p"/api/admin/creators", %{
+        api_ref: "cities-west.other",
+        name: "Other Media",
+        recipient: %{
+          api_ref: "cities-west.phoenix-magazine",
+          name: "PHOENIX Magazine",
+          site_url: "https://phoenixmag.com"
+        }
+      })
+
+    assert json_response(conflict, 422)["error"] == "api_ref_conflict"
+
+    sister =
+      post_created(token, ~p"/api/admin/creators/#{creator.id}/recipients", %{
+        api_ref: "cities-west.phg",
+        name: "Phoenix Home & Garden",
+        site_url: "https://phgmag.com"
+      })
+
+    assert sister["recipient"]["is_primary"] == false
+    assert sister["recipient"]["api_ref"] == "cities-west.phg"
+  end
+
   test "adds a sister recipient, keeps api_ref idempotent, and maps catalogs", %{
     token: token,
     admin: admin

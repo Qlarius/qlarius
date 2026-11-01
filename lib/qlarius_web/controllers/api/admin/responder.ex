@@ -8,6 +8,18 @@ defmodule QlariusWeb.Api.Admin.Responder do
 
   def dry_run?(params), do: params["dry_run"] in [true, "true", "1"]
 
+  def error(conn, {:recipient_api_ref_conflict, ref}) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "api_ref_conflict",
+      message:
+        "api_ref #{ref} already belongs to another recipient. Stop and ask the admin; do not invent a new key to get around it.",
+      api_ref: ref,
+      guide: @guide <> "?topic=creators"
+    })
+  end
+
   def error(conn, {:api_ref_conflict, ref}) do
     conn
     |> put_status(409)
