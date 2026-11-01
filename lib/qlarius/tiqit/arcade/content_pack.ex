@@ -126,7 +126,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
       %{
         title: blank_to_nil(params["title"]),
         description: blank_to_nil(params["description"]),
-        source_url: blank_to_nil(params["source_url"])
+        source_url: blank_to_nil(params["source_url"]),
+        api_ref: blank_to_nil(params["api_ref"])
       }
       |> Map.merge(Map.new(Keyword.get(opts, :group_attrs, %{})))
       |> reject_nils()
@@ -606,7 +607,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
       feed_season: group.feed_season,
       feed_episode_types: group.feed_episode_types,
       feed_auto_sync: group.feed_auto_sync,
-      last_synced_at: group.last_synced_at
+      last_synced_at: group.last_synced_at,
+      api_ref: group.api_ref
     }
   end
 

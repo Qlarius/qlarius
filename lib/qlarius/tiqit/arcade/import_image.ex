@@ -7,8 +7,12 @@ defmodule Qlarius.Tiqit.Arcade.ImportImage do
   for example a `%ContentGroup{catalog: %Catalog{}}`.
   """
 
-  alias Qlarius.Tiqit.Arcade.ImportHttp
+  alias Qlarius.Tiqit.Arcade.{ImageResize, ImportHttp}
   alias QlariusWeb.Uploaders.CreatorImage
+
+  @download_max_bytes 25 * 1024 * 1024
+
+  def download_max_bytes, do: @download_max_bytes
 
   @extensions %{
     "image/jpeg" => ".jpg",
@@ -18,8 +22,13 @@ defmodule Qlarius.Tiqit.Arcade.ImportImage do
     "image/webp" => ".webp"
   }
 
-  def store(url, scope, basename) when is_binary(url) and url != "" do
-    with {:ok, %{body: body, content_type: content_type}} <- ImportHttp.get(url),
+  def store(url, scope, basename, opts \\ [])
+
+  def store(url, scope, basename, opts) when is_binary(url) and url != "" do
+    uploader = Keyword.get(opts, :uploader, CreatorImage)
+
+    with {:ok, %{body: body, content_type: content_type}} <-
+           ImportHttp.get(url, max_bytes: @download_max_bytes),
          {:ok, ext} <- extension(url, content_type) do
       # Stored files share one directory per creator, so every name must be
       # unique or a later import overwrites an earlier group's artwork.
@@ -29,15 +38,17 @@ defmodule Qlarius.Tiqit.Arcade.ImportImage do
       try do
         File.write!(tmp_path, body)
 
-        upload = %Plug.Upload{
-          path: tmp_path,
-          filename: "#{name}#{ext}",
-          content_type: content_type || "image/jpeg"
-        }
+        with :ok <- ImageResize.fit(tmp_path) do
+          upload = %Plug.Upload{
+            path: tmp_path,
+            filename: stored_filename(name, ext, tmp_path),
+            content_type: content_type || "image/jpeg"
+          }
 
-        case CreatorImage.store({upload, scope}) do
-          {:ok, filename} -> {:ok, filename}
-          other -> {:error, "Failed to store image: #{inspect(other)}"}
+          case uploader.store({upload, scope}) do
+            {:ok, filename} -> {:ok, filename}
+            other -> {:error, "Failed to store image: #{inspect(other)}"}
+          end
         end
       rescue
         error in File.Error -> {:error, "Failed to store image: #{Exception.message(error)}"}
@@ -47,7 +58,23 @@ defmodule Qlarius.Tiqit.Arcade.ImportImage do
     end
   end
 
-  def store(_url, _scope, _basename), do: {:ok, nil}
+  def store(_url, _scope, _basename, _opts), do: {:ok, nil}
+
+  defp stored_filename(name, ext, path) do
+    # A resize rewrites the file as JPEG. Keep the name in step with the bytes.
+    if jpeg?(path) and ext not in [".jpg", ".jpeg"] do
+      "#{name}.jpg"
+    else
+      "#{name}#{ext}"
+    end
+  end
+
+  defp jpeg?(path) do
+    case File.read(path) do
+      {:ok, <<0xFF, 0xD8, _::binary>>} -> true
+      _ -> false
+    end
+  end
 
   defp extension(url, content_type) do
     path_ext =

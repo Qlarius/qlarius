@@ -70,7 +70,7 @@ defmodule Qlarius.Youtube.Client do
   def fetch_playlist(playlist_id) when is_binary(playlist_id) do
     params = [part: "snippet,contentDetails", id: playlist_id, key: api_key!()]
 
-    case Req.get(@base_url <> "/playlists", params: params) do
+    case req_get("/playlists", params) do
       {:ok, %Req.Response{status: 200, body: %{"items" => [item | _]}}} ->
         {:ok, normalize_playlist(item, playlist_id)}
 
@@ -135,7 +135,7 @@ defmodule Qlarius.Youtube.Client do
       ]
       |> maybe_put(:pageToken, page_token)
 
-    case Req.get(@base_url <> "/playlistItems", params: params) do
+    case req_get("/playlistItems", params) do
       {:ok, %Req.Response{status: 200, body: body}} ->
         items =
           body["items"]
@@ -186,7 +186,7 @@ defmodule Qlarius.Youtube.Client do
       key: api_key!()
     ]
 
-    case Req.get(@base_url <> "/videos", params: params) do
+    case req_get("/videos", params) do
       {:ok, %Req.Response{status: 200, body: body}} ->
         details =
           (body["items"] || [])
@@ -278,7 +278,7 @@ defmodule Qlarius.Youtube.Client do
         :username -> [forUsername: value]
       end
 
-    case Req.get(@base_url <> "/channels", params: base_params ++ extra) do
+    case req_get("/channels", base_params ++ extra) do
       {:ok, %Req.Response{status: 200, body: %{"items" => [item | _]}}} ->
         {:ok, normalize_channel(item)}
 
@@ -422,6 +422,12 @@ defmodule Qlarius.Youtube.Client do
     do: "YouTube API #{status}: #{message}"
 
   defp api_error(status, _body), do: "YouTube API returned #{status}"
+
+  defp req_get(path, params) do
+    [url: @base_url <> path, params: params]
+    |> Keyword.merge(Keyword.get(Application.get_env(:qlarius, :youtube, []), :req_options, []))
+    |> Req.get()
+  end
 
   defp api_key! do
     case Application.get_env(:qlarius, :youtube, [])[:api_key] do

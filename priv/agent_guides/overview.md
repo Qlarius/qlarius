@@ -2,8 +2,8 @@
 
 You are calling the Qadabra admin API on behalf of a Qadabra admin. Read this
 guide before making any write. It is served at `GET /api/admin/agent_guide`
-(`?format=json` for JSON, `?topic=content_groups`, `?topic=traits`,
-`?topic=ad_categories`, or `?topic=campaigns` for one section).
+(`?format=json` for JSON, `?topic=creators`, `?topic=content_groups`,
+`?topic=traits`, `?topic=ad_categories`, or `?topic=campaigns` for one section).
 
 ## Authentication
 

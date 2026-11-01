@@ -7,9 +7,9 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-11.6"
+  @version "2026-10-31.1"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
-  @topics ~w(overview content_groups traits ad_categories campaigns)
+  @topics ~w(overview creators content_groups traits ad_categories campaigns)
 
   for topic <- @topics do
     @external_resource Path.join(@guides_dir, "#{topic}.md")
@@ -21,7 +21,33 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   @endpoints [
     %{method: "GET", path: "/api/admin/agent_guide", purpose: "This guide"},
-    %{method: "GET", path: "/api/admin/creators", purpose: "Creators and their catalogs"},
+    %{method: "GET", path: "/api/admin/creators", purpose: "Creators, their recipient, and catalogs"},
+    %{method: "POST", path: "/api/admin/creators", purpose: "Create a creator and its approved recipient"},
+    %{method: "GET", path: "/api/admin/creators/:id", purpose: "One creator"},
+    %{method: "PATCH", path: "/api/admin/creators/:id", purpose: "Update a creator and its recipient"},
+    %{method: "GET", path: "/api/admin/creators/:id/embeds", purpose: "Relative widget and script paths"},
+    %{method: "GET", path: "/api/admin/creators/:id/catalogs", purpose: "Catalogs for a creator"},
+    %{method: "POST", path: "/api/admin/creators/:id/catalogs", purpose: "Create a catalog"},
+    %{method: "GET", path: "/api/admin/recipients", purpose: "Recipients, filter with recipient_type_id"},
+    %{method: "POST", path: "/api/admin/recipients", purpose: "Create a recipient with no creator"},
+    %{method: "PATCH", path: "/api/admin/recipients/:id", purpose: "Update a recipient"},
+    %{method: "GET", path: "/api/admin/catalogs/:id", purpose: "One catalog"},
+    %{method: "PATCH", path: "/api/admin/catalogs/:id", purpose: "Update a catalog"},
+    %{method: "DELETE", path: "/api/admin/catalogs/:id", purpose: "Delete a catalog with no groups"},
+    %{method: "POST", path: "/api/admin/catalogs/:id/content_groups", purpose: "Create a content group"},
+    %{method: "GET", path: "/api/admin/content_groups/:id", purpose: "One content group"},
+    %{method: "PATCH", path: "/api/admin/content_groups/:id", purpose: "Update a content group"},
+    %{method: "DELETE", path: "/api/admin/content_groups/:id", purpose: "Delete a group with no pieces"},
+    %{method: "GET", path: "/api/admin/content_groups/:id/pieces", purpose: "Pieces in a group"},
+    %{method: "POST", path: "/api/admin/content_groups/:id/pieces", purpose: "Create a piece"},
+    %{method: "POST", path: "/api/admin/content_groups/:id/pieces/reorder", purpose: "Set piece order"},
+    %{method: "PATCH", path: "/api/admin/content_pieces/:id", purpose: "Update a piece"},
+    %{method: "POST", path: "/api/admin/content_pieces/:id/archive", purpose: "Archive a piece"},
+    %{method: "POST", path: "/api/admin/content_pieces/:id/unarchive", purpose: "Unarchive a piece"},
+    %{method: "DELETE", path: "/api/admin/content_pieces/:id", purpose: "Delete a piece that has no purchases"},
+    %{method: "GET", path: "/api/admin/tiqit_classes", purpose: "Read tiqit classes for one catalog, group, or piece"},
+    %{method: "GET", path: "/api/admin/youtube/preview", purpose: "Preview a YouTube channel or playlist"},
+    %{method: "POST", path: "/api/admin/content_groups/youtube_imports", purpose: "Import a YouTube channel or playlist"},
     %{
       method: "GET",
       path: "/api/admin/content_groups?catalog_id=",

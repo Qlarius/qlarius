@@ -3,6 +3,7 @@ defmodule Qlarius.Creators.Creator do
   import Ecto.Changeset
 
   alias Qlarius.Accounts.User
+  alias Qlarius.ApiRef
   alias Qlarius.Creators.CreatorMembership
   alias Qlarius.Qlink.QlinkPage
   alias Qlarius.Sponster.Recipient
@@ -14,6 +15,7 @@ defmodule Qlarius.Creators.Creator do
     field :bio, :string
     field :image, :string
     field :is_verified, :boolean, default: false
+    field :api_ref, :string
 
     belongs_to :recipient, Recipient
     has_many :qlink_pages, QlinkPage
@@ -27,10 +29,11 @@ defmodule Qlarius.Creators.Creator do
   @doc false
   def changeset(creator, attrs) do
     creator
-    |> cast(attrs, [:name, :bio, :is_verified, :image])
+    |> cast(attrs, [:name, :bio, :is_verified, :image, :api_ref])
     |> validate_required([:name])
     |> validate_length(:name, max: 100)
     |> validate_length(:bio, max: 500)
+    |> ApiRef.validate()
     |> maybe_store_image(attrs)
   end
 

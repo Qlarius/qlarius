@@ -323,6 +323,28 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     end)
   end
 
+  def unarchive_content_piece(%ContentPiece{archived_at: nil} = piece),
+    do: {:ok, get_content_piece!(piece.id)}
+
+  def unarchive_content_piece(%ContentPiece{} = piece) do
+    Repo.transaction(fn ->
+      case piece
+           |> Ecto.Changeset.change(%{archived_at: nil})
+           |> Repo.update() do
+        {:ok, updated} ->
+          Repo.update_all(
+            from(tc in TiqitClass, where: tc.content_piece_id == ^updated.id),
+            set: [active: true]
+          )
+
+          get_content_piece!(updated.id)
+
+        {:error, cs} ->
+          Repo.rollback(cs)
+      end
+    end)
+  end
+
   def delete_content_piece(%ContentPiece{} = piece) do
     cond do
       not is_nil(piece.archived_at) ->

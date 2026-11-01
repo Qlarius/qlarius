@@ -2,6 +2,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.ApiRef
   alias Qlarius.Creators.Creator
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
@@ -22,6 +23,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     field :image, :string
     field :tiqit_undo_limit, :integer
     field :tiqit_up_enabled, :boolean, default: true
+    field :api_ref, :string
 
     has_many :tiqit_classes, TiqitClass,
       on_replace: :delete,
@@ -160,11 +162,13 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
       :group_type,
       :piece_type,
       :tiqit_undo_limit,
-      :tiqit_up_enabled
+      :tiqit_up_enabled,
+      :api_ref
     ])
     |> validate_required([:name, :url, :type, :group_type, :piece_type])
     |> validate_number(:tiqit_undo_limit, greater_than_or_equal_to: 3)
     |> validate_length(:name, max: 30)
+    |> ApiRef.validate()
     |> cast_assoc(
       :tiqit_classes,
       drop_param: :tiqit_class_drop,

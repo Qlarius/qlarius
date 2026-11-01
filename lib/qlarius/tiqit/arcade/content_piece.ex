@@ -2,6 +2,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.ApiRef
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
@@ -31,6 +32,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
 
     field :exclude_from_catalog_access, :boolean, default: false
     field :exclude_from_group_access, :boolean, default: false
+    field :api_ref, :string
 
     has_many :tiqit_classes, TiqitClass,
       on_replace: :delete,
@@ -82,6 +84,41 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   def media_types, do: @media_types
   def episode_types, do: @episode_types
 
+  @doc """
+  Admin API writes. Casts the fields an agent may set and leaves
+  `price_default` alone.
+  """
+  def api_changeset(content, attrs) do
+    content
+    |> cast(attrs, [
+      :api_ref,
+      :display_order,
+      :title,
+      :description,
+      :date_published,
+      :length,
+      :preview_length,
+      :file_url,
+      :youtube_id,
+      :preview_url,
+      :media_type,
+      :external_id,
+      :season,
+      :episode_number,
+      :episode_type,
+      :source_provider,
+      :source_url,
+      :exclude_from_catalog_access,
+      :exclude_from_group_access
+    ])
+    |> validate_required([:title, :date_published])
+    |> validate_length(:title, max: 200)
+    |> validate_number(:display_order, greater_than_or_equal_to: 0)
+    |> validate_inclusion(:media_type, @media_types)
+    |> validate_inclusion(:episode_type, @episode_types)
+    |> ApiRef.validate()
+  end
+
   def audio?(%__MODULE__{media_type: "audio"}), do: true
   def audio?(_), do: false
 
@@ -119,9 +156,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
       :episode_type,
       :source_provider,
       :source_url,
-      :source_imported_at
+      :source_imported_at,
+      :api_ref
     ])
     |> validate_required([:title, :source_provider, :media_type])
+    |> ApiRef.validate()
     |> validate_inclusion(:media_type, @media_types)
     |> validate_inclusion(:episode_type, @episode_types)
     |> validate_length(:title, max: 200)

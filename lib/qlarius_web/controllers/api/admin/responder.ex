@@ -258,7 +258,8 @@ defmodule QlariusWeb.Api.Admin.Responder do
 
   defp message(:unknown_topic),
     do:
-      {404, "unknown_topic", "topic must be content_groups, traits, ad_categories, or campaigns"}
+      {404, "unknown_topic",
+       "topic must be creators, content_groups, traits, ad_categories, or campaigns"}
 
   defp message(:api_ref_required),
     do:
@@ -272,6 +273,39 @@ defmodule QlariusWeb.Api.Admin.Responder do
 
   defp message(:api_ref_immutable),
     do: {422, "api_ref_immutable", "api_ref can't be changed once set"}
+
+  defp message(:price_not_writable),
+    do:
+      {422, "price_not_writable",
+       "Tiqit prices are set in the admin UI. Remove price, price_default, and tiqit_classes from the request."}
+
+  defp message({:field_not_writable, field}),
+    do: {422, "field_not_writable", "#{field} is set by the API and can't be sent"}
+
+  defp message(:youtube_unavailable),
+    do: {503, "youtube_unavailable", "YOUTUBE_DATA_API_KEY is not configured"}
+
+  defp message(:input_required),
+    do: {422, "input_required", "Send input: a YouTube channel or playlist URL"}
+
+  defp message(:tiqit_class_scope_required),
+    do:
+      {422, "tiqit_class_scope_required",
+       "Send catalog_id, content_group_id, or content_piece_id"}
+
+  defp message(:invalid_piece_set),
+    do:
+      {422, "invalid_piece_set",
+       "piece_ids must list each active piece in the group exactly once"}
+
+  defp message(:recipient_required),
+    do: {422, "recipient_required", "This creator has no recipient to update"}
+
+  defp message(:invalid_patterns),
+    do: {422, "invalid_patterns", "strip_patterns and drop_patterns must be lists of phrases"}
+
+  defp message(:already_archived),
+    do: {409, "already_archived", "This piece is archived. Unarchive it before deleting."}
 
   defp message(:role_immutable),
     do:

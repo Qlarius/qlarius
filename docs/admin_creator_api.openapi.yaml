@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: Qadabra admin creator API
+  version: "2026-10-31.1"
+  description: >
+    Bearer token on /api/admin. Every create requires api_ref. Every write
+    accepts dry_run. Price fields are rejected. See priv/agent_guides/creators.md.
+servers:
+  - url: /api/admin
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  parameters:
+    id:
+      in: path
+      name: id
+      required: true
+      schema: {type: integer}
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: {type: string}
+        message: {type: string}
+        guide: {type: string}
+security:
+  - bearer: []
+paths:
+  /creators:
+    get:
+      summary: List creators, recipients, and catalogs
+      parameters:
+        - in: query
+          name: q
+          schema: {type: string}
+        - in: query
+          name: api_ref_prefix
+          schema: {type: string}
+      responses:
+        "200": {description: Creator list}
+    post:
+      summary: Create a creator and one approved recipient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_ref, name]
+              properties:
+                api_ref: {type: string}
+                name: {type: string}
+                bio: {type: string}
+                image_url: {type: string, format: uri}
+                dry_run: {type: boolean}
+                on_existing: {type: string, enum: [skip, update]}
+                recipient:
+                  type: object
+                  properties:
+                    site_url: {type: string}
+                    description: {type: string}
+                    message: {type: string}
+                    graphic_url: {type: string, format: uri}
+                    recipient_type_id: {type: integer, default: 1}
+                    api_ref: {type: string}
+      responses:
+        "201": {description: Created}
+        "200": {description: Matched an existing api_ref}
+        "422": {description: Validation, missing api_ref, or a price field}
+  /creators/{id}:
+    get:
+      summary: Show a creator
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Creator}
+    patch:
+      summary: Update a creator and its recipient
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Updated or would_update}
+  /creators/{id}/embeds:
+    get:
+      summary: Relative widget paths and stable script URLs
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Embed payload}
+  /creators/{id}/catalogs:
+    get:
+      summary: Catalogs for a creator
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Catalog list}
+    post:
+      summary: Create a catalog
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "201": {description: Created}
+  /recipients:
+    get:
+      summary: List recipients
+      parameters:
+        - in: query
+          name: recipient_type_id
+          schema: {type: integer}
+      responses:
+        "200": {description: Recipient list, including split_code}
+    post:
+      summary: Create a recipient with no creator
+      responses:
+        "201": {description: Created}
+  /recipients/{id}:
+    get:
+      summary: Show a recipient
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Recipient}
+    patch:
+      summary: Update a recipient
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Updated}
+  /catalogs/{id}:
+    get:
+      summary: Show a catalog
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Catalog}
+    patch:
+      summary: Update a catalog
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Updated}
+    delete:
+      summary: Delete a catalog
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Deleted or would_delete}
+        "409": {description: Dependent groups or pieces}
+  /catalogs/{id}/content_groups:
+    post:
+      summary: Create a content group
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "201": {description: Created}
+  /content_groups/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      summary: Show a content group
+      responses:
+        "200": {description: Group}
+    patch:
+      summary: Update a content group
+      responses:
+        "200": {description: Updated}
+    delete:
+      summary: Delete a content group
+      responses:
+        "409": {description: Dependent pieces}
+  /content_groups/{id}/pieces:
+    post:
+      summary: Create a piece
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "201": {description: Created}
+    get:
+      summary: List pieces
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - in: query
+          name: archived
+          schema: {type: string, enum: [only, all]}
+      responses:
+        "200": {description: Active pieces, unless archived is set}
+  /content_groups/{id}/pieces/reorder:
+    post:
+      summary: Reorder active pieces
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Reordered}
+        "422": {description: piece_ids is not the active set}
+  /content_pieces/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      summary: Show a piece
+      responses:
+        "200": {description: Piece}
+    patch:
+      summary: Update a piece
+      responses:
+        "200": {description: Updated}
+        "422": {description: A price field was sent}
+    delete:
+      summary: Delete a piece with no purchases
+      responses:
+        "409": {description: Piece has purchases or is archived}
+  /content_pieces/{id}/archive:
+    post:
+      summary: Archive a piece
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Archived}
+  /content_pieces/{id}/unarchive:
+    post:
+      summary: Unarchive a piece
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Unarchived}
+  /tiqit_classes:
+    get:
+      summary: Read tiqit classes
+      parameters:
+        - in: query
+          name: catalog_id
+          schema: {type: integer}
+        - in: query
+          name: content_group_id
+          schema: {type: integer}
+        - in: query
+          name: content_piece_id
+          schema: {type: integer}
+      responses:
+        "200": {description: Classes}
+  /youtube/preview:
+    get:
+      summary: Preview a YouTube channel or playlist
+      parameters:
+        - in: query
+          name: input
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: Preview}
+        "503": {description: YOUTUBE_DATA_API_KEY is not configured}
+  /content_groups/youtube_imports:
+    post:
+      summary: Import a YouTube channel or playlist
+      responses:
+        "201": {description: Group created and new videos imported}
+        "200": {description: Group matched; existing video ids were not duplicated}
+        "503": {description: YOUTUBE_DATA_API_KEY is not configured}
+  /content_groups/rss_imports:
+    post:
+      summary: Import an RSS feed
+      description: >
+        Accepts strip_patterns, drop_patterns, api_ref, and dry_run.
+        dry_run reports kept, dropped, and cleaned.
+      responses:
+        "200": {description: Import result}
+  /content_groups/{id}/sync:
+    post:
+      summary: Sync a group's feed
+      description: >
+        Refreshes audio URL, duration, and episode fields. refresh_existing
+        true also refreshes title and description. strip_patterns and
+        drop_patterns apply to this run only.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": {description: Sync result}

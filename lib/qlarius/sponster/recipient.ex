@@ -3,6 +3,8 @@ defmodule Qlarius.Sponster.Recipient do
   import Ecto.Changeset
   use Waffle.Ecto.Schema
 
+  alias Qlarius.ApiRef
+
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
@@ -17,6 +19,7 @@ defmodule Qlarius.Sponster.Recipient do
     field :contact_email, :string
     field :approval_date, :naive_datetime
     field :referral_code, :string
+    field :api_ref, :string
     field :recipient_type_id, :integer, default: 1
 
     belongs_to :user, Qlarius.Accounts.User
@@ -40,7 +43,8 @@ defmodule Qlarius.Sponster.Recipient do
       :contact_email,
       :approval_date,
       :approved_by_user_id,
-      :referral_code
+      :referral_code,
+      :api_ref
     ])
     |> cast_attachments(attrs, [:graphic_url])
     |> validate_required([
@@ -51,5 +55,6 @@ defmodule Qlarius.Sponster.Recipient do
       :split_code
     ])
     |> validate_number(:target_amount, greater_than_or_equal_to: Decimal.new("0"))
+    |> ApiRef.validate()
   end
 end

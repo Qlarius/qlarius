@@ -470,11 +470,44 @@ defmodule QlariusWeb.Router do
 
     get "/agent_guide", AgentGuideController, :show
 
-    get "/creators", ContentGroupController, :creators
+    get "/creators", CreatorController, :index
+    post "/creators", CreatorController, :create
+    get "/creators/:id/embeds", CreatorController, :embeds
+    get "/creators/:creator_id/catalogs", CatalogController, :index
+    post "/creators/:creator_id/catalogs", CatalogController, :create
+    get "/creators/:id", CreatorController, :show
+    patch "/creators/:id", CreatorController, :update
+
+    get "/recipients", RecipientController, :index
+    post "/recipients", RecipientController, :create
+    get "/recipients/:id", RecipientController, :show
+    patch "/recipients/:id", RecipientController, :update
+
+    get "/catalogs/:id", CatalogController, :show
+    patch "/catalogs/:id", CatalogController, :update
+    delete "/catalogs/:id", CatalogController, :delete
+    post "/catalogs/:catalog_id/content_groups", ContentGroupController, :create
+
     get "/content_groups", ContentGroupController, :index
     post "/content_groups/packs", ContentGroupController, :pack
     post "/content_groups/rss_imports", ContentGroupController, :rss_import
+    post "/content_groups/youtube_imports", YoutubeImportController, :create
+    get "/content_groups/:id", ContentGroupController, :show
+    patch "/content_groups/:id", ContentGroupController, :update
+    delete "/content_groups/:id", ContentGroupController, :delete
     post "/content_groups/:id/sync", ContentGroupController, :sync
+    post "/content_groups/:content_group_id/pieces/reorder", ContentPieceController, :reorder
+    get "/content_groups/:content_group_id/pieces", ContentPieceController, :index
+    post "/content_groups/:content_group_id/pieces", ContentPieceController, :create
+
+    get "/content_pieces/:id", ContentPieceController, :show
+    patch "/content_pieces/:id", ContentPieceController, :update
+    post "/content_pieces/:id/archive", ContentPieceController, :archive
+    post "/content_pieces/:id/unarchive", ContentPieceController, :unarchive
+    delete "/content_pieces/:id", ContentPieceController, :delete
+
+    get "/tiqit_classes", TiqitClassController, :index
+    get "/youtube/preview", YoutubeImportController, :preview
     get "/rss/preview", ContentGroupController, :rss_preview
 
     get "/trait_categories", TraitCategoryController, :index

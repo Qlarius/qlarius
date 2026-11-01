@@ -4,6 +4,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
 
   import Ecto.Changeset
 
+  alias Qlarius.ApiRef
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
@@ -25,6 +26,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :feed_episode_types, {:array, :string}, default: []
     field :feed_auto_sync, :boolean, default: false
     field :last_synced_at, :utc_datetime
+    field :api_ref, :string
 
     has_many :content_pieces, ContentPiece
 
@@ -128,9 +130,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       :description,
       :show_piece_thumbnails,
       :show_piece_descriptions,
-      :show_open_in_tab
+      :show_open_in_tab,
+      :api_ref
     ])
     |> validate_required([:title])
+    |> ApiRef.validate()
     |> cast_assoc(
       :tiqit_classes,
       drop_param: :tiqit_class_drop,
@@ -161,9 +165,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       :feed_season,
       :feed_episode_types,
       :feed_auto_sync,
-      :last_synced_at
+      :last_synced_at,
+      :api_ref
     ])
     |> validate_required([:title])
+    |> ApiRef.validate()
     |> validate_length(:title, max: 255)
     |> validate_inclusion(:source_provider, ~w(youtube rss api_pack))
     |> validate_subset(:feed_episode_types, ContentPiece.episode_types())

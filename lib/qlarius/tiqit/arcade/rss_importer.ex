@@ -60,11 +60,15 @@ defmodule Qlarius.Tiqit.Arcade.RssImporter do
   A pre-fetched `feed` (from `preview/1`) can be passed in `opts[:feed]`.
   """
   def import_feed(params, opts \\ []) when is_map(params) do
-    with {:ok, url} <- feed_url(params["feed_url"]),
+    with {:ok, params} <- resolve_group(params),
+         {:ok, url} <- feed_url(params["feed_url"]),
          {:ok, episode_types} <- episode_types(params["episode_types"]),
          {:ok, season} <- season(params["season"]),
-         {:ok, feed} <- feed(url, opts) do
+         {:ok, feed} <- feed(url, opts),
+         {:ok, patterns} <- patterns(params) do
       {items, warnings} = select_items(feed.items, season, episode_types, params["guids"])
+      {items, pattern_warnings, dropped, cleaned} = apply_patterns(items, patterns)
+      warnings = warnings ++ pattern_warnings
 
       pack = build_pack(params, feed, items)
 
@@ -84,8 +88,14 @@ defmodule Qlarius.Tiqit.Arcade.RssImporter do
       ]
 
       case ContentPack.apply(pack, pack_opts) do
-        {:ok, detail} -> {:ok, Map.update!(detail, :warnings, &(warnings ++ &1))}
-        error -> error
+        {:ok, detail} ->
+          {:ok,
+           detail
+           |> Map.update!(:warnings, &(warnings ++ &1))
+           |> Map.merge(%{kept: length(items), dropped: dropped, cleaned: cleaned})}
+
+        error ->
+          error
       end
     end
   end
@@ -95,21 +105,31 @@ defmodule Qlarius.Tiqit.Arcade.RssImporter do
   only get their audio URL, duration, and episode fields refreshed, so
   titles and descriptions edited by hand are kept.
   """
-  def sync_group(%ContentGroup{feed_url: url} = group) when is_binary(url) and url != "" do
+  def sync_group(group, opts \\ [])
+
+  def sync_group(%ContentGroup{feed_url: url} = group, opts) when is_binary(url) and url != "" do
+    refresh_fields =
+      if opts[:refresh_existing] do
+        default_refresh_fields()
+      else
+        [:file_url, :length, :season, :episode_number, :episode_type]
+      end
+
     params = %{
       "feed_url" => url,
       "catalog_id" => group.catalog_id,
       "content_group_id" => group.id,
       "season" => group.feed_season,
-      "episode_types" => sync_episode_types(group)
+      "episode_types" => sync_episode_types(group),
+      "strip_patterns" => opts[:strip_patterns],
+      "drop_patterns" => opts[:drop_patterns],
+      "dry_run" => opts[:dry_run]
     }
 
-    import_feed(params,
-      refresh_fields: [:file_url, :length, :season, :episode_number, :episode_type]
-    )
+    import_feed(params, refresh_fields: refresh_fields)
   end
 
-  def sync_group(%ContentGroup{}), do: {:error, :no_feed_url}
+  def sync_group(%ContentGroup{}, _opts), do: {:error, :no_feed_url}
 
   @doc """
   Puts a group's pieces in episode order: trailers, then episodes by number,
@@ -164,7 +184,8 @@ defmodule Qlarius.Tiqit.Arcade.RssImporter do
           "title" => first_present([params["group_title"], feed.channel.title]),
           "description" => feed.channel.description,
           "image_url" => feed.channel.image_url,
-          "source_url" => feed.channel.link
+          "source_url" => feed.channel.link,
+          "api_ref" => params["api_ref"]
         }
       else
         %{"id" => group_id}
@@ -246,6 +267,73 @@ defmodule Qlarius.Tiqit.Arcade.RssImporter do
         end)
 
     {playable, warnings}
+  end
+
+  defp resolve_group(%{"content_group_id" => id} = params) when id not in [nil, ""] do
+    {:ok, params}
+  end
+
+  defp resolve_group(%{"api_ref" => ref} = params) when is_binary(ref) and ref != "" do
+    if Qlarius.ApiRef.valid?(ref) do
+      case Repo.get_by(ContentGroup, api_ref: ref) do
+        nil -> {:ok, params}
+        group -> {:ok, Map.put(params, "content_group_id", group.id)}
+      end
+    else
+      {:error, :invalid_api_ref}
+    end
+  end
+
+  defp resolve_group(params), do: {:ok, params}
+
+  defp patterns(params) do
+    with {:ok, strip} <- phrase_list(params["strip_patterns"]),
+         {:ok, drop} <- phrase_list(params["drop_patterns"]) do
+      {:ok, %{strip: strip, drop: drop}}
+    end
+  end
+
+  defp phrase_list(nil), do: {:ok, []}
+  defp phrase_list([]), do: {:ok, []}
+  defp phrase_list(value) when is_binary(value), do: phrase_list([value])
+
+  defp phrase_list(list) when is_list(list) do
+    phrases =
+      list
+      |> Enum.map(&to_string/1)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    {:ok, phrases}
+  end
+
+  defp phrase_list(_), do: {:error, :invalid_patterns}
+
+  defp apply_patterns(items, %{strip: strip, drop: drop}) do
+    {kept, dropped} =
+      Enum.split_with(items, fn item ->
+        title = String.downcase(item.title || "")
+        not Enum.any?(drop, &String.contains?(title, String.downcase(&1)))
+      end)
+
+    {cleaned_items, cleaned} =
+      Enum.map_reduce(kept, 0, fn item, count ->
+        description = item.description || ""
+        cleaned_text = Enum.reduce(strip, description, &String.replace(&2, &1, ""))
+
+        if cleaned_text == description do
+          {item, count}
+        else
+          {%{item | description: cleaned_text}, count + 1}
+        end
+      end)
+
+    warnings =
+      Enum.map(dropped, fn item ->
+        "#{item.title || item.guid}: dropped, title matched a drop pattern"
+      end)
+
+    {cleaned_items, warnings, length(dropped), cleaned}
   end
 
   @doc """
