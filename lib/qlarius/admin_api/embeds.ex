@@ -6,6 +6,7 @@ defmodule Qlarius.AdminApi.Embeds do
 
   import Ecto.Query
 
+  alias Qlarius.AdminApi.ImageUrls
   alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
   alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece}
@@ -45,6 +46,7 @@ defmodule Qlarius.AdminApi.Embeds do
       creator_id: creator.id,
       split_code: split_code,
       referral_code: recipient && recipient.referral_code,
+      graphic_url: ImageUrls.recipient_graphic_url(recipient),
       recipients: Enum.map(recipients, &recipient_embed(&1, catalogs)),
       scripts: %{
         sponster: @sponster_script,
@@ -118,6 +120,7 @@ defmodule Qlarius.AdminApi.Embeds do
       is_primary: recipient.is_primary,
       split_code: split_code,
       referral_code: recipient.referral_code,
+      graphic_url: ImageUrls.recipient_graphic_url(recipient),
       sponster_bar: split_code && "/widgets/ads_ext/#{split_code}",
       insta_tip: split_code && "/widgets/insta_tip?split_code=#{split_code}",
       catalogs: Enum.map(mapped, &%{id: &1.id, name: &1.name})

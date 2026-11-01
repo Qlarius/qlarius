@@ -30,7 +30,9 @@ defmodule Qlarius.AdminApi.Recipients do
 
   def fetch(id) do
     case Params.integer(id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       id ->
         case Repo.get(Recipient, id) do
           nil -> {:error, :not_found}
@@ -141,10 +143,19 @@ defmodule Qlarius.AdminApi.Recipients do
   defp maybe_graphic(recipient, url) when is_binary(url) and url != "" do
     with :ok <- image_url(url),
          {:ok, filename} <-
-           ImportImage.store(url, recipient, "recipient-#{recipient.id}", uploader: RecipientBrandImage) do
+           ImportImage.store(url, recipient, "recipient-#{recipient.id}",
+             uploader: RecipientBrandImage
+           ) do
       case filename do
-        nil -> {:ok, recipient}
-        filename -> recipient |> Ecto.Changeset.change(%{graphic_url: filename}) |> Repo.update()
+        nil ->
+          {:ok, recipient}
+
+        filename ->
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+          recipient
+          |> Ecto.Changeset.change(%{graphic_url: %{file_name: filename, updated_at: now}})
+          |> Repo.update()
       end
     end
   end
@@ -206,6 +217,9 @@ defmodule Qlarius.AdminApi.Recipients do
   defp blank(_), do: nil
 
   defp escape_like(value) do
-    value |> String.replace("\\", "\\\\") |> String.replace("%", "\\%") |> String.replace("_", "\\_")
+    value
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
   end
 end

@@ -625,4 +625,72 @@ defmodule QlariusWeb.Api.Admin.CreatorApiTest do
 
     assert json_response(removed, 409)["error"] == "has_dependents"
   end
+
+  test "patches a recipient graphic_url and exposes it as an absolute URL (including in embeds)",
+       %{
+         token: token,
+         admin: admin
+       } do
+    use_tmp_uploads()
+
+    png =
+      Base.decode64!(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/edn9V8AAAAASUVORK5CYII="
+      )
+
+    Req.Test.stub(Qlarius.Tiqit.Arcade.ImportHttp, fn conn ->
+      case conn.request_path do
+        "/brand.png" ->
+          conn
+          |> Plug.Conn.put_resp_content_type("image/png")
+          |> Plug.Conn.send_resp(200, png)
+
+        _ ->
+          Plug.Conn.send_resp(conn, 404, "")
+      end
+    end)
+
+    created =
+      post_created(token, ~p"/api/admin/creators", %{
+        api_ref: "pub-graphic-url.creator",
+        name: "Graphic URL Creator",
+        recipient: %{
+          site_url: "https://graphic-url.example",
+          recipient_type_id: 1
+        }
+      })
+
+    creator_id = created["creator"]["id"]
+    recipient = created["creator"]["recipient"]
+    recipient_id = recipient["id"]
+    assert recipient["user_id"] == admin.id
+
+    patched =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/creators/#{creator_id}/recipients/#{recipient_id}", %{
+        graphic_url: "https://images.example.com/brand.png"
+      })
+      |> json_response(200)
+
+    assert patched["result"] == "updated"
+    assert patched["recipient"]["id"] == recipient_id
+    assert is_binary(patched["recipient"]["graphic_url"])
+    assert %URI{scheme: scheme, host: host} = URI.parse(patched["recipient"]["graphic_url"])
+    assert scheme in ["http", "https"]
+    assert is_binary(host) and host != ""
+
+    embeds =
+      token
+      |> authed()
+      |> get(~p"/api/admin/creators/#{creator_id}/embeds")
+      |> json_response(200)
+
+    assert embeds["embeds"]["graphic_url"] == patched["recipient"]["graphic_url"]
+
+    embed_recipient =
+      Enum.find(embeds["embeds"]["recipients"], &(&1["id"] == recipient_id))
+
+    assert embed_recipient["graphic_url"] == patched["recipient"]["graphic_url"]
+  end
 end

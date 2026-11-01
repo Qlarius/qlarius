@@ -3,6 +3,7 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
 
   alias Qlarius.AdminApi.{Creators, Embeds}
   import Ecto.Query
+  alias Qlarius.AdminApi.ImageUrls
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, params) do
@@ -99,6 +100,7 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
       description: recipient.description,
       message: recipient.message,
       site_url: recipient.site_url,
+      graphic_url: ImageUrls.recipient_graphic_url(recipient),
       split_code: recipient.split_code,
       referral_code: recipient.referral_code,
       recipient_type_id: recipient.recipient_type_id,
