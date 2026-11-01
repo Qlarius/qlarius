@@ -2,6 +2,7 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
   use QlariusWeb, :controller
 
   alias Qlarius.AdminApi.Recipients
+  alias Qlarius.AdminApi.ImageUrls
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, params) do
@@ -57,7 +58,7 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
       message: recipient.message,
       site_url: recipient.site_url,
       contact_email: recipient.contact_email,
-      graphic_url: recipient.graphic_url,
+      graphic_url: ImageUrls.recipient_graphic_url(recipient),
       split_code: recipient.split_code,
       referral_code: recipient.referral_code,
       recipient_type_id: recipient.recipient_type_id,

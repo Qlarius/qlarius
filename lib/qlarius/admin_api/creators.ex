@@ -294,8 +294,10 @@ defmodule Qlarius.AdminApi.Creators do
           {:ok, recipient}
 
         filename ->
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
           recipient
-          |> Ecto.Changeset.change(%{graphic_url: filename})
+          |> Ecto.Changeset.change(%{graphic_url: %{file_name: filename, updated_at: now}})
           |> Repo.update()
       end
     end
