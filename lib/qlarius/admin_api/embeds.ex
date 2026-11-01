@@ -7,6 +7,7 @@ defmodule Qlarius.AdminApi.Embeds do
   import Ecto.Query
 
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Recipient
   alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece}
 
   @sponster_script "/sponster-tipjar-widget-ext-script.js"
@@ -14,7 +15,10 @@ defmodule Qlarius.AdminApi.Embeds do
 
   def for_creator(creator) do
     creator = Repo.preload(creator, :recipient)
-    catalogs = Repo.all(from c in Catalog, where: c.creator_id == ^creator.id, order_by: [asc: c.id])
+
+    catalogs =
+      Repo.all(from c in Catalog, where: c.creator_id == ^creator.id, order_by: [asc: c.id])
+
     catalog_ids = Enum.map(catalogs, & &1.id)
 
     groups =
@@ -33,13 +37,15 @@ defmodule Qlarius.AdminApi.Embeds do
           order_by: [asc: p.display_order, asc: p.id]
       )
 
-    recipient = creator.recipient
+    recipients = active_recipients(creator)
+    recipient = primary_recipient(creator, recipients)
     split_code = recipient && recipient.split_code
 
     %{
       creator_id: creator.id,
       split_code: split_code,
       referral_code: recipient && recipient.referral_code,
+      recipients: Enum.map(recipients, &recipient_embed(&1, catalogs)),
       scripts: %{
         sponster: @sponster_script,
         arqade: @arqade_script
@@ -56,12 +62,65 @@ defmodule Qlarius.AdminApi.Embeds do
               tiqit_pass: "/widgets/tiqit_pass/#{catalog.id}"
             }
           end),
-        groups: Enum.map(groups, &%{id: &1.id, catalog_id: &1.catalog_id, path: "/widgets/arqade/group/#{&1.id}"}),
+        groups:
+          Enum.map(
+            groups,
+            &%{id: &1.id, catalog_id: &1.catalog_id, path: "/widgets/arqade/group/#{&1.id}"}
+          ),
         pieces:
           Enum.map(pieces, fn piece ->
-            %{id: piece.id, content_group_id: piece.content_group_id, path: "/widgets/arqade/#{piece.id}"}
+            %{
+              id: piece.id,
+              content_group_id: piece.content_group_id,
+              path: "/widgets/arqade/#{piece.id}"
+            }
           end)
       }
+    }
+  end
+
+  defp active_recipients(creator) do
+    rows =
+      Repo.all(
+        from r in Recipient,
+          where: r.creator_id == ^creator.id and is_nil(r.archived_at),
+          order_by: [desc: r.is_primary, asc: r.name]
+      )
+
+    cond do
+      rows != [] ->
+        rows
+
+      match?(%Recipient{}, creator.recipient) ->
+        [creator.recipient]
+
+      true ->
+        []
+    end
+  end
+
+  defp primary_recipient(creator, recipients) do
+    Enum.find(recipients, & &1.is_primary) || creator.recipient || List.first(recipients)
+  end
+
+  defp recipient_embed(recipient, catalogs) do
+    split_code = recipient.split_code
+
+    mapped =
+      Enum.filter(catalogs, fn catalog ->
+        catalog.recipient_id == recipient.id or
+          (is_nil(catalog.recipient_id) and recipient.is_primary)
+      end)
+
+    %{
+      id: recipient.id,
+      name: recipient.name,
+      is_primary: recipient.is_primary,
+      split_code: split_code,
+      referral_code: recipient.referral_code,
+      sponster_bar: split_code && "/widgets/ads_ext/#{split_code}",
+      insta_tip: split_code && "/widgets/insta_tip?split_code=#{split_code}",
+      catalogs: Enum.map(mapped, &%{id: &1.id, name: &1.name})
     }
   end
 end

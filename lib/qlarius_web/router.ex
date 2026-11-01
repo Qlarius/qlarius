@@ -473,6 +473,12 @@ defmodule QlariusWeb.Router do
     get "/creators", CreatorController, :index
     post "/creators", CreatorController, :create
     get "/creators/:id/embeds", CreatorController, :embeds
+    get "/creators/:creator_id/recipients", CreatorRecipientController, :index
+    post "/creators/:creator_id/recipients", CreatorRecipientController, :create
+    get "/creators/:creator_id/recipients/:id", CreatorRecipientController, :show
+    patch "/creators/:creator_id/recipients/:id", CreatorRecipientController, :update
+    post "/creators/:creator_id/recipients/:id/archive", CreatorRecipientController, :archive
+    delete "/creators/:creator_id/recipients/:id", CreatorRecipientController, :delete
     get "/creators/:creator_id/catalogs", CatalogController, :index
     post "/creators/:creator_id/catalogs", CatalogController, :create
     get "/creators/:id", CreatorController, :show

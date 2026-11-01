@@ -21,7 +21,10 @@ defmodule Qlarius.Sponster.Recipient do
     field :referral_code, :string
     field :api_ref, :string
     field :recipient_type_id, :integer, default: 1
+    field :is_primary, :boolean, default: false
+    field :archived_at, :utc_datetime
 
+    belongs_to :creator, Qlarius.Creators.Creator
     belongs_to :user, Qlarius.Accounts.User
     # recipient_type_id stays a plain integer (1 = publisher, 2 = charity, and so on).
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
@@ -44,7 +47,10 @@ defmodule Qlarius.Sponster.Recipient do
       :approval_date,
       :approved_by_user_id,
       :referral_code,
-      :api_ref
+      :api_ref,
+      :creator_id,
+      :is_primary,
+      :archived_at
     ])
     |> cast_attachments(attrs, [:graphic_url])
     |> validate_required([

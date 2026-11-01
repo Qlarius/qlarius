@@ -20,6 +20,17 @@ defmodule QlariusWeb.Api.Admin.Responder do
     })
   end
 
+  def error(conn, :primary_recipient) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "primary_recipient",
+      message:
+        "Choose another primary recipient before archiving, deleting, or clearing this one.",
+      guide: @guide <> "?topic=creators"
+    })
+  end
+
   def error(conn, {:has_dependents, dependents}) do
     conn
     |> put_status(409)

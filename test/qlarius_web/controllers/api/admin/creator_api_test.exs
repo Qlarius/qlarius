@@ -404,6 +404,155 @@ defmodule QlariusWeb.Api.Admin.CreatorApiTest do
 
     assert body["topics"] == ["overview", "creators"]
     assert body["guide"] =~ "strip_patterns"
+    assert body["guide"] =~ "Cities West Media"
+    assert body["guide"] =~ "PHOENIX Magazine"
+    assert body["guide"] =~ "Phoenix Home & Garden"
     assert Enum.any?(body["endpoints"], &(&1["path"] == "/api/admin/creators/:id/embeds"))
+    assert Enum.any?(body["endpoints"], &(&1["path"] == "/api/admin/creators/:id/recipients"))
+  end
+
+  test "adds a sister recipient, keeps api_ref idempotent, and maps catalogs", %{
+    token: token,
+    admin: admin
+  } do
+    created =
+      post_created(token, ~p"/api/admin/creators", %{
+        api_ref: "cities-west.creator",
+        name: "Cities West Media",
+        recipient: %{
+          api_ref: "cities-west.phoenix-magazine",
+          name: "PHOENIX Magazine",
+          site_url: "https://phoenixmag.com"
+        }
+      })
+
+    creator_id = created["creator"]["id"]
+    primary = created["creator"]["recipient"]
+    assert primary["is_primary"] == true
+    assert primary["name"] == "PHOENIX Magazine"
+    assert hd(created["creator"]["recipients"])["id"] == primary["id"]
+
+    second =
+      post_created(token, ~p"/api/admin/creators/#{creator_id}/recipients", %{
+        api_ref: "cities-west.phg",
+        name: "Phoenix Home & Garden",
+        site_url: "https://phgmag.com"
+      })
+
+    assert second["result"] == "created"
+    assert second["recipient"]["is_primary"] == false
+    assert second["recipient"]["user_id"] == admin.id
+    assert second["recipient"]["split_code"]
+    assert second["recipient"]["approval_date"]
+    refute second["recipient"]["split_code"] == primary["split_code"]
+
+    again =
+      post_json(token, ~p"/api/admin/creators/#{creator_id}/recipients", %{
+        api_ref: "cities-west.phg",
+        name: "Phoenix Home & Garden",
+        site_url: "https://phgmag.com"
+      })
+
+    assert again["result"] == "matched"
+    assert again["recipient"]["id"] == second["recipient"]["id"]
+
+    priced =
+      token
+      |> authed()
+      |> post(~p"/api/admin/creators/#{creator_id}/recipients", %{
+        api_ref: "cities-west.priced",
+        name: "Priced",
+        site_url: "https://priced.example",
+        price: "1.00"
+      })
+
+    assert json_response(priced, 422)["error"] == "price_not_writable"
+
+    phg_catalog =
+      post_created(token, ~p"/api/admin/creators/#{creator_id}/catalogs", %{
+        api_ref: "cities-west.phg.catalog",
+        name: "Home & Garden",
+        url: "https://phgmag.com",
+        type: "catalog",
+        group_type: "section",
+        piece_type: "article",
+        recipient_id: second["recipient"]["id"]
+      })
+
+    assert phg_catalog["catalog"]["recipient_id"] == second["recipient"]["id"]
+
+    phoenix_catalog =
+      post_created(token, ~p"/api/admin/creators/#{creator_id}/catalogs", %{
+        api_ref: "cities-west.phoenix.catalog",
+        name: "PHOENIX Magazine",
+        url: "https://phoenixmag.com",
+        type: "catalog",
+        group_type: "section",
+        piece_type: "article"
+      })
+
+    assert phoenix_catalog["catalog"]["recipient_id"] == primary["id"]
+
+    standalone =
+      post_created(token, ~p"/api/admin/recipients", %{
+        api_ref: "cities-west.standalone",
+        name: "Standalone",
+        site_url: "https://standalone.example"
+      })
+
+    rejected =
+      token
+      |> authed()
+      |> post(~p"/api/admin/creators/#{creator_id}/catalogs", %{
+        api_ref: "cities-west.bad-catalog",
+        name: "Wrong recipient",
+        url: "https://example.com/wrong",
+        type: "catalog",
+        group_type: "section",
+        piece_type: "article",
+        recipient_id: standalone["recipient"]["id"]
+      })
+
+    assert json_response(rejected, 422)["error"] == "invalid"
+
+    embeds =
+      token
+      |> authed()
+      |> get(~p"/api/admin/creators/#{creator_id}/embeds")
+      |> json_response(200)
+
+    assert embeds["embeds"]["split_code"] == primary["split_code"]
+
+    assert embeds["embeds"]["widgets"]["sponster_bar"] ==
+             "/widgets/ads_ext/#{primary["split_code"]}"
+
+    phg =
+      Enum.find(embeds["embeds"]["recipients"], &(&1["id"] == second["recipient"]["id"]))
+
+    assert phg["split_code"] == second["recipient"]["split_code"]
+    assert phg["sponster_bar"] == "/widgets/ads_ext/#{phg["split_code"]}"
+    assert phg["insta_tip"] == "/widgets/insta_tip?split_code=#{phg["split_code"]}"
+    assert Enum.any?(phg["catalogs"], &(&1["id"] == phg_catalog["catalog"]["id"]))
+
+    listed = token |> authed() |> get(~p"/api/admin/creators") |> json_response(200)
+    row = Enum.find(listed["creators"], &(&1["id"] == creator_id))
+    assert row["recipient"]["id"] == primary["id"]
+
+    assert Enum.map(row["recipients"], & &1["id"]) |> Enum.sort() ==
+             Enum.sort([primary["id"], second["recipient"]["id"]])
+
+    primary_delete =
+      token
+      |> authed()
+      |> delete(~p"/api/admin/creators/#{creator_id}/recipients/#{primary["id"]}")
+
+    assert json_response(primary_delete, 422)["error"] == "primary_recipient"
+
+    removed =
+      token
+      |> authed()
+      |> delete(~p"/api/admin/creators/#{creator_id}/recipients/#{second["recipient"]["id"]}")
+
+    assert json_response(removed, 409)["error"] == "has_dependents"
   end
 end

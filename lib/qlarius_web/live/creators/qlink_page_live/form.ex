@@ -27,7 +27,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     links = Qlink.list_page_links(page.id) |> Repo.preload(:qlink_section)
     sections = Qlink.list_page_sections(page.id)
-    recipients = Recipients.list_recipients()
+    recipients = Recipients.list_for_creator(creator.id, include: page.recipient)
 
     changeset = Qlink.change_page(page)
     social_links_map = if(is_map(page.social_links), do: page.social_links, else: %{})
@@ -71,7 +71,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_params(%{"creator_id" => creator_id}, _uri, socket) do
     creator = Creators.get_creator!(creator_id)
     changeset = Qlink.change_page(%QlinkPage{})
-    recipients = Recipients.list_recipients()
+    recipients = Recipients.list_for_creator(creator.id)
 
     socket
     |> assign(

@@ -27,7 +27,11 @@ defmodule Qlarius.AdminApi.Creators do
     |> filter_prefix(blank(params["api_ref_prefix"]))
     |> order_by([c], asc: c.name)
     |> maybe_limit(Params.limit(params, nil))
-    |> preload([:recipient, catalogs: ^from(cat in Catalog, order_by: [asc: cat.name])])
+    |> preload([
+      :recipient,
+      recipients: ^from(r in Recipient, order_by: [desc: r.is_primary, asc: r.name]),
+      catalogs: ^from(cat in Catalog, order_by: [asc: cat.name])
+    ])
     |> Repo.all()
   end
 
@@ -38,8 +42,16 @@ defmodule Qlarius.AdminApi.Creators do
 
       id ->
         case Repo.get(Creator, id) do
-          nil -> {:error, :not_found}
-          creator -> {:ok, Repo.preload(creator, :recipient)}
+          nil ->
+            {:error, :not_found}
+
+          creator ->
+            {:ok,
+             Repo.preload(creator, [
+               :recipient,
+               :recipients,
+               catalogs: from(c in Catalog, order_by: [asc: c.name])
+             ])}
         end
     end
   end
@@ -113,7 +125,12 @@ defmodule Qlarius.AdminApi.Creators do
     changeset = Creator.changeset(creator, Map.take(params, @fields))
 
     if changeset.valid? do
-      {:ok, %{result: "would_update", record: Ecto.Changeset.apply_changes(changeset), differences: differences}}
+      {:ok,
+       %{
+         result: "would_update",
+         record: Ecto.Changeset.apply_changes(changeset),
+         differences: differences
+       }}
     else
       {:error, changeset}
     end
@@ -125,7 +142,8 @@ defmodule Qlarius.AdminApi.Creators do
            {:ok, recipient} <- insert_recipient(scope, creator, params["recipient"] || %{}),
            {:ok, creator} <- link_recipient(creator, recipient),
            {:ok, creator} <- maybe_creator_image(creator, params["image_url"]),
-           {:ok, recipient} <- maybe_graphic(recipient, (params["recipient"] || %{})["graphic_url"]) do
+           {:ok, recipient} <-
+             maybe_graphic(creator.recipient, (params["recipient"] || %{})["graphic_url"]) do
         Wallets.get_or_create_recipient_ledger_header(recipient)
         %{creator | recipient: recipient}
       else
@@ -152,7 +170,8 @@ defmodule Qlarius.AdminApi.Creators do
       "name" => name,
       "description" => recipient_params["description"],
       "message" => recipient_params["message"] || "Thank you for supporting #{name}.",
-      "site_url" => recipient_params["site_url"] || Urls.public_app_url("/creators/#{creator.id}"),
+      "site_url" =>
+        recipient_params["site_url"] || Urls.public_app_url("/creators/#{creator.id}"),
       "contact_email" => recipient_params["contact_email"],
       "recipient_type_id" => recipient_params["recipient_type_id"] || 1,
       "split_code" => Ecto.UUID.generate(),
@@ -164,9 +183,18 @@ defmodule Qlarius.AdminApi.Creators do
   end
 
   defp link_recipient(creator, recipient) do
-    creator
-    |> Ecto.Changeset.change(%{recipient_id: recipient.id})
-    |> Repo.update()
+    with {:ok, recipient} <-
+           recipient
+           |> Ecto.Changeset.change(%{creator_id: creator.id, is_primary: true})
+           |> Repo.update() do
+      creator
+      |> Ecto.Changeset.change(%{recipient_id: recipient.id})
+      |> Repo.update()
+      |> case do
+        {:ok, creator} -> {:ok, %{creator | recipient: recipient}}
+        {:error, reason} -> {:error, reason}
+      end
+    end
   end
 
   defp update_records(_scope, creator, params) do
@@ -176,7 +204,8 @@ defmodule Qlarius.AdminApi.Creators do
       with {:ok, creator} <- save_creator(creator, params),
            {:ok, recipient} <- save_recipient(creator.recipient, params["recipient"] || %{}),
            {:ok, creator} <- maybe_creator_image(creator, params["image_url"]),
-           {:ok, recipient} <- maybe_graphic(recipient, (params["recipient"] || %{})["graphic_url"]) do
+           {:ok, recipient} <-
+             maybe_graphic(recipient, (params["recipient"] || %{})["graphic_url"]) do
         %{creator | recipient: recipient}
       else
         {:error, reason} -> Repo.rollback(reason)
@@ -219,7 +248,9 @@ defmodule Qlarius.AdminApi.Creators do
   defp maybe_graphic(recipient, url) when is_binary(url) and url != "" do
     with :ok <- image_url(url),
          {:ok, filename} <-
-           ImportImage.store(url, recipient, "recipient-#{recipient.id}", uploader: RecipientBrandImage) do
+           ImportImage.store(url, recipient, "recipient-#{recipient.id}",
+             uploader: RecipientBrandImage
+           ) do
       case filename do
         nil ->
           {:ok, recipient}
@@ -241,7 +272,8 @@ defmodule Qlarius.AdminApi.Creators do
 
   defp recipient_differences(nil, params) when map_size(params) == 0, do: %{}
 
-  defp recipient_differences(nil, _params), do: %{"recipient" => %{"current" => nil, "requested" => "present"}}
+  defp recipient_differences(nil, _params),
+    do: %{"recipient" => %{"current" => nil, "requested" => "present"}}
 
   defp recipient_differences(%Recipient{} = recipient, params) do
     params =
@@ -287,7 +319,9 @@ defmodule Qlarius.AdminApi.Creators do
   defp site_url(""), do: :ok
 
   defp site_url(url) do
-    if ImportHttp.public_url?(url, ["http", "https"]), do: :ok, else: {:error, "site_url must be an http(s) URL"}
+    if ImportHttp.public_url?(url, ["http", "https"]),
+      do: :ok,
+      else: {:error, "site_url must be an http(s) URL"}
   end
 
   defp filter_q(query, nil), do: query
@@ -316,6 +350,9 @@ defmodule Qlarius.AdminApi.Creators do
   defp blank(_), do: nil
 
   defp escape_like(value) do
-    value |> String.replace("\\", "\\\\") |> String.replace("%", "\\%") |> String.replace("_", "\\_")
+    value
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
   end
 end

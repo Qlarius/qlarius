@@ -3,7 +3,9 @@ defmodule QlariusWeb.CreatorDashboard.Show do
 
   import QlariusWeb.Components.MarketerUI
 
+  alias Qlarius.AdminApi.CreatorRecipients
   alias Qlarius.Creators
+  alias Qlarius.Sponster.Recipients
   alias Qlarius.Tiqit.ContentAudiences
   alias QlariusWeb.AudienceCard
   alias Qlarius.Qlink
@@ -113,6 +115,65 @@ defmodule QlariusWeb.CreatorDashboard.Show do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to delete image")}
+    end
+  end
+
+  def handle_event("add_recipient", %{"recipient" => params}, socket) do
+    case Recipients.attach_to_creator(
+           socket.assigns.current_scope,
+           socket.assigns.creator,
+           params
+         ) do
+      {:ok, _recipient} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Recipient added")
+         |> assign(:creator, Creators.get_creator!(socket.assigns.creator.id))}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, recipient_error(changeset))}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Could not add that recipient")}
+    end
+  end
+
+  def handle_event("make_primary", %{"id" => id}, socket) do
+    creator = socket.assigns.creator
+    recipient = Enum.find(creator.recipients, &(to_string(&1.id) == id))
+
+    case recipient && CreatorRecipients.promote(creator, recipient) do
+      {:ok, _recipient} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Primary recipient updated")
+         |> assign(:creator, Creators.get_creator!(creator.id))}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Could not change the primary recipient")}
+    end
+  end
+
+  def handle_event("archive_recipient", %{"id" => id}, socket) do
+    creator = socket.assigns.creator
+    recipient = Enum.find(creator.recipients, &(to_string(&1.id) == id))
+
+    case recipient && CreatorRecipients.archive(creator, recipient, []) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Recipient archived")
+         |> assign(:creator, Creators.get_creator!(creator.id))}
+
+      {:error, :primary_recipient} ->
+        {:noreply,
+         put_flash(socket, :error, "Choose another primary recipient before archiving this one")}
+
+      {:error, {:has_dependents, _}} ->
+        {:noreply, put_flash(socket, :error, "This recipient has ledger activity")}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Could not archive that recipient")}
     end
   end
 
@@ -275,6 +336,78 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                 class="mb-8"
               />
 
+              <.panel
+                id="creator-recipients"
+                class="mb-8"
+                title="Recipients"
+                description="Each publication has its own ledger, tip jar, and Sponster bar."
+              >
+                <.empty_state
+                  :if={active_recipients(@creator) == []}
+                  icon="hero-building-library"
+                  title="No recipients yet"
+                >
+                  Add a publication to collect tips and Sponster revenue.
+                </.empty_state>
+
+                <ul :if={active_recipients(@creator) != []} class="divide-y divide-base-300">
+                  <li
+                    :for={recipient <- active_recipients(@creator)}
+                    id={"recipient-#{recipient.id}"}
+                    class="flex flex-wrap items-center gap-3 py-3"
+                  >
+                    <div class="min-w-0 flex-1">
+                      <p class="font-semibold">
+                        {recipient.name}
+                        <span :if={recipient.is_primary} class="badge badge-sm ml-2">Primary</span>
+                      </p>
+                      <p class="text-sm text-base-content/60">{recipient.site_url}</p>
+                      <p class="text-xs text-base-content/50">{recipient.split_code}</p>
+                    </div>
+                    <button
+                      :if={!recipient.is_primary}
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      phx-click="make_primary"
+                      phx-value-id={recipient.id}
+                    >
+                      Make primary
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      phx-click="archive_recipient"
+                      phx-value-id={recipient.id}
+                      data-confirm="Archive this recipient?"
+                    >
+                      Archive
+                    </button>
+                  </li>
+                </ul>
+
+                <form
+                  id="add-recipient"
+                  phx-submit="add_recipient"
+                  class="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+                >
+                  <input
+                    type="text"
+                    name="recipient[name]"
+                    placeholder="Publication name"
+                    class="input input-bordered input-sm"
+                    required
+                  />
+                  <input
+                    type="url"
+                    name="recipient[site_url]"
+                    placeholder="https://example.com"
+                    class="input input-bordered input-sm"
+                    required
+                  />
+                  <button class="btn btn-primary btn-sm" type="submit">Add recipient</button>
+                </form>
+              </.panel>
+
               <div class="grid items-start gap-8 lg:grid-cols-2">
                 <.panel
                   id="creator-qlink-pages"
@@ -429,6 +562,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                         </.link>
                         <p class="text-xs text-base-content/50">
                           {catalog.type |> to_string() |> String.capitalize()}
+                          <span :if={catalog.recipient}> ·   {catalog.recipient.name}</span>
                         </p>
                       </div>
                       <.link navigate={~p"/creators/catalogs/#{catalog.id}"} class="btn btn-sm">
@@ -444,6 +578,22 @@ defmodule QlariusWeb.CreatorDashboard.Show do
       </div>
     </Layouts.admin>
     """
+  end
+
+  defp active_recipients(creator) do
+    Enum.filter(creator.recipients || [], &is_nil(&1.archived_at))
+  end
+
+  defp recipient_error(changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map_join(". ", fn {field, messages} ->
+      "#{field} #{Enum.join(messages, ", ")}"
+    end)
   end
 
   attr :name, :string, default: nil

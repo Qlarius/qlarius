@@ -18,6 +18,7 @@ defmodule Qlarius.Creators.Creator do
     field :api_ref, :string
 
     belongs_to :recipient, Recipient
+    has_many :recipients, Recipient, foreign_key: :creator_id
     has_many :qlink_pages, QlinkPage
     has_many :catalogs, Catalog
 

@@ -4,6 +4,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   import QlariusWeb.Components.MarketerUI
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
+  alias Qlarius.Sponster.Recipients
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Repo
@@ -20,6 +21,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
       |> Repo.preload(:tiqit_classes)
 
     creator = catalog.creator
+    recipients = Recipients.list_for_creator(creator.id, include: catalog.recipient)
 
     changeset = Creators.change_catalog(catalog)
 
@@ -30,7 +32,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     ]
 
     socket
-    |> assign(catalog: catalog, creator: creator)
+    |> assign(catalog: catalog, creator: creator, recipients: recipients)
     |> assign(
       breadcrumbs: breadcrumbs,
       form: to_form(changeset),
@@ -46,7 +48,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   def handle_params(params, _uri, %{assigns: %{live_action: :new}} = socket) do
     creator_id = params["creator_id"] || params["id"]
     creator = Creators.get_creator!(creator_id)
-    changeset = Creators.change_catalog(%Catalog{})
+    recipients = Recipients.list_for_creator(creator.id)
+    changeset = Creators.change_catalog(%Catalog{creator_id: creator.id})
 
     breadcrumbs = [
       {creator.name, ~p"/creators/#{creator.id}"},
@@ -56,8 +59,9 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     socket
     |> assign(
       breadcrumbs: breadcrumbs,
-      catalog: %Catalog{},
+      catalog: %Catalog{creator_id: creator.id},
       creator: creator,
+      recipients: recipients,
       form: to_form(changeset),
       page_title: "New Catalog"
     )
@@ -162,6 +166,12 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     end
     |> noreply()
   end
+
+  defp recipient_label(%{archived_at: archived, name: name}) when not is_nil(archived),
+    do: "#{name} (archived)"
+
+  defp recipient_label(%{is_primary: true, name: name}), do: "#{name} (primary)"
+  defp recipient_label(%{name: name}), do: name
 
   defp type_options(types), do: Enum.map(types, &{Catalog.type_label(&1), &1})
 

@@ -4,9 +4,17 @@ defmodule Qlarius.AdminApi.Catalogs do
   alias Qlarius.AdminApi.{Idempotent, Params, Prices}
   alias Qlarius.Creators.Creator
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece, ImportHttp, ImportImage}
 
-  @fields ~w(name url type group_type piece_type tiqit_undo_limit tiqit_up_enabled)
+  alias Qlarius.Tiqit.Arcade.{
+    Arcade,
+    Catalog,
+    ContentGroup,
+    ContentPiece,
+    ImportHttp,
+    ImportImage
+  }
+
+  @fields ~w(name url type group_type piece_type tiqit_undo_limit tiqit_up_enabled recipient_id)
 
   def list(%Creator{} = creator) do
     Repo.all(from c in Catalog, where: c.creator_id == ^creator.id, order_by: [asc: c.name])
@@ -14,7 +22,9 @@ defmodule Qlarius.AdminApi.Catalogs do
 
   def fetch(id) do
     case Params.integer(id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       id ->
         case Repo.get(Catalog, id) do
           nil -> {:error, :not_found}
@@ -30,7 +40,7 @@ defmodule Qlarius.AdminApi.Catalogs do
         dry_run: opts[:dry_run],
         on_existing: params["on_existing"],
         owned?: &(&1.creator_id == creator.id),
-        preview: &preview/1,
+        preview: &preview(creator, &1),
         insert: fn _ -> insert(creator, params) end,
         update: fn catalog, _attrs -> save(catalog, params) end
       )
@@ -88,10 +98,10 @@ defmodule Qlarius.AdminApi.Catalogs do
     }
   end
 
-  defp preview(params) do
+  defp preview(creator, params) do
     with :ok <- image_url(params["image_url"]),
-         {:ok, _} <- preview_changeset(%Catalog{}, params) do
-      {:ok, Ecto.Changeset.apply_changes(elem(preview_changeset(%Catalog{}, params), 1))}
+         {:ok, changeset} <- preview_changeset(%Catalog{creator_id: creator.id}, params) do
+      {:ok, Ecto.Changeset.apply_changes(changeset)}
     end
   end
 
