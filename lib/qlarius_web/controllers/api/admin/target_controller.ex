@@ -63,7 +63,8 @@ defmodule QlariusWeb.Api.Admin.TargetController do
 
   def attach_anti_group(conn, %{"id" => id} = params) do
     with {:ok, target} <- load(id),
-         {:ok, body} <- Targets.attach_anti_group(target, params) do
+         {:ok, body} <-
+           Targets.attach_anti_group(target, params, dry_run: Responder.dry_run?(params)) do
       json(conn, body)
     else
       {:error, reason} -> Responder.error(conn, reason)

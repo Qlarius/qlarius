@@ -384,16 +384,45 @@ defmodule Qlarius.AdminApi.Targets do
 
   @doc """
   Attaches an existing Anti-Trait Group to a target's bands. `band_ids` chooses
-  bands; default is every band.
+  bands; default is every band. A dry run runs the same checks and saves nothing.
   """
-  def attach_anti_group(target, params) do
+  def attach_anti_group(target, params, opts \\ []) do
     band_ids = params["band_ids"] && params["band_ids"] |> List.wrap() |> Enum.map(&int/1)
 
-    with {:ok, group} <- load_anti_group(params["trait_group_id"], owner_of(target)),
-         {:ok, attached} <-
-           Targets.attach_anti_group(target.id, group.id, band_ids: band_ids) do
-      {:ok, %{result: "attached", trait_group_id: group.id, band_ids: attached}}
+    with {:ok, group} <- load_anti_group(params["trait_group_id"], owner_of(target)) do
+      if opts[:dry_run] do
+        preview_attach(target, group, band_ids)
+      else
+        write_attach(target, group, band_ids)
+      end
     end
+  end
+
+  defp write_attach(target, group, band_ids) do
+    case Targets.attach_anti_group(target.id, group.id, band_ids: band_ids) do
+      {:ok, attached} -> {:ok, attach_body("attached", group.id, attached)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp preview_attach(target, group, band_ids) do
+    Repo.transaction(fn ->
+      case Targets.attach_anti_group(target.id, group.id, band_ids: band_ids) do
+        {:ok, attached} ->
+          Repo.rollback({:dry_run, attach_body("would_attach", group.id, attached)})
+
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
+    end)
+    |> case do
+      {:error, {:dry_run, body}} -> {:ok, body}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp attach_body(result, group_id, band_ids) do
+    %{result: result, trait_group_id: group_id, band_ids: band_ids}
   end
 
   defp load_anti_group(id, owner) do

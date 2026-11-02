@@ -264,8 +264,9 @@ paths:
               properties:
                 trait_group_id: {type: integer}
                 band_ids: {type: array, items: {type: integer}}
+                dry_run: {type: boolean, description: Check the attach and save nothing}
       responses:
-        "200": {description: "{result: attached, trait_group_id, band_ids}"}
+        "200": {description: "{result: attached|would_attach, trait_group_id, band_ids}"}
         "422": {description: anti_group_required, include_group_required, trait_in_both_roles, no_bands_exist}
         "409": {description: frozen_target}
   /api/admin/targets/{id}/suggestions:

@@ -259,9 +259,10 @@ band id is smallest: bids pay the tightest band the most.
   outer band. `DELETE /api/admin/targets/:id/bands/outermost` removes the
   widest band. Both refuse a target a launched campaign still uses.
 - `POST /api/admin/targets/:id/anti_groups` with `{trait_group_id,
-  band_ids?}` attaches an existing Anti-Trait Group (same owner, `role`
+  band_ids?, dry_run?}` attaches an existing Anti-Trait Group (same owner, `role`
   `anti`) to every band, or to `band_ids`. All or nothing: a refusal on any
-  chosen band attaches to none. Returns `band_ids` attached.
+  chosen band attaches to none. Returns `band_ids` attached. `dry_run: true`
+  runs those same checks and returns `result: "would_attach"` without saving.
 - `POST /api/admin/targets/:id/clone` requires a new `api_ref`. Same owner
   shares the trait groups. `dest_marketer_id` or `dest_creator_id` copies into
   another org; copied groups keep their `role`.

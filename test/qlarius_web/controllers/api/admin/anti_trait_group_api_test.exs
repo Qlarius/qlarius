@@ -467,6 +467,54 @@ defmodule QlariusWeb.Api.Admin.AntiTraitGroupApiTest do
              |> Map.fetch!("count") == 0
     end
 
+    test "a dry run does not attach the anti group", ctx do
+      created =
+        ctx.conn
+        |> post(~p"/api/admin/targets/builds", %{
+          api_ref: "#{ctx.ref}.target-dry",
+          marketer_id: ctx.marketer.id,
+          title: "Phoenix burger fans",
+          bullseye: [ctx.burger_fans["id"], ctx.phoenix["id"]]
+        })
+        |> json_response(201)
+
+      target_id = created["target"]["id"]
+
+      anti =
+        group(ctx.conn, %{
+          api_ref: "#{ctx.ref}.tg-dry",
+          title: "Keep out · Typical Daily Diet",
+          marketer_id: ctx.marketer.id,
+          parent_trait_id: ctx.diet.id,
+          trait_ids: [ctx.vegan.id],
+          role: "anti"
+        })
+
+      group_id = anti["trait_group"]["id"]
+      before = Targets.get_bands_for_target(target_id)
+
+      dry =
+        ctx.conn
+        |> post(~p"/api/admin/targets/#{target_id}/anti_groups", %{
+          trait_group_id: group_id,
+          dry_run: true
+        })
+        |> json_response(200)
+
+      assert dry["result"] == "would_attach"
+      assert dry["trait_group_id"] == group_id
+      assert dry["band_ids"] == Enum.map(before, & &1.id)
+
+      after_dry = Targets.get_bands_for_target(target_id)
+
+      assert Enum.map(after_dry, &{&1.id, Enum.map(&1.trait_groups, fn group -> group.id end)}) ==
+               Enum.map(before, &{&1.id, Enum.map(&1.trait_groups, fn group -> group.id end)})
+
+      refute Enum.any?(after_dry, fn band ->
+               Enum.any?(band.trait_groups, &(&1.id == group_id))
+             end)
+    end
+
     test "the one-call PTP build from the guide carries roles and multi-topic groups", ctx do
       base = "ptp-2610-joes#{ctx.n}-phx"
 
