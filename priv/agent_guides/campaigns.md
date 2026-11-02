@@ -146,7 +146,10 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
 - The uploaded file and the URL are both limited to JPG, PNG, GIF, or WebP, at
   most 10 MB. URL fetches must be HTTPS. Hosts that resolve to a private,
   loopback, or link-local address are refused, and every redirect is checked
-  the same way.
+  the same way. The stored name is the piece's `api_ref`, plus the sender's
+  file name when that name is not a generic `banner.png`, plus a unique
+  suffix. If storage fails, the response `errors.banner_image` is the storage
+  error.
 - After the piece exists, open its edit page in the app:
   `/marketer/media/<id>/edit`. That page has a Preview panel. For a 3-tap ad
   it shows the banner and the text panel. For a video ad it shows the video.
@@ -398,7 +401,7 @@ carry `included`, `removed`, and `estimated_reach` like a target build.
 `campaign.is_ptp` is always true. `is_throttled` defaults to true unless
 `campaign` sends it. `campaign.start_date` and `campaign.end_date` follow the
 same rules as `POST /api/admin/campaigns`. Send `dry_run: true` first. A dry run rolls the database
-transaction back. Resending the same base returns `result: "matched"` and the
+transaction back and does not store the banner file. Resending the same base returns `result: "matched"` and the
 same ids.
 
 To upload the banner on this call, send `multipart/form-data` with

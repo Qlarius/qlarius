@@ -59,7 +59,7 @@ defmodule Qlarius.AdminApi.MediaPieces do
               {:error, changeset}
           end
         end,
-        insert: &insert(&1, image),
+        insert: &insert(&1, image, opts),
         update: &apply_update(&1, &2, image)
       )
     end
@@ -79,7 +79,7 @@ defmodule Qlarius.AdminApi.MediaPieces do
           differences = differences(piece, params, image)
           attrs = Map.take(params, Map.keys(differences))
 
-          with {:ok, attrs} <- put_stored_image(attrs, image),
+          with {:ok, attrs} <- put_stored_image(attrs, image, persist: true, piece: piece),
                {:ok, updated} <- Marketing.update_media_piece(piece, attrs) do
             {:ok, %{result: "updated", record: preload(updated), differences: differences}}
           end
@@ -162,7 +162,7 @@ defmodule Qlarius.AdminApi.MediaPieces do
   defp prepare_image(%{"banner_image" => %Plug.Upload{} = upload}) do
     with {:ok, body} <- File.read(upload.path),
          {:ok, image} <- SafeFetch.fetch_bytes(body) do
-      {:ok, image}
+      {:ok, Map.put(image, :filename, upload.filename)}
     else
       {:error, :image_type_rejected} -> {:error, :image_type_rejected}
       {:error, _} -> {:error, "The uploaded image could not be read"}
@@ -171,7 +171,7 @@ defmodule Qlarius.AdminApi.MediaPieces do
 
   defp prepare_image(%{"image_url" => url}) when is_binary(url) and url != "" do
     case SafeFetch.fetch(url) do
-      {:ok, image} -> {:ok, image}
+      {:ok, image} -> {:ok, Map.put(image, :filename, filename_from_url(url))}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -189,17 +189,17 @@ defmodule Qlarius.AdminApi.MediaPieces do
     end
   end
 
-  defp insert(_params, nil), do: {:error, :image_required}
+  defp insert(_params, nil, _opts), do: {:error, :image_required}
 
-  defp insert(params, image) do
-    with {:ok, attrs} <- put_stored_image(params, image),
+  defp insert(params, image, opts) do
+    with {:ok, attrs} <- put_stored_image(params, image, persist: opts[:persist_file] != false),
          {:ok, piece} <- Marketing.create_media_piece(attrs) do
       {:ok, preload(piece)}
     end
   end
 
   defp apply_update(piece, attrs, image) do
-    with {:ok, attrs} <- put_stored_image(attrs, image),
+    with {:ok, attrs} <- put_stored_image(attrs, image, persist: true, piece: piece),
          {:ok, updated} <- Marketing.update_media_piece(piece, attrs) do
       {:ok, preload(updated)}
     end
@@ -232,21 +232,74 @@ defmodule Qlarius.AdminApi.MediaPieces do
     %{"banner_image" => %{"current" => piece.banner_image, "requested" => "replacement"}}
   end
 
-  defp put_stored_image(attrs, nil), do: {:ok, attrs}
+  defp put_stored_image(attrs, nil, _opts), do: {:ok, attrs}
 
-  defp put_stored_image(attrs, image) do
-    path =
-      Path.join(System.tmp_dir!(), "banner-#{System.unique_integer([:positive])}.#{image.ext}")
+  defp put_stored_image(attrs, image, opts) do
+    if Keyword.get(opts, :persist, true) do
+      path =
+        Path.join(System.tmp_dir!(), "banner-#{System.unique_integer([:positive])}.#{image.ext}")
 
-    File.write!(path, image.body)
+      File.write!(path, image.body)
 
-    upload = %Plug.Upload{
-      path: path,
-      filename: "banner.#{image.ext}",
-      content_type: image.content_type
-    }
+      upload = %Plug.Upload{
+        path: path,
+        filename: stored_filename(attrs, image, opts[:piece]),
+        content_type: image.content_type
+      }
 
-    {:ok, Map.put(attrs, "banner_image", upload)}
+      {:ok, Map.put(attrs, "banner_image", upload)}
+    else
+      {:ok, Map.put(attrs, "banner_image", "dry-run.#{image.ext}")}
+    end
+  end
+
+  # api_ref identifies the ad. A sender filename is added when it is a real
+  # name. "banner.png" is not one: every admin upload used to be stored as that.
+  defp stored_filename(attrs, %{ext: ext} = image, piece) do
+    label =
+      present(attrs["api_ref"]) ||
+        present(piece && piece.api_ref) ||
+        present(attrs["title"]) ||
+        present(piece && piece.title)
+
+    original = image |> Map.get(:filename) |> meaningful_filename() |> filename_stem()
+    stem = [label, original] |> Enum.reject(&is_nil/1) |> Enum.join("-")
+    stem = if stem == "", do: "banner", else: stem
+    stem <> "." <> ext
+  end
+
+  defp filename_stem(nil), do: nil
+  defp filename_stem(name), do: name |> Path.basename() |> Path.rootname()
+
+  defp present(value) when is_binary(value) and value != "", do: value
+  defp present(_), do: nil
+
+  @generic_filenames ~w(banner file image img upload photo picture)
+
+  defp meaningful_filename(name) when is_binary(name) and name != "" do
+    base =
+      name
+      |> Path.basename()
+      |> Path.rootname()
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9]+/, "")
+
+    if base in @generic_filenames, do: nil, else: Path.basename(name)
+  end
+
+  defp meaningful_filename(_), do: nil
+
+  defp filename_from_url(url) do
+    case url |> URI.parse() |> Map.get(:path) do
+      path when is_binary(path) and path not in ["", "/"] ->
+        case Path.basename(path) do
+          "" -> nil
+          name -> name
+        end
+
+      _ ->
+        nil
+    end
   end
 
   defp owner_match?(piece, params), do: piece.marketer_id == params["marketer_id"]

@@ -195,6 +195,17 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
          socket
          |> assign(:changeset, changeset)
          |> assign(:form, to_form(changeset))}
+
+      {:error, {:upload_failed, field, message}} ->
+        changeset =
+          %MediaPiece{}
+          |> Marketing.change_media_piece(without_uploads(attrs))
+          |> Ecto.Changeset.add_error(field, message)
+
+        {:noreply,
+         socket
+         |> assign(:changeset, changeset)
+         |> assign(:form, to_form(changeset))}
     end
   end
 
@@ -217,7 +228,24 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
          socket
          |> assign(:changeset, changeset)
          |> assign(:form, to_form(changeset))}
+
+      {:error, {:upload_failed, field, message}} ->
+        changeset =
+          socket.assigns.media_piece
+          |> Marketing.change_media_piece(without_uploads(attrs))
+          |> Ecto.Changeset.add_error(field, message)
+
+        {:noreply,
+         socket
+         |> assign(:changeset, changeset)
+         |> assign(:form, to_form(changeset))}
     end
+  end
+
+  defp without_uploads(params) do
+    params
+    |> Enum.reject(fn {_key, value} -> match?(%Plug.Upload{}, value) end)
+    |> Map.new()
   end
 
   defp maybe_add_banner_upload(attrs, socket) do

@@ -1,10 +1,10 @@
 defmodule Qlarius.Sponster.Ads.MediaFiles do
   @moduledoc """
-  Stores a media-piece file under a descriptive, unused name.
+  Stores a media-piece file under a descriptive, unique name.
 
-  The name comes from the original file name. A name already stored on any
-  media piece, or already present at the destination, gets a numeric suffix.
-  Existing stored names are left as they are.
+  The stem comes from the original file name. Every upload gets its own
+  suffix, so a repeated name is never reused and a fixed list of numbered
+  copies cannot run out. Existing stored names are left as they are.
   """
 
   import Ecto.Query
@@ -12,6 +12,8 @@ defmodule Qlarius.Sponster.Ads.MediaFiles do
   alias Qlarius.Repo
   alias Qlarius.Sponster.Ads.MediaPiece
 
+  # Retries when a generated suffix is already stored. Not a cap on how many
+  # copies of one original name can be saved.
   @max_attempts 20
 
   @doc """
@@ -48,7 +50,7 @@ defmodule Qlarius.Sponster.Ads.MediaFiles do
   """
   def store!(source_path, original_filename, kind) when kind in [:banner, :video, :poster] do
     body = File.read!(source_path)
-    write_attempt!(body, descriptive_name(original_filename), kind, 1)
+    write_unique!(body, descriptive_name(original_filename), kind, 1)
   end
 
   @doc """
@@ -92,29 +94,28 @@ defmodule Qlarius.Sponster.Ads.MediaFiles do
   def s3_key(:video, filename), do: "uploads/media_pieces/videos/#{filename}"
   def s3_key(:poster, filename), do: "uploads/media_pieces/videos/posters/#{filename}"
 
-  defp write_attempt!(_body, name, _kind, attempt) when attempt > @max_attempts do
+  defp write_unique!(_body, name, _kind, attempt) when attempt > @max_attempts do
     raise "No free media file name for #{name} after #{@max_attempts} tries"
   end
 
-  defp write_attempt!(body, name, kind, attempt) do
-    filename = candidate(name, attempt)
+  defp write_unique!(body, name, kind, attempt) do
+    filename = unique_name(name)
 
     if taken?(filename, kind) do
-      write_attempt!(body, name, kind, attempt + 1)
+      write_unique!(body, name, kind, attempt + 1)
     else
       case write!(kind, filename, body) do
         :ok -> filename
-        :taken -> write_attempt!(body, name, kind, attempt + 1)
+        :taken -> write_unique!(body, name, kind, attempt + 1)
       end
     end
   end
 
-  defp candidate(name, 1), do: name
-
-  defp candidate(name, n) do
+  defp unique_name(name) do
     ext = Path.extname(name)
     root = Path.rootname(name)
-    "#{root}_#{n}#{ext}"
+    token = Base.encode16(:crypto.strong_rand_bytes(4), case: :lower)
+    "#{root}-#{token}#{ext}"
   end
 
   defp taken?(filename, kind) do

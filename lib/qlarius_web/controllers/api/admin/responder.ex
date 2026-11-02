@@ -55,6 +55,17 @@ defmodule QlariusWeb.Api.Admin.Responder do
     })
   end
 
+  def error(conn, {:upload_failed, field, message}) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "invalid",
+      message: message,
+      errors: %{field => [message]},
+      guide: @guide
+    })
+  end
+
   def error(conn, %Ecto.Changeset{} = changeset) do
     conn
     |> put_status(422)

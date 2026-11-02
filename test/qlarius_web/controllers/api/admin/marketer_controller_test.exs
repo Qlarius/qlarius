@@ -38,6 +38,8 @@ defmodule QlariusWeb.Api.Admin.MarketerControllerTest do
       |> json_response(200)
 
     assert body["topics"] == ["overview", "campaigns"]
+    assert body["version"] == "2026-11-02.1"
+    assert body["guide"] =~ "does not store the banner file"
     assert body["guide"] =~ "API reference keys (required)"
     assert body["guide"] =~ "ptp-2610-joes_tacos-phx.marketer"
     assert Enum.any?(body["endpoints"], &(&1["path"] == "/api/admin/marketers"))

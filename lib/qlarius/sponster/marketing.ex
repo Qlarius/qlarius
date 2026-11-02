@@ -46,21 +46,26 @@ defmodule Qlarius.Sponster.Marketing do
   def create_media_piece(attrs \\ %{}) do
     Logger.info("Creating media piece with attrs: #{inspect(attrs)}")
 
-    attrs_with_upload = maybe_handle_plug_upload(attrs)
+    case store_uploads(attrs) do
+      {:ok, attrs} ->
+        %MediaPiece{}
+        |> MediaPiece.changeset(attrs)
+        |> Repo.insert()
+        |> case do
+          {:ok, media_piece} = result ->
+            Logger.info(
+              "Successfully created media piece. Banner image: #{inspect(media_piece.banner_image)}"
+            )
 
-    %MediaPiece{}
-    |> MediaPiece.changeset(attrs_with_upload)
-    |> Repo.insert()
-    |> case do
-      {:ok, media_piece} = result ->
-        Logger.info(
-          "Successfully created media piece. Banner image: #{inspect(media_piece.banner_image)}"
-        )
+            result
 
-        result
+          {:error, changeset} = error ->
+            Logger.error("Failed to create media piece. Errors: #{inspect(changeset.errors)}")
+            error
+        end
 
-      {:error, changeset} = error ->
-        Logger.error("Failed to create media piece. Errors: #{inspect(changeset.errors)}")
+      {:error, reason} = error ->
+        Logger.error("Failed to create media piece. Errors: #{inspect(reason)}")
         error
     end
   end
@@ -71,48 +76,51 @@ defmodule Qlarius.Sponster.Marketing do
   def update_media_piece(%MediaPiece{} = media_piece, attrs) do
     Logger.info("Updating media piece #{media_piece.id} with attrs: #{inspect(attrs)}")
 
-    attrs_with_upload = maybe_handle_plug_upload(attrs)
+    case store_uploads(attrs) do
+      {:ok, attrs} ->
+        media_piece
+        |> MediaPiece.changeset(attrs)
+        |> Repo.update()
+        |> case do
+          {:ok, media_piece} = result ->
+            Logger.info(
+              "Successfully updated media piece. Banner image: #{inspect(media_piece.banner_image)}"
+            )
 
-    media_piece
-    |> MediaPiece.changeset(attrs_with_upload)
-    |> Repo.update()
-    |> case do
-      {:ok, media_piece} = result ->
-        Logger.info(
-          "Successfully updated media piece. Banner image: #{inspect(media_piece.banner_image)}"
-        )
+            result
 
-        result
+          {:error, changeset} = error ->
+            Logger.error("Failed to update media piece. Errors: #{inspect(changeset.errors)}")
+            error
+        end
 
-      {:error, changeset} = error ->
-        Logger.error("Failed to update media piece. Errors: #{inspect(changeset.errors)}")
+      {:error, reason} = error ->
+        Logger.error("Failed to update media piece. Errors: #{inspect(reason)}")
         error
     end
   end
 
-  defp maybe_handle_plug_upload(%{"banner_image" => %Plug.Upload{} = upload} = attrs) do
-    filename = upload_to_s3_banner(upload.path, upload.filename)
-    Map.put(attrs, "banner_image", filename)
-  rescue
-    error ->
-      Logger.error("Failed to upload file: #{inspect(error)}")
-      attrs
+  defp store_uploads(attrs) do
+    with {:ok, attrs} <- store_field(attrs, "banner_image", :banner) do
+      store_field(attrs, "video_file", :video)
+    end
   end
 
-  defp maybe_handle_plug_upload(%{"video_file" => %Plug.Upload{} = upload} = attrs) do
-    filename = MediaFiles.store!(upload.path, upload.filename, :video)
+  defp store_field(attrs, key, kind) do
+    case Map.get(attrs, key) do
+      %Plug.Upload{} = upload ->
+        try do
+          filename = MediaFiles.store!(upload.path, upload.filename, kind)
+          {:ok, Map.put(attrs, key, filename)}
+        rescue
+          error ->
+            Logger.error("Failed to upload file: #{inspect(error)}")
+            {:error, {:upload_failed, String.to_existing_atom(key), Exception.message(error)}}
+        end
 
-    Map.put(attrs, "video_file", filename)
-  rescue
-    error ->
-      Logger.error("Failed to upload video file: #{inspect(error)}")
-      attrs
-  end
-
-  defp maybe_handle_plug_upload(attrs), do: attrs
-
-  defp upload_to_s3_banner(source_path, original_filename) do
-    MediaFiles.store!(source_path, original_filename, :banner)
+      _other ->
+        {:ok, attrs}
+    end
   end
 
   @doc """

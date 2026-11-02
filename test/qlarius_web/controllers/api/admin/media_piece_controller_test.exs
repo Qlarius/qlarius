@@ -28,11 +28,28 @@ defmodule QlariusWeb.Api.Admin.MediaPieceControllerTest do
 
   defp authed(token), do: build_conn() |> put_req_header("authorization", "Bearer #{token}")
 
-  defp banner do
+  defp banner(filename \\ "banner.png") do
     path = Path.join(System.tmp_dir!(), "banner-#{System.unique_integer([:positive])}.png")
     File.write!(path, @png)
 
-    %Plug.Upload{path: path, filename: "banner.png", content_type: "image/png"}
+    %Plug.Upload{path: path, filename: filename, content_type: "image/png"}
+  end
+
+  defp stored_banners(stem) do
+    dir =
+      Path.join([
+        :code.priv_dir(:qlarius),
+        "static",
+        "uploads",
+        "media_pieces",
+        "banners",
+        "three_tap_banners"
+      ])
+
+    case File.ls(dir) do
+      {:ok, names} -> Enum.filter(names, &String.starts_with?(&1, stem))
+      _ -> []
+    end
   end
 
   defp params(ctx, extra) do
@@ -133,6 +150,67 @@ defmodule QlariusWeb.Api.Admin.MediaPieceControllerTest do
     again = token |> authed() |> post(~p"/api/admin/media_pieces", attrs) |> json_response(200)
     assert again["matched"] == true
     assert again["media_piece"]["id"] == created["media_piece"]["id"]
+  end
+
+  test "names the banner from the api_ref and a real file name", %{token: token} = ctx do
+    n = System.unique_integer([:positive])
+    ref = "ptp-2610-joes_tacos-phx.ad-#{n}"
+
+    created =
+      token
+      |> authed()
+      |> post(
+        ~p"/api/admin/media_pieces",
+        params(ctx, %{api_ref: ref, banner_image: banner("Summer Sale.PNG")})
+      )
+      |> json_response(201)
+
+    assert created["media_piece"]["banner_image"] =~
+             ~r/^ptp-2610-joes_tacos-phx-ad-#{n}-summer-sale-[0-9a-f]{8}\.png$/
+  end
+
+  test "a file named banner.png is stored under the api_ref", %{token: token} = ctx do
+    n = System.unique_integer([:positive])
+    ref = "ptp-2610-joes_tacos-phx.ad-#{n}"
+
+    created =
+      token
+      |> authed()
+      |> post(~p"/api/admin/media_pieces", params(ctx, %{api_ref: ref}))
+      |> json_response(201)
+
+    assert created["media_piece"]["banner_image"] =~
+             ~r/^ptp-2610-joes_tacos-phx-ad-#{n}-[0-9a-f]{8}\.png$/
+  end
+
+  test "dry run does not write the banner file", %{token: token} = ctx do
+    n = System.unique_integer([:positive])
+    stem = "dry-piece-#{n}"
+
+    preview =
+      token
+      |> authed()
+      |> post(
+        ~p"/api/admin/media_pieces",
+        params(ctx, %{dry_run: true, banner_image: banner("#{stem}.png")})
+      )
+      |> json_response(200)
+
+    assert preview["result"] == "would_create"
+    assert stored_banners("#{stem}-") == []
+  end
+
+  test "a storage failure is returned instead of a cast error" do
+    message = "No free media file name for banner.png after 20 tries"
+
+    body =
+      build_conn()
+      |> QlariusWeb.Api.Admin.Responder.error({:upload_failed, :banner_image, message})
+      |> json_response(422)
+
+    assert body["error"] == "invalid"
+    assert body["message"] == message
+    assert body["errors"]["banner_image"] == [message]
   end
 
   test "lists by marketer and category and deletes an unused piece", %{token: token} = ctx do

@@ -14,40 +14,74 @@ defmodule Qlarius.Sponster.Ads.MediaFilesTest do
   test "does not overwrite a file that already uses that name" do
     n = System.unique_integer([:positive])
     original = "Brand Slug #{n}_alt1.PNG"
-    first = "brand-slug-#{n}_alt1.png"
-    second = "brand-slug-#{n}_alt1_2.png"
-    paths = [banner_path(first), banner_path(second)]
-    on_exit(fn -> Enum.each(paths, &File.rm/1) end)
+    bare = "brand-slug-#{n}_alt1.png"
+    File.mkdir_p!(Path.dirname(banner_path(bare)))
+    File.write!(banner_path(bare), "kept")
 
-    assert MediaFiles.store!(write_temp!("first"), original, :banner) == first
-    assert File.read!(banner_path(first)) == "first"
+    first = MediaFiles.store!(write_temp!("first"), original, :banner)
+    second = MediaFiles.store!(write_temp!("second"), original, :banner)
+    on_exit(fn -> Enum.each([bare, first, second], &File.rm(banner_path(&1))) end)
 
-    assert MediaFiles.store!(write_temp!("second"), original, :banner) == second
+    assert first != bare
+    assert second != bare
+    assert first != second
+    assert first =~ ~r/^brand-slug-#{n}_alt1-[0-9a-f]{8}\.png$/
+    assert File.read!(banner_path(bare)) == "kept"
     assert File.read!(banner_path(first)) == "first"
     assert File.read!(banner_path(second)) == "second"
   end
 
+  test "still stores a file after the old numbered names are all taken" do
+    n = System.unique_integer([:positive])
+    stem = "banner-cap-#{n}"
+    taken = ["#{stem}.png" | Enum.map(2..20, &"#{stem}_#{&1}.png")]
+    Enum.each(taken, &insert_piece!/1)
+
+    stored = MediaFiles.store!(write_temp!("bytes"), "#{stem}.png", :banner)
+    on_exit(fn -> File.rm(banner_path(stored)) end)
+
+    refute stored in taken
+    assert stored =~ ~r/^#{stem}-[0-9a-f]{8}\.png$/
+  end
+
+  test "gives every copy of one file name its own stored name" do
+    n = System.unique_integer([:positive])
+    original = "repeat-#{n}.png"
+
+    names =
+      Enum.map(1..21, fn i ->
+        MediaFiles.store!(write_temp!("copy-#{i}"), original, :banner)
+      end)
+
+    on_exit(fn -> Enum.each(names, &File.rm(banner_path(&1))) end)
+
+    assert length(Enum.uniq(names)) == 21
+    assert Enum.all?(names, &(&1 =~ ~r/^repeat-#{n}-[0-9a-f]{8}\.png$/))
+  end
+
   test "skips a name already stored on a media piece" do
     n = System.unique_integer([:positive])
-    original = "Stored #{n}.png"
     taken = "stored-#{n}.png"
-    suffix = "stored-#{n}_2.png"
-    on_exit(fn -> File.rm(banner_path(suffix)) end)
-
     insert_piece!(taken)
 
-    assert MediaFiles.store!(write_temp!("bytes"), original, :banner) == suffix
+    stored = MediaFiles.store!(write_temp!("bytes"), "Stored #{n}.png", :banner)
+    on_exit(fn -> File.rm(banner_path(stored)) end)
+
+    assert stored != taken
     refute File.exists?(banner_path(taken))
+    assert stored =~ ~r/^stored-#{n}-[0-9a-f]{8}\.png$/
   end
 
   test "a video name blocks the same banner name" do
     n = System.unique_integer([:positive])
     taken = "clip-#{n}.mp4"
-    on_exit(fn -> File.rm(banner_path("clip-#{n}_2.mp4")) end)
-
     insert_piece!(nil, video_file: taken)
 
-    assert MediaFiles.store!(write_temp!("bytes"), "clip-#{n}.mp4", :banner) == "clip-#{n}_2.mp4"
+    stored = MediaFiles.store!(write_temp!("bytes"), taken, :banner)
+    on_exit(fn -> File.rm(banner_path(stored)) end)
+
+    assert stored != taken
+    assert stored =~ ~r/^clip-#{n}-[0-9a-f]{8}\.mp4$/
   end
 
   test "lists media pieces that share a file name" do

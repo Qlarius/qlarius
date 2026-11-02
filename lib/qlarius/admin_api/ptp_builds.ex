@@ -3,8 +3,9 @@ defmodule Qlarius.AdminApi.PtpBuilds do
   Builds one PTP campaign in a single transaction: marketer, ad, trait groups,
   target, sequence, and campaign. It never launches.
 
-  A dry run performs the same writes inside a transaction and rolls them back,
-  so a rerun with the same `api_ref_base` still finds nothing.
+  A dry run performs the same database writes inside a transaction and rolls
+  them back, so a rerun with the same `api_ref_base` still finds nothing.
+  The banner file is checked and is not stored.
   """
 
   alias Qlarius.ApiRef
@@ -40,7 +41,7 @@ defmodule Qlarius.AdminApi.PtpBuilds do
   def build(scope, params, opts) do
     with :ok <- require_base(params["api_ref_base"]) do
       Repo.transaction(fn ->
-        case assemble(scope, params) do
+        case assemble(scope, params, opts) do
           {:ok, result} ->
             if opts[:dry_run], do: Repo.rollback({:dry_run, result}), else: result
 
@@ -61,11 +62,11 @@ defmodule Qlarius.AdminApi.PtpBuilds do
     end
   end
 
-  defp assemble(scope, params) do
+  defp assemble(scope, params, opts) do
     base = params["api_ref_base"]
 
     with {:ok, marketer, marketer_result} <- marketer(scope, base, params["marketer"] || %{}),
-         {:ok, piece, piece_result} <- piece(base, marketer, params["media_piece"] || %{}),
+         {:ok, piece, piece_result} <- piece(base, marketer, params["media_piece"] || %{}, opts),
          {:ok, groups, group_results} <- groups(base, marketer, params["trait_groups"] || []),
          {:ok, target, target_result, bands} <-
            target(scope, base, marketer, groups, params["target"] || %{}),
@@ -108,7 +109,7 @@ defmodule Qlarius.AdminApi.PtpBuilds do
     end
   end
 
-  defp piece(base, marketer, attrs) do
+  defp piece(base, marketer, attrs, opts) do
     attrs =
       Map.merge(attrs, %{
         "api_ref" => base <> ".ad",
@@ -116,7 +117,10 @@ defmodule Qlarius.AdminApi.PtpBuilds do
         "on_existing" => "skip"
       })
 
-    case MediaPieces.create(attrs, dry_run: false) do
+    case MediaPieces.create(attrs,
+           dry_run: false,
+           persist_file: opts[:dry_run] != true
+         ) do
       {:ok, %{record: record, result: result}} -> {:ok, record, result}
       {:error, reason} -> {:error, reason}
     end

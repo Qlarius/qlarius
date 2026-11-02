@@ -60,6 +60,14 @@ defmodule QlariusWeb.MediaPieceController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset, debug: @debug)
+
+      {:error, {:upload_failed, field, message}} ->
+        changeset =
+          %MediaPiece{}
+          |> Marketing.change_media_piece(without_uploads(media_piece_params))
+          |> Ecto.Changeset.add_error(field, message)
+
+        render(conn, :new, changeset: changeset, debug: @debug)
     end
   end
 
@@ -92,7 +100,27 @@ defmodule QlariusWeb.MediaPieceController do
           changeset: changeset,
           debug: @debug
         )
+
+      {:error, {:upload_failed, field, message}} ->
+        Logger.error("Failed to update media piece #{id}. Upload error: #{message}")
+
+        changeset =
+          media_piece
+          |> Marketing.change_media_piece(without_uploads(media_piece_params))
+          |> Ecto.Changeset.add_error(field, message)
+
+        render(conn, :edit,
+          media_piece: media_piece,
+          changeset: changeset,
+          debug: @debug
+        )
     end
+  end
+
+  defp without_uploads(params) do
+    params
+    |> Enum.reject(fn {_key, value} -> match?(%Plug.Upload{}, value) end)
+    |> Map.new()
   end
 
   def delete(conn, %{"id" => id}) do

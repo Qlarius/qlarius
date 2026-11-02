@@ -355,7 +355,8 @@ paths:
       description: |
         api_ref_base derives base.marketer, base.ad, base.tg-N, base.target,
         base.seq, and base.campaign. target.drop_order is indexes into
-        trait_groups. dry_run rolls the transaction back. Multipart uploads
+        trait_groups. dry_run rolls the transaction back and does not store the
+        banner file. Multipart uploads
         send the JSON body in a string field named payload, next to banner_image.
         Index-keyed fields such as trait_groups[0][title] are read as lists.
       requestBody:

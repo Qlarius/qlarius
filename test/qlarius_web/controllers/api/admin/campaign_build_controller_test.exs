@@ -32,10 +32,27 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
 
   defp authed(token), do: build_conn() |> put_req_header("authorization", "Bearer #{token}")
 
-  defp banner do
+  defp banner(filename \\ "banner.png") do
     path = Path.join(System.tmp_dir!(), "banner-#{System.unique_integer([:positive])}.png")
     File.write!(path, @png)
-    %Plug.Upload{path: path, filename: "banner.png", content_type: "image/png"}
+    %Plug.Upload{path: path, filename: filename, content_type: "image/png"}
+  end
+
+  defp stored_banners(stem) do
+    dir =
+      Path.join([
+        :code.priv_dir(:qlarius),
+        "static",
+        "uploads",
+        "media_pieces",
+        "banners",
+        "three_tap_banners"
+      ])
+
+    case File.ls(dir) do
+      {:ok, names} -> Enum.filter(names, &String.starts_with?(&1, stem))
+      _ -> []
+    end
   end
 
   defp insert_zip_children(parent_trait_id, count) when is_integer(count) and count >= 0 do
@@ -295,6 +312,49 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
 
     assert matched["result"] == "matched"
     assert matched["campaign_id"] == created["campaign_id"]
+  end
+
+  test "a PTP build dry run does not store the banner", %{token: token, row: row, n: n} do
+    parent = TargetingFixtures.parent_trait_fixture()
+    trait = TargetingFixtures.trait_fixture(parent)
+    stem = "ptp-2610-brand#{n}-dryfile-ad"
+    conn = authed(token)
+
+    params = %{
+      api_ref_base: "ptp-2610-brand#{n}-dryfile",
+      marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+      media_piece: %{
+        title: "Banner",
+        media_piece_type_id: 1,
+        ad_category_row_id: row.row_id,
+        display_url: "brand.example",
+        jump_url: "https://brand.example/go",
+        banner_image: banner("ptp-dry-#{n}.png")
+      },
+      trait_groups: [%{title: "Fans", parent_trait_id: parent.id, trait_ids: [trait.id]}],
+      target: %{title: "National", drop_order: []},
+      sequence: %{title: "Run"},
+      campaign: %{title: "Pump"}
+    }
+
+    dry =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", Map.put(params, :dry_run, true))
+      |> json_response(200)
+
+    assert dry["result"] == "would_create"
+    assert stored_banners("#{stem}-") == []
+
+    created =
+      conn
+      |> post(
+        ~p"/api/admin/ptp_campaigns/builds",
+        put_in(params, [:media_piece, :banner_image], banner("ptp-dry-#{n}.png"))
+      )
+      |> json_response(201)
+
+    assert created["result"] == "created"
+    assert stored_banners("#{stem}-") != []
   end
 
   test "a PTP build accepts campaign start_date and end_date (date strings), including dry_run",
