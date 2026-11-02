@@ -545,7 +545,8 @@
           --%>
                   <%!--
             Compact row below md; roomy stacked hero at md+ (2-column split).
-            Same on tiqit arqade, qlink inline embed, and qlink full-pane expand.
+            Same on the standalone widget, in-app arqade, tiqit arqade, and
+            qlink embed.
           --%>
                   <% selected_gift_pending? =
                     selected_gift_pending?(
@@ -562,13 +563,7 @@
                       @group.show_open_in_tab && (@base_path == "/widgets" || @embed_card?) &&
                         !(@show_title and (@inline? or @embed_card? or @base_path == "/widgets"))
                     }
-                    variant={
-                      cond do
-                        @in_app_group? -> :responsive
-                        @embed_card? -> :embed
-                        true -> :compact
-                      end
-                    }
+                    variant={:responsive}
                   />
                 </div>
               </div>
