@@ -179,11 +179,40 @@ this ordering existed looks out of order, or after a publisher fixes their
 feed. Admins can do the same from the group's Display order menu ("Episode
 order").
 
+## Display settings
+
+These three booleans live on the content group. They are the only Arqade
+display toggles. Catalogs and pieces do not have them, and a group does not
+inherit them from its catalog.
+
+- `show_piece_thumbnails` (default `false`): when true, the widget at
+  `/widgets/arqade/group/:id` shows an image on each episode row. The image
+  is the piece's own art, then the group image, then the catalog image, then
+  the creator image, then a placeholder.
+- `show_piece_descriptions` (default `true`): episode descriptions in the list.
+- `show_open_in_tab` (default `true`): the open-in-tab control.
+
+`GET /api/admin/content_groups/:id` and `GET /api/admin/content_groups?catalog_id=`
+return all three. A new group starts with thumbnails off. Turn them on with
+`PATCH /api/admin/content_groups/:id`:
+
+```json
+{"show_piece_thumbnails": true, "dry_run": true}
+```
+
+`dry_run: true` validates and returns `would_update` plus `differences`
+without saving. `content_group` in that response is the row as stored;
+`differences.show_piece_thumbnails` shows `current` and `requested`. Send the
+same body without `dry_run` to save. Do not send `price`, `price_default`,
+`tiqit_classes`, or `tiqit_class`; those return `422 price_not_writable`.
+Piece order stays on `POST /api/admin/content_groups/:id/pieces/reorder`.
+
 ## Response
 
 Every write returns:
 
-- `content_group`: the group, including its feed settings.
+- `content_group`: the group, including its feed settings and the three
+  display booleans above.
 - `pieces[]`: `{index, status, id, external_id, title, media_type, reason?}`
   where status is `created`, `updated`, `unchanged`, or `skipped`.
 - `counts`: totals per status.

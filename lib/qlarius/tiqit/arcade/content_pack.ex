@@ -608,6 +608,9 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
       feed_episode_types: group.feed_episode_types,
       feed_auto_sync: group.feed_auto_sync,
       last_synced_at: group.last_synced_at,
+      show_piece_thumbnails: group.show_piece_thumbnails,
+      show_piece_descriptions: group.show_piece_descriptions,
+      show_open_in_tab: group.show_open_in_tab,
       api_ref: group.api_ref
     }
   end

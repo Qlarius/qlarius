@@ -157,6 +157,14 @@ Images are https URLs (`image_url` on a creator, catalog, group, or piece;
 `graphic_url` on a recipient). Files over 5 MB are resized and stored. Do
 not upload multipart.
 
+Episode thumbnails, descriptions, and the open-in-tab control are content-group
+settings. Read `GET /api/admin/agent_guide?topic=content_groups`, section
+"Display settings". Turn thumbnails on with
+`PATCH /api/admin/content_groups/:id` and `{"show_piece_thumbnails": true}`.
+Catalogs and pieces have no display toggles. A new group starts with
+thumbnails off. The widget already draws the episode image when that flag
+is true.
+
 ## Embeds
 
 `GET /api/admin/creators/:id/embeds` keeps top-level `split_code`,

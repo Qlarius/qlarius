@@ -17,6 +17,10 @@ info:
     Audio URLs must be https. Artwork is downloaded and stored; a failed
     download is a warning, not an error. Send dry_run true to see the plan
     without writing.
+
+    Episode thumbnails are the content group boolean show_piece_thumbnails
+    (default false). GET and PATCH return it with show_piece_descriptions and
+    show_open_in_tab. Catalogs and pieces have no display toggles.
 servers:
   - url: /
 security:
@@ -273,6 +277,15 @@ components:
           items: {type: string}
         feed_auto_sync: {type: boolean}
         last_synced_at: {type: string, format: date-time}
+        show_piece_thumbnails:
+          type: boolean
+          description: Episode images in the Arqade widget. Default false. Group only; not inherited.
+        show_piece_descriptions:
+          type: boolean
+          description: Episode descriptions in the list. Default true.
+        show_open_in_tab:
+          type: boolean
+          description: Open-in-tab control. Default true.
     ImportResult:
       type: object
       properties:

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Qadabra admin creator API
-  version: "2026-10-31.1"
+  version: "2026-10-31.2"
   description: >
     Bearer token on /api/admin. Every create requires api_ref. Every write
     accepts dry_run. Price fields are rejected. See priv/agent_guides/creators.md.
@@ -244,8 +244,16 @@ paths:
         "200": {description: Group}
     patch:
       summary: Update a content group
+      description: |
+        Top-level keys include title, description, image_url, feed fields, and
+        the display booleans show_piece_thumbnails (default false),
+        show_piece_descriptions (default true), and show_open_in_tab (default true).
+        These exist only on the content group. dry_run returns would_update and
+        differences without saving; content_group in that body is the stored row.
+        Price keys return 422 price_not_writable.
       responses:
-        "200": {description: Updated}
+        "200": {description: Updated, including the three display booleans}
+        "422": {description: Invalid, or a price field was sent}
     delete:
       summary: Delete a content group
       responses:

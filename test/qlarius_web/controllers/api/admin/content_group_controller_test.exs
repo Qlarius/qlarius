@@ -268,6 +268,44 @@ defmodule QlariusWeb.Api.Admin.ContentGroupControllerTest do
     end
   end
 
+  describe "display settings" do
+    test "patch turns thumbnails on and get returns the stored flags", %{
+      token: token,
+      catalog: catalog
+    } do
+      group = content_group_fixture(catalog)
+
+      dry =
+        authed(token)
+        |> patch(~p"/api/admin/content_groups/#{group.id}", %{
+          "show_piece_thumbnails" => true,
+          "dry_run" => true
+        })
+        |> json_response(200)
+
+      assert dry["result"] == "would_update"
+      assert dry["content_group"]["show_piece_thumbnails"] == false
+      assert dry["differences"]["show_piece_thumbnails"]["requested"] == true
+      refute Repo.get!(ContentGroup, group.id).show_piece_thumbnails
+
+      saved =
+        authed(token)
+        |> patch(~p"/api/admin/content_groups/#{group.id}", %{"show_piece_thumbnails" => true})
+        |> json_response(200)
+
+      assert saved["content_group"]["show_piece_thumbnails"] == true
+      assert saved["content_group"]["show_piece_descriptions"] == true
+      assert saved["content_group"]["show_open_in_tab"] == true
+
+      shown =
+        authed(token)
+        |> get(~p"/api/admin/content_groups/#{group.id}")
+        |> json_response(200)
+
+      assert shown["content_group"]["show_piece_thumbnails"] == true
+    end
+  end
+
   describe "agent guide" do
     test "returns markdown by default", %{token: token} do
       conn = authed(token) |> get(~p"/api/admin/agent_guide")
@@ -286,7 +324,9 @@ defmodule QlariusWeb.Api.Admin.ContentGroupControllerTest do
         |> json_response(200)
 
       assert body["topics"] == ["overview", "content_groups"]
+      assert body["version"] == "2026-10-31.4"
       assert body["guide"] =~ "rss_imports"
+      assert body["guide"] =~ "show_piece_thumbnails"
       assert is_list(body["endpoints"])
     end
 

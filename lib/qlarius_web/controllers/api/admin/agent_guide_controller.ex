@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-31.3"
+  @version "2026-10-31.4"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview creators content_groups traits ad_categories campaigns)
 
@@ -93,7 +93,12 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       purpose: "Create a content group"
     },
     %{method: "GET", path: "/api/admin/content_groups/:id", purpose: "One content group"},
-    %{method: "PATCH", path: "/api/admin/content_groups/:id", purpose: "Update a content group"},
+    %{
+      method: "PATCH",
+      path: "/api/admin/content_groups/:id",
+      purpose:
+        "Update a content group. show_piece_thumbnails turns episode images on in the Arqade widget"
+    },
     %{
       method: "DELETE",
       path: "/api/admin/content_groups/:id",
