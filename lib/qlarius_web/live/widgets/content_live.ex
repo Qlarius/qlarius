@@ -19,6 +19,7 @@ defmodule QlariusWeb.Widgets.ContentLive do
   import QlariusWeb.Widgets.Arcade.Components, only: [arqade_breadcrumbs: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+  on_mount {QlariusWeb.PlaybackPositionHook, :default}
 
   def mount(%{"id" => id}, session, socket) do
     piece =
@@ -33,7 +34,10 @@ defmodule QlariusWeb.Widgets.ContentLive do
 
         {:ok,
          socket
-         |> put_flash(:error, "No active tiqits found for this content. Ready for fresh purchases.")
+         |> put_flash(
+           :error,
+           "No active tiqits found for this content. Ready for fresh purchases."
+         )
          |> redirect(to: "/arqade/group/#{group_id}?content_id=#{piece.id}")}
 
       tiqit ->

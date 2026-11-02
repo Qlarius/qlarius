@@ -31,6 +31,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   import QlariusWeb.Creators.ContentGroupHTML, only: [piece_list_description: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+  on_mount {QlariusWeb.PlaybackPositionHook, :default}
 
   # Ensure `current_scope` is assigned whether this LV is reached
   # via the router (where the `live_session` hook already ran) or

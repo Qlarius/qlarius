@@ -12,6 +12,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Tiqit.ContentAudiences
   alias Qlarius.Tiqit.ContentEngagement
+  alias Qlarius.Tiqit.PlaybackPositions
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
@@ -1301,6 +1302,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     result =
       Repo.transaction(fn ->
+        PlaybackPositions.delete_for_tiqit(tiqit.id)
         sanitize_consumer_ledger_entries(tiqit)
 
         tiqit
@@ -1353,6 +1355,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
         with :ok <- check_undo_limit(user.me_file, creator, catalog) do
           case Repo.transaction(fn ->
+                 PlaybackPositions.delete_for_tiqit(tiqit.id)
                  duration_label = format_duration(tiqit.duration_hours)
                  content_title = tiqit_entitlement_title(tiqit)
 

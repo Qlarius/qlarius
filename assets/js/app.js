@@ -2358,6 +2358,136 @@ Hooks.YouTubePoster = {
   }
 }
 
+const playbackSaveUrl = '/playback_positions'
+
+function bindPlaybackResume(audio, push) {
+  if (audio.dataset.playbackBound === 'true') return () => {}
+  audio.dataset.playbackBound = 'true'
+
+  const token = audio.dataset.playbackToken
+  const startAt = Number(audio.dataset.positionSeconds || 0)
+  let lastSent = Number.isFinite(startAt) ? startAt : 0
+  let lastSentAt = 0
+  let restarting = false
+
+  const root = audio.parentElement
+  const cue = root && root.querySelector('[data-playback-cue]')
+  const restart = root && root.querySelector('[data-playback-restart]')
+
+  function bodyFor(reason) {
+    const duration = Number.isFinite(audio.duration) ? Math.floor(audio.duration) : 0
+    const position = restarting ? 0 : Math.floor(audio.currentTime || 0)
+    return {
+      token,
+      tiqit_id: audio.dataset.tiqitId,
+      content_piece_id: audio.dataset.pieceId,
+      position_seconds: position,
+      duration_seconds: duration,
+      reason
+    }
+  }
+
+  function send(reason, useBeacon) {
+    if (!token) return
+    const body = bodyFor(reason)
+    if (reason === 'tick') {
+      const now = Date.now()
+      if (now - lastSentAt < 10000) return
+      if (Math.abs(body.position_seconds - lastSent) < 10) return
+    }
+    lastSent = body.position_seconds
+    lastSentAt = Date.now()
+
+    if (useBeacon && navigator.sendBeacon) {
+      const params = new URLSearchParams()
+      Object.entries(body).forEach(([key, value]) => params.append(key, String(value)))
+      navigator.sendBeacon(playbackSaveUrl, params)
+      return
+    }
+
+    if (push) {
+      push(body)
+      return
+    }
+
+    fetch(playbackSaveUrl, {
+      method: 'POST',
+      headers: {'content-type': 'application/json', accept: 'application/json'},
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+      keepalive: true
+    }).catch(() => {})
+  }
+
+  function seekToResume() {
+    if (restarting) {
+      audio.currentTime = 0
+      return
+    }
+    if (startAt >= 5) audio.currentTime = startAt
+  }
+
+  function onTime() {
+    send('tick', false)
+  }
+
+  function onPause() {
+    if (!audio.ended) send('pause', false)
+  }
+
+  function onEnded() {
+    send('ended', false)
+  }
+
+  function onHide() {
+    send('hide', true)
+  }
+
+  function onRestart(event) {
+    event.preventDefault()
+    restarting = true
+    if (Number.isFinite(audio.duration)) audio.currentTime = 0
+    if (cue) cue.remove()
+    send('restart', false)
+  }
+
+  audio.addEventListener('loadedmetadata', seekToResume)
+  audio.addEventListener('timeupdate', onTime)
+  audio.addEventListener('pause', onPause)
+  audio.addEventListener('ended', onEnded)
+  window.addEventListener('pagehide', onHide)
+  if (restart) restart.addEventListener('click', onRestart)
+  if (audio.readyState >= 1) seekToResume()
+
+  return function cleanup() {
+    audio.removeEventListener('loadedmetadata', seekToResume)
+    audio.removeEventListener('timeupdate', onTime)
+    audio.removeEventListener('pause', onPause)
+    audio.removeEventListener('ended', onEnded)
+    window.removeEventListener('pagehide', onHide)
+    if (restart) restart.removeEventListener('click', onRestart)
+    send('hide', !push)
+  }
+}
+
+Hooks.PlaybackResume = {
+  mounted() {
+    this._playbackCleanup = bindPlaybackResume(this.el, (body) => {
+      this.pushEvent('save_playback_position', body)
+    })
+  },
+  destroyed() {
+    if (this._playbackCleanup) this._playbackCleanup()
+  }
+}
+
+function bindStandalonePlayback() {
+  if (document.querySelector('[data-phx-session], [data-phx-main]')) return
+  document.querySelectorAll('audio[data-playback-token]').forEach((audio) => {
+    bindPlaybackResume(audio, null)
+  })
+}
+
 Hooks.Popover = {
   mounted() {
     this.triggerEl = this.el.querySelector("[data-popover-trigger]")
@@ -3378,6 +3508,11 @@ listenForParentExtensionHint(({authed}) => {
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindStandalonePlayback)
+} else {
+  bindStandalonePlayback()
+}
 installPwaBackgroundTracker(liveSocket, {isExtension})
 
 // Extension SSO: silent exchange / vault mint on Qadabra-origin loads. Runs

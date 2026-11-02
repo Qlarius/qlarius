@@ -9,6 +9,7 @@ defmodule QlariusWeb.Components.TiqitUnlockedContent do
   import QlariusWeb.Helpers.ImageHelpers
 
   alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.PlaybackPositions
 
   attr :id_prefix, :string, required: true
 
@@ -24,7 +25,7 @@ defmodule QlariusWeb.Components.TiqitUnlockedContent do
     ~H"""
     <div class={["w-full", @class]}>
       <%= if ContentPiece.audio?(@piece) do %>
-        <.audio_player id_prefix={@id_prefix} piece={@piece} group={@group} />
+        <.audio_player id_prefix={@id_prefix} piece={@piece} group={@group} tiqit={@tiqit} />
       <% else %>
         <.youtube_player id_prefix={@id_prefix} piece={@piece} group={@group} />
       <% end %>
@@ -54,8 +55,22 @@ defmodule QlariusWeb.Components.TiqitUnlockedContent do
   attr :id_prefix, :string, required: true
   attr :piece, :map, required: true
   attr :group, :map, required: true
+  attr :tiqit, :map, required: true
 
   defp audio_player(assigns) do
+    resume_seconds = PlaybackPositions.resume(assigns.tiqit.id, assigns.piece.id)
+
+    token =
+      if is_integer(assigns.tiqit.me_file_id) do
+        PlaybackPositions.sign_token(assigns.tiqit.me_file_id, assigns.tiqit.id, assigns.piece.id)
+      end
+
+    assigns =
+      assigns
+      |> assign(:resume_seconds, resume_seconds)
+      |> assign(:resume_label, resume_seconds && PlaybackPositions.format_clock(resume_seconds))
+      |> assign(:playback_token, token)
+
     ~H"""
     <div class="w-full max-w-md bg-base-200 rounded-box overflow-hidden mb-2 border border-base-300">
       <img
@@ -68,9 +83,18 @@ defmodule QlariusWeb.Components.TiqitUnlockedContent do
         class="w-full block"
         src={@piece.file_url}
         controls
-        preload="none"
+        preload="metadata"
+        phx-hook={@playback_token && "PlaybackResume"}
+        data-playback-token={@playback_token}
+        data-tiqit-id={@tiqit.id}
+        data-piece-id={@piece.id}
+        data-position-seconds={@resume_seconds}
       >
       </audio>
+      <p :if={@resume_label} data-playback-cue class="px-3 py-2 text-sm text-base-content/70">
+        Resumed at {@resume_label} ·
+        <button type="button" data-playback-restart class="underline">Start over</button>
+      </p>
     </div>
     """
   end

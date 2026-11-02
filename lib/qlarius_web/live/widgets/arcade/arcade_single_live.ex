@@ -24,6 +24,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   import QlariusWeb.Widgets.UnauthCTA
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+  on_mount {QlariusWeb.PlaybackPositionHook, :default}
   # Nested `live_render/3` mounts don't go through the router, so
   # `mount_current_scope` isn't in the `:widgets` live_session's
   # on_mount list for them. Re-running it here guarantees

@@ -20,6 +20,10 @@ defmodule QlariusWeb.Router do
     plug :set_current_path
   end
 
+  pipeline :playback_position do
+    plug :accepts, ["html", "json"]
+  end
+
   pipeline :widgets do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -616,6 +620,12 @@ defmodule QlariusWeb.Router do
 
     post "/ptp_campaigns/builds", PtpCampaignController, :build
     get "/reports/ptp_coverage", PtpCoverageController, :show
+  end
+
+  scope "/", QlariusWeb do
+    pipe_through [:playback_position]
+
+    post "/playback_positions", PlaybackPositionController, :create
   end
 
   # Dynamic manifest for PWA - includes referral code in start_url
