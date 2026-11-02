@@ -114,8 +114,11 @@ Pack fields:
     `episode_type` (`full`, `trailer`, `bonus`), `display_order`.
 - Artwork: set `content_group.image_url` to the show art. Only send a
   piece `image_url` when that piece has its own art. Art that matches the
-  group image or is shared by several pieces is not stored; those pieces
-  show the group image. Feed imports apply the same rule to episode art.
+  group image or is shared by several pieces is not stored on create; those
+  pieces show the group image. Feed imports apply the same rule to episode
+  art. On `mode: update`, a present `content_group.image_url` or piece
+  `image_url` replaces the stored image when that URL changed. The same
+  source URL is left in place.
 - Hand packs are not renumbered. Send `episode_type`, `episode_number`, and
   pieces in the order they should appear; new pieces are added in pack order
   after existing ones (or use `display_order`).

@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Api.Admin.CatalogController do
   use QlariusWeb, :controller
 
-  alias Qlarius.AdminApi.{Catalogs, Creators}
+  alias Qlarius.AdminApi.{Catalogs, Creators, ImageUrls}
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, %{"creator_id" => creator_id}) do
@@ -71,6 +71,7 @@ defmodule QlariusWeb.Api.Admin.CatalogController do
       group_type: catalog.group_type,
       piece_type: catalog.piece_type,
       image: catalog.image,
+      image_url: ImageUrls.content_image_url(catalog),
       tiqit_undo_limit: catalog.tiqit_undo_limit,
       tiqit_up_enabled: catalog.tiqit_up_enabled
     }

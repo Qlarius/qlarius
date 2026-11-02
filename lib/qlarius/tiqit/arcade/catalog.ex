@@ -23,6 +23,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     field :group_type, Ecto.Enum, values: @group_types
     field :piece_type, Ecto.Enum, values: @piece_types
     field :image, :string
+    field :image_source_url, :string
     field :tiqit_undo_limit, :integer
     field :tiqit_up_enabled, :boolean, default: true
     field :api_ref, :string

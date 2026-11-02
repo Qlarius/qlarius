@@ -1,22 +1,17 @@
 defmodule Qlarius.AdminApi.ContentGroups do
   import Ecto.Query
 
-  alias Qlarius.AdminApi.{Idempotent, Params, Prices}
+  alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.Arcade.{
-    Arcade,
-    Catalog,
-    ContentGroup,
-    ContentPiece,
-    ImportHttp,
-    ImportImage
-  }
+  alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece}
 
   @fields ~w(title description show_piece_thumbnails show_piece_descriptions show_open_in_tab source_provider source_url feed_url feed_season feed_episode_types feed_auto_sync)
 
   def fetch(id) do
     case Params.integer(id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       id ->
         case Repo.get(ContentGroup, id) do
           nil -> {:error, :not_found}
@@ -41,8 +36,12 @@ defmodule Qlarius.AdminApi.ContentGroups do
 
   def update(%ContentGroup{} = group, params, opts) do
     with :ok <- Prices.reject(params),
-         :ok <- immutable?(group, params) do
-      differences = Idempotent.differences(group, params, @fields)
+         :ok <- immutable?(group, params),
+         :ok <- RemoteImage.validate(params["image_url"]) do
+      differences =
+        group
+        |> Idempotent.differences(params, @fields)
+        |> Map.merge(RemoteImage.difference(group, params))
 
       if opts[:dry_run] do
         case changeset(group, params) do
@@ -88,7 +87,7 @@ defmodule Qlarius.AdminApi.ContentGroups do
   defp preview(params) do
     cs = changeset(%ContentGroup{}, params)
 
-    with :ok <- image_url(params["image_url"]),
+    with :ok <- RemoteImage.validate(params["image_url"]),
          true <- cs.valid? || {:error, cs} do
       {:ok, Ecto.Changeset.apply_changes(cs)}
     else
@@ -127,17 +126,15 @@ defmodule Qlarius.AdminApi.ContentGroups do
   defp changeset(group, params) do
     group
     |> ContentGroup.import_changeset(params)
-    |> Ecto.Changeset.cast(params, [:show_piece_thumbnails, :show_piece_descriptions, :show_open_in_tab])
+    |> Ecto.Changeset.cast(params, [
+      :show_piece_thumbnails,
+      :show_piece_descriptions,
+      :show_open_in_tab
+    ])
   end
 
   defp maybe_image(group, url) when is_binary(url) and url != "" do
-    with :ok <- image_url(url),
-         {:ok, filename} <- ImportImage.store(url, group, "group-#{group.id}") do
-      case filename do
-        nil -> {:ok, group}
-        filename -> group |> Ecto.Changeset.change(%{image: filename}) |> Repo.update()
-      end
-    end
+    RemoteImage.assign(group, url, "group-#{group.id}")
   end
 
   defp maybe_image(group, _), do: {:ok, group}
@@ -148,12 +145,5 @@ defmodule Qlarius.AdminApi.ContentGroups do
     else
       :ok
     end
-  end
-
-  defp image_url(nil), do: :ok
-  defp image_url(""), do: :ok
-
-  defp image_url(url) do
-    if ImportHttp.public_url?(url, ["https"]), do: :ok, else: {:error, "Image URL must be https"}
   end
 end

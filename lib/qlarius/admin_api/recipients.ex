@@ -7,11 +7,10 @@ defmodule Qlarius.AdminApi.Recipients do
   import Ecto.Query
 
   alias Qlarius.Accounts.Scope
-  alias Qlarius.AdminApi.{Idempotent, Params, Prices}
+  alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Referrals
   alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
-  alias Qlarius.Tiqit.Arcade.{ImportHttp, ImportImage}
   alias Qlarius.Wallets
   alias QlariusWeb.Uploaders.RecipientBrandImage
 
@@ -83,7 +82,7 @@ defmodule Qlarius.AdminApi.Recipients do
     changeset = Recipient.changeset(%Recipient{}, preview_attrs(scope, params))
 
     with true <- changeset.valid? || {:error, changeset},
-         :ok <- image_url(params["graphic_url"]) do
+         :ok <- RemoteImage.validate(params["graphic_url"]) do
       {:ok, Ecto.Changeset.apply_changes(changeset)}
     else
       {:error, reason} -> {:error, reason}
@@ -141,23 +140,10 @@ defmodule Qlarius.AdminApi.Recipients do
   end
 
   defp maybe_graphic(recipient, url) when is_binary(url) and url != "" do
-    with :ok <- image_url(url),
-         {:ok, filename} <-
-           ImportImage.store(url, recipient, "recipient-#{recipient.id}",
-             uploader: RecipientBrandImage
-           ) do
-      case filename do
-        nil ->
-          {:ok, recipient}
-
-        filename ->
-          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-
-          recipient
-          |> Ecto.Changeset.change(%{graphic_url: %{file_name: filename, updated_at: now}})
-          |> Repo.update()
-      end
-    end
+    RemoteImage.assign(recipient, url, "recipient-#{recipient.id}",
+      field: :graphic_url,
+      uploader: RecipientBrandImage
+    )
   end
 
   defp maybe_graphic(recipient, _), do: {:ok, recipient}
@@ -182,13 +168,6 @@ defmodule Qlarius.AdminApi.Recipients do
     else
       :ok
     end
-  end
-
-  defp image_url(nil), do: :ok
-  defp image_url(""), do: :ok
-
-  defp image_url(url) do
-    if ImportHttp.public_url?(url, ["https"]), do: :ok, else: {:error, "Image URL must be https"}
   end
 
   defp filter_type(query, nil), do: query

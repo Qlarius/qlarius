@@ -15,6 +15,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :description, :string
     field :title, :string
     field :image, :string
+    field :image_source_url, :string
     field :show_piece_thumbnails, :boolean, default: false
     field :show_piece_descriptions, :boolean, default: true
     field :show_open_in_tab, :boolean, default: true
@@ -159,6 +160,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       :title,
       :description,
       :image,
+      :image_source_url,
       :source_provider,
       :source_url,
       :feed_url,

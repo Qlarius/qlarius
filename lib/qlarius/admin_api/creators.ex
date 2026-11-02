@@ -7,13 +7,13 @@ defmodule Qlarius.AdminApi.Creators do
   import Ecto.Query
 
   alias Qlarius.Accounts.Scope
-  alias Qlarius.AdminApi.{Idempotent, Params, Prices}
+  alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Creators.Creator
   alias Qlarius.Qlink.Urls
   alias Qlarius.Referrals
   alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
-  alias Qlarius.Tiqit.Arcade.{Catalog, ImportHttp, ImportImage}
+  alias Qlarius.Tiqit.Arcade.{Catalog, ImportHttp}
   alias Qlarius.Wallets
   alias QlariusWeb.Uploaders.RecipientBrandImage
 
@@ -77,10 +77,13 @@ defmodule Qlarius.AdminApi.Creators do
 
     with :ok <- Prices.reject(params),
          :ok <- immutable?(creator, params),
-         :ok <- locked?(params) do
+         :ok <- locked?(params),
+         :ok <- RemoteImage.validate(params["image_url"]) do
       differences =
-        Idempotent.differences(creator, params, @fields)
+        creator
+        |> Idempotent.differences(params, @fields)
         |> Map.merge(recipient_differences(creator, params["recipient"] || %{}))
+        |> Map.merge(RemoteImage.difference(creator, params))
 
       if opts[:dry_run] do
         preview_update(creator, params, differences)
@@ -102,8 +105,8 @@ defmodule Qlarius.AdminApi.Creators do
 
     with true <- changeset.valid? || {:error, changeset},
          true <- recipient_changeset.valid? || {:error, recipient_changeset},
-         :ok <- image_url(params["image_url"]),
-         :ok <- image_url(recipient["graphic_url"]),
+         :ok <- RemoteImage.validate(params["image_url"]),
+         :ok <- RemoteImage.validate(recipient["graphic_url"]),
          :ok <- site_url(recipient["site_url"]) do
       creator = Ecto.Changeset.apply_changes(changeset)
       {:ok, %{creator | recipient: Ecto.Changeset.apply_changes(recipient_changeset)}}
@@ -270,13 +273,7 @@ defmodule Qlarius.AdminApi.Creators do
   end
 
   defp maybe_creator_image(creator, url) when is_binary(url) and url != "" do
-    with :ok <- image_url(url),
-         {:ok, filename} <- ImportImage.store(url, creator, "creator-#{creator.id}") do
-      case filename do
-        nil -> {:ok, creator}
-        filename -> creator |> Ecto.Changeset.change(%{image: filename}) |> Repo.update()
-      end
-    end
+    RemoteImage.assign(creator, url, "creator-#{creator.id}")
   end
 
   defp maybe_creator_image(creator, _), do: {:ok, creator}
@@ -284,23 +281,10 @@ defmodule Qlarius.AdminApi.Creators do
   defp maybe_graphic(nil, _), do: {:ok, nil}
 
   defp maybe_graphic(recipient, url) when is_binary(url) and url != "" do
-    with :ok <- image_url(url),
-         {:ok, filename} <-
-           ImportImage.store(url, recipient, "recipient-#{recipient.id}",
-             uploader: RecipientBrandImage
-           ) do
-      case filename do
-        nil ->
-          {:ok, recipient}
-
-        filename ->
-          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-
-          recipient
-          |> Ecto.Changeset.change(%{graphic_url: %{file_name: filename, updated_at: now}})
-          |> Repo.update()
-      end
-    end
+    RemoteImage.assign(recipient, url, "recipient-#{recipient.id}",
+      field: :graphic_url,
+      uploader: RecipientBrandImage
+    )
   end
 
   defp maybe_graphic(recipient, _), do: {:ok, recipient}
@@ -346,13 +330,6 @@ defmodule Qlarius.AdminApi.Creators do
     else
       :ok
     end
-  end
-
-  defp image_url(nil), do: :ok
-  defp image_url(""), do: :ok
-
-  defp image_url(url) do
-    if ImportHttp.public_url?(url, ["https"]), do: :ok, else: {:error, "Image URL must be https"}
   end
 
   defp site_url(nil), do: :ok

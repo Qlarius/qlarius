@@ -14,6 +14,7 @@ defmodule Qlarius.Creators.Creator do
     field :name, :string
     field :bio, :string
     field :image, :string
+    field :image_source_url, :string
     field :is_verified, :boolean, default: false
     field :api_ref, :string
 

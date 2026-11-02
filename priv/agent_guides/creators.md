@@ -153,9 +153,23 @@ returns `409` when the piece has a purchase or is archived. A catalog or
 group delete returns `409 has_dependents` while groups or pieces still exist;
 `dry_run` lists the counts.
 
-Images are https URLs (`image_url` on a creator, catalog, group, or piece;
-`graphic_url` on a recipient). Files over 5 MB are resized and stored. Do
-not upload multipart.
+Send `image_url` (http or https) on `PATCH /api/admin/creators/:id`,
+`/catalogs/:id`, `/content_groups/:id`, or `/content_pieces/:id` to set or
+replace the image. The file is downloaded and stored under a new name, so
+the public URL changes even when the source URL differs only by a query
+string. Sending the same source URL again leaves the stored file in place.
+`GET` on each of those returns `image_url` as an absolute URL.
+`dry_run` adds `differences.image` with `current` (the stored absolute URL,
+or null) and `requested` (the URL you sent) and does not download. A URL
+that is not http(s) is `422`. On a real update, a failed download or a file
+that is not an image is `422`. Files over 5 MB are resized. Do not upload
+multipart. `graphic_url` on a recipient is stored the same way.
+
+A content pack replaces an existing image when `mode` is `update` and
+`content_group.image_url` or a piece `image_url` is a different URL from the
+one already stored. The same URL is kept, so a feed sync does not store
+another copy. Create still skips piece art that matches the group image or
+is shared by several pieces.
 
 Episode thumbnails, descriptions, and the open-in-tab control are content-group
 settings. Read `GET /api/admin/agent_guide?topic=content_groups`, section

@@ -1,9 +1,9 @@
 defmodule Qlarius.AdminApi.ContentPieces do
   import Ecto.Query
 
-  alias Qlarius.AdminApi.{Idempotent, Params, Prices}
+  alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.Arcade.{Arcade, ContentGroup, ContentPiece, Creators, ImportHttp, ImportImage}
+  alias Qlarius.Tiqit.Arcade.{Arcade, ContentGroup, ContentPiece, Creators}
 
   @fields ~w(title description date_published length preview_length file_url youtube_id preview_url media_type external_id season episode_number episode_type display_order source_provider source_url exclude_from_catalog_access exclude_from_group_access)
 
@@ -14,12 +14,15 @@ defmodule Qlarius.AdminApi.ContentPieces do
     |> where([p], p.content_group_id == ^group.id)
     |> archived_filter(archived)
     |> order_by([p], asc: p.display_order, asc: p.id)
+    |> preload(content_group: :catalog)
     |> Repo.all()
   end
 
   def fetch(id) do
     case Params.integer(id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       id ->
         case Repo.get(ContentPiece, id) do
           nil -> {:error, :not_found}
@@ -46,8 +49,12 @@ defmodule Qlarius.AdminApi.ContentPieces do
 
   def update(%ContentPiece{} = piece, params, opts) do
     with :ok <- Prices.reject(params),
-         :ok <- immutable?(piece, params) do
-      differences = Idempotent.differences(piece, params, @fields)
+         :ok <- immutable?(piece, params),
+         :ok <- RemoteImage.validate(params["image_url"]) do
+      differences =
+        piece
+        |> Idempotent.differences(params, @fields)
+        |> Map.merge(RemoteImage.difference(piece, params))
 
       if opts[:dry_run] do
         case ContentPiece.api_changeset(piece, Map.take(params, @fields)) do
@@ -142,9 +149,13 @@ defmodule Qlarius.AdminApi.ContentPieces do
   end
 
   defp preview(params) do
-    cs = ContentPiece.api_changeset(%ContentPiece{}, Map.take(params, ["api_ref", "date_published" | @fields]))
+    cs =
+      ContentPiece.api_changeset(
+        %ContentPiece{},
+        Map.take(params, ["api_ref", "date_published" | @fields])
+      )
 
-    with :ok <- image_url(params["image_url"]),
+    with :ok <- RemoteImage.validate(params["image_url"]),
          true <- cs.valid? || {:error, cs} do
       {:ok, Ecto.Changeset.apply_changes(cs)}
     else
@@ -154,12 +165,16 @@ defmodule Qlarius.AdminApi.ContentPieces do
 
   defp insert(group, params) do
     group = Repo.preload(group, :catalog)
-    params = Map.put_new(params, "display_order", Creators.next_content_piece_display_order(group))
+
+    params =
+      Map.put_new(params, "display_order", Creators.next_content_piece_display_order(group))
 
     Repo.transaction(fn ->
       with {:ok, piece} <-
              %ContentPiece{content_group_id: group.id, content_group: group}
-             |> ContentPiece.api_changeset(Map.take(params, ["api_ref", "date_published" | @fields]))
+             |> ContentPiece.api_changeset(
+               Map.take(params, ["api_ref", "date_published" | @fields])
+             )
              |> Repo.insert(),
            {:ok, piece} <- maybe_image(piece, params["image_url"]) do
         Arcade.write_default_piece_tiqit_classes(piece)
@@ -186,14 +201,7 @@ defmodule Qlarius.AdminApi.ContentPieces do
 
   defp maybe_image(piece, url) when is_binary(url) and url != "" do
     piece = Repo.preload(piece, content_group: :catalog)
-
-    with :ok <- image_url(url),
-         {:ok, filename} <- ImportImage.store(url, piece, "piece-#{piece.id}") do
-      case filename do
-        nil -> {:ok, piece}
-        filename -> piece |> Ecto.Changeset.change(%{image: filename}) |> Repo.update()
-      end
-    end
+    RemoteImage.assign(piece, url, "piece-#{piece.id}")
   end
 
   defp maybe_image(piece, _), do: {:ok, piece}
@@ -208,13 +216,6 @@ defmodule Qlarius.AdminApi.ContentPieces do
     else
       :ok
     end
-  end
-
-  defp image_url(nil), do: :ok
-  defp image_url(""), do: :ok
-
-  defp image_url(url) do
-    if ImportHttp.public_url?(url, ["https"]), do: :ok, else: {:error, "Image URL must be https"}
   end
 
   defp dry_run?(params), do: params["dry_run"] in [true, "true", "1"]

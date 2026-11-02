@@ -693,4 +693,116 @@ defmodule QlariusWeb.Api.Admin.CreatorApiTest do
 
     assert embed_recipient["graphic_url"] == patched["recipient"]["graphic_url"]
   end
+
+  test "replaces a creator image and a catalog image from image_url", %{token: token} do
+    ref = System.unique_integer([:positive])
+
+    created =
+      post_created(token, ~p"/api/admin/creators", %{
+        api_ref: "img-#{ref}.creator",
+        name: "Image Creator",
+        recipient: %{site_url: "https://images.example", recipient_type_id: 1}
+      })
+
+    creator_id = created["creator"]["id"]
+
+    catalog =
+      post_created(token, ~p"/api/admin/creators/#{creator_id}/catalogs", %{
+        api_ref: "img-#{ref}.catalog",
+        name: "Image Catalog",
+        url: "https://images.example",
+        type: "catalog",
+        group_type: "show",
+        piece_type: "episode"
+      })
+
+    catalog_id = catalog["catalog"]["id"]
+
+    Req.Test.stub(Qlarius.Tiqit.Arcade.ImportHttp, fn conn ->
+      flunk("dry run downloaded #{conn.request_path}")
+    end)
+
+    dry =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/creators/#{creator_id}", %{
+        image_url: "https://cdn.example.com/creator.jpg?v=1",
+        dry_run: true
+      })
+      |> json_response(200)
+
+    assert dry["result"] == "would_update"
+    assert dry["differences"]["image"]["current"] == nil
+    assert dry["differences"]["image"]["requested"] == "https://cdn.example.com/creator.jpg?v=1"
+    refute Repo.get!(Qlarius.Creators.Creator, creator_id).image
+
+    catalog_dry =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/catalogs/#{catalog_id}", %{
+        image_url: "https://cdn.example.com/catalog.jpg",
+        dry_run: true
+      })
+      |> json_response(200)
+
+    assert catalog_dry["differences"]["image"]["current"] == nil
+
+    assert catalog_dry["differences"]["image"]["requested"] ==
+             "https://cdn.example.com/catalog.jpg"
+
+    refute Repo.get!(Catalog, catalog_id).image
+
+    bad =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/creators/#{creator_id}", %{image_url: "ftp://cdn.example.com/a.jpg"})
+
+    assert json_response(bad, 422)["error"] == "request_failed"
+
+    use_tmp_uploads()
+    stub_feed(nil, images: true)
+
+    first =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/creators/#{creator_id}", %{
+        image_url: "https://cdn.example.com/creator.jpg"
+      })
+      |> json_response(200)
+
+    assert first["creator"]["image"]
+    assert first["creator"]["image_url"] =~ first["creator"]["image"]
+    assert %URI{scheme: scheme, host: host} = URI.parse(first["creator"]["image_url"])
+    assert scheme in ["http", "https"]
+    assert host != ""
+
+    second =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/creators/#{creator_id}", %{
+        image_url: "https://cdn.example.com/creator.jpg?v=2"
+      })
+      |> json_response(200)
+
+    assert second["creator"]["image"] != first["creator"]["image"]
+
+    shown = token |> authed() |> get(~p"/api/admin/creators/#{creator_id}") |> json_response(200)
+    assert shown["creator"]["image_url"] == second["creator"]["image_url"]
+
+    catalog_patched =
+      token
+      |> authed()
+      |> patch(~p"/api/admin/catalogs/#{catalog_id}", %{
+        image_url: "https://cdn.example.com/catalog.jpg"
+      })
+      |> json_response(200)
+
+    assert catalog_patched["catalog"]["image"]
+    assert catalog_patched["catalog"]["image_url"] =~ catalog_patched["catalog"]["image"]
+
+    catalog_shown =
+      token |> authed() |> get(~p"/api/admin/catalogs/#{catalog_id}") |> json_response(200)
+
+    assert catalog_shown["catalog"]["image_url"] == catalog_patched["catalog"]["image_url"]
+  end
 end

@@ -84,7 +84,10 @@ defmodule Qlarius.Tiqit.Arcade.RssImporterTest do
 
     assert {:ok, synced} = RssImporter.sync_group(group)
     assert synced.counts.created == 0
+    assert synced.counts.updated == 0
     assert length(pieces(group)) == 3
+    assert Enum.map(pieces(group), & &1.image) |> Enum.at(1) == e1_image
+    assert uploads |> Path.join("**/*.jpg") |> Path.wildcard() |> length() == 2
   end
 
   describe "episode numbers" do

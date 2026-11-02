@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Qadabra admin creator API
-  version: "2026-10-31.2"
+  version: "2026-11-01.2"
   description: >
     Bearer token on /api/admin. Every create requires api_ref. Every write
     accepts dry_run. Price fields are rejected. See priv/agent_guides/creators.md.
@@ -78,6 +78,13 @@ paths:
         "200": {description: Creator}
     patch:
       summary: Update a creator and its recipient
+      description: >
+        image_url (http or https) sets or replaces the creator image. The
+        stored file name changes, so the public URL changes even when the
+        source URL differs only by a query string. GET returns image_url as
+        an absolute URL. dry_run reports differences.image (current, requested)
+        and does not download. A non-http(s) URL, a failed download, or a
+        non-image is 422.
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
@@ -217,6 +224,11 @@ paths:
         "200": {description: Catalog}
     patch:
       summary: Update a catalog
+      description: >
+        image_url (http or https) sets or replaces the catalog image and
+        changes the stored file name. GET returns absolute image_url.
+        dry_run reports differences.image without downloading. A non-http(s)
+        URL, a failed download, or a non-image is 422.
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
@@ -248,9 +260,14 @@ paths:
         Top-level keys include title, description, image_url, feed fields, and
         the display booleans show_piece_thumbnails (default false),
         show_piece_descriptions (default true), and show_open_in_tab (default true).
-        These exist only on the content group. dry_run returns would_update and
-        differences without saving; content_group in that body is the stored row.
-        Price keys return 422 price_not_writable.
+        image_url (http or https) sets or replaces the group image. The stored
+        file name changes, so the public URL changes even when the source URL
+        differs only by a query string. GET returns image_url as an absolute URL.
+        dry_run reports differences.image (current, requested) and does not download.
+        A non-http(s) URL, a failed download, or a non-image is 422.
+        These display booleans exist only on the content group. dry_run returns
+        would_update and differences without saving; content_group in that body
+        is the stored row. Price keys return 422 price_not_writable.
       responses:
         "200": {description: Updated, including the three display booleans}
         "422": {description: Invalid, or a price field was sent}
@@ -291,6 +308,10 @@ paths:
         "200": {description: Piece}
     patch:
       summary: Update a piece
+      description: >
+        image_url (http or https) sets or replaces the piece image. GET returns
+        absolute image_url. dry_run reports differences.image without downloading.
+        A non-http(s) URL, a failed download, or a non-image is 422.
       responses:
         "200": {description: Updated}
         "422": {description: A price field was sent}

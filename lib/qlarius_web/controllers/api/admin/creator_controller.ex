@@ -86,6 +86,7 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
     |> Map.merge(%{
       bio: creator.bio,
       image: creator.image,
+      image_url: ImageUrls.content_image_url(creator),
       is_verified: creator.is_verified
     })
   end

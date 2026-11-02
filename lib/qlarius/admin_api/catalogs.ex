@@ -1,18 +1,11 @@
 defmodule Qlarius.AdminApi.Catalogs do
   import Ecto.Query
 
-  alias Qlarius.AdminApi.{Idempotent, Params, Prices}
+  alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Creators.Creator
   alias Qlarius.Repo
 
-  alias Qlarius.Tiqit.Arcade.{
-    Arcade,
-    Catalog,
-    ContentGroup,
-    ContentPiece,
-    ImportHttp,
-    ImportImage
-  }
+  alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece}
 
   @fields ~w(name url type group_type piece_type tiqit_undo_limit tiqit_up_enabled recipient_id)
 
@@ -49,8 +42,12 @@ defmodule Qlarius.AdminApi.Catalogs do
 
   def update(%Catalog{} = catalog, params, opts) do
     with :ok <- Prices.reject(params),
-         :ok <- immutable?(catalog, params) do
-      differences = Idempotent.differences(catalog, params, @fields)
+         :ok <- immutable?(catalog, params),
+         :ok <- RemoteImage.validate(params["image_url"]) do
+      differences =
+        catalog
+        |> Idempotent.differences(params, @fields)
+        |> Map.merge(RemoteImage.difference(catalog, params))
 
       if opts[:dry_run] do
         case preview_changeset(catalog, params) do
@@ -99,7 +96,7 @@ defmodule Qlarius.AdminApi.Catalogs do
   end
 
   defp preview(creator, params) do
-    with :ok <- image_url(params["image_url"]),
+    with :ok <- RemoteImage.validate(params["image_url"]),
          {:ok, changeset} <- preview_changeset(%Catalog{creator_id: creator.id}, params) do
       {:ok, Ecto.Changeset.apply_changes(changeset)}
     end
@@ -139,13 +136,7 @@ defmodule Qlarius.AdminApi.Catalogs do
   end
 
   defp maybe_image(catalog, url) when is_binary(url) and url != "" do
-    with :ok <- image_url(url),
-         {:ok, filename} <- ImportImage.store(url, catalog, "catalog-#{catalog.id}") do
-      case filename do
-        nil -> {:ok, catalog}
-        filename -> catalog |> Ecto.Changeset.change(%{image: filename}) |> Repo.update()
-      end
-    end
+    RemoteImage.assign(catalog, url, "catalog-#{catalog.id}")
   end
 
   defp maybe_image(catalog, _), do: {:ok, catalog}
@@ -156,12 +147,5 @@ defmodule Qlarius.AdminApi.Catalogs do
     else
       :ok
     end
-  end
-
-  defp image_url(nil), do: :ok
-  defp image_url(""), do: :ok
-
-  defp image_url(url) do
-    if ImportHttp.public_url?(url, ["https"]), do: :ok, else: {:error, "Image URL must be https"}
   end
 end

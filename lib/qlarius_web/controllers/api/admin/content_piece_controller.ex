@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Api.Admin.ContentPieceController do
   use QlariusWeb, :controller
 
-  alias Qlarius.AdminApi.{ContentGroups, ContentPieces}
+  alias Qlarius.AdminApi.{ContentGroups, ContentPieces, ImageUrls}
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, %{"content_group_id" => group_id} = params) do
@@ -108,6 +108,7 @@ defmodule QlariusWeb.Api.Admin.ContentPieceController do
       episode_number: piece.episode_number,
       episode_type: piece.episode_type,
       image: piece.image,
+      image_url: ImageUrls.content_image_url(piece),
       source_provider: piece.source_provider,
       source_url: piece.source_url,
       archived_at: piece.archived_at

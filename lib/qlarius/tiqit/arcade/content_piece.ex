@@ -18,6 +18,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
     field :image, :string
+    field :image_source_url, :string
 
     field :source_provider, :string
     field :source_url, :string
@@ -147,6 +148,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
       :date_published,
       :length,
       :image,
+      :image_source_url,
       :youtube_id,
       :file_url,
       :media_type,

@@ -306,6 +306,218 @@ defmodule QlariusWeb.Api.Admin.ContentGroupControllerTest do
     end
   end
 
+  describe "images" do
+    test "dry_run reports the image difference and does not download", %{
+      token: token,
+      catalog: catalog
+    } do
+      group = content_group_fixture(catalog)
+
+      body =
+        authed(token)
+        |> patch(~p"/api/admin/content_groups/#{group.id}", %{
+          "image_url" => "https://cdn.example.com/show.jpg?v=1",
+          "dry_run" => true
+        })
+        |> json_response(200)
+
+      assert body["result"] == "would_update"
+      assert body["differences"]["image"]["current"] == nil
+      assert body["differences"]["image"]["requested"] == "https://cdn.example.com/show.jpg?v=1"
+      assert body["content_group"]["image"] == nil
+      refute Repo.get!(ContentGroup, group.id).image
+    end
+
+    test "a non-http URL is 422", %{token: token, catalog: catalog} do
+      group = content_group_fixture(catalog)
+
+      conn =
+        authed(token)
+        |> patch(~p"/api/admin/content_groups/#{group.id}", %{
+          "image_url" => "ftp://cdn.example.com/show.jpg"
+        })
+
+      body = json_response(conn, 422)
+      assert body["error"] == "request_failed"
+      assert body["message"] =~ "http"
+      refute Repo.get!(ContentGroup, group.id).image
+    end
+
+    test "a failed download is 422", %{token: token, catalog: catalog} do
+      group = content_group_fixture(catalog)
+
+      conn =
+        authed(token)
+        |> patch(~p"/api/admin/content_groups/#{group.id}", %{
+          "image_url" => "https://cdn.example.com/missing.jpg"
+        })
+
+      assert json_response(conn, 422)["error"] == "request_failed"
+      refute Repo.get!(ContentGroup, group.id).image
+    end
+
+    test "replaces a group image, including when only the query string changes", %{
+      token: token,
+      catalog: catalog
+    } do
+      use_tmp_uploads()
+      stub_feed(nil, images: true)
+      group = content_group_fixture(catalog)
+
+      first =
+        patch_image(
+          token,
+          ~p"/api/admin/content_groups/#{group.id}",
+          "https://cdn.example.com/show.jpg"
+        )
+
+      assert first["result"] == "updated"
+      assert first["content_group"]["image"]
+      assert absolute_image?(first["content_group"]["image_url"], first["content_group"]["image"])
+
+      shown =
+        authed(token)
+        |> get(~p"/api/admin/content_groups/#{group.id}")
+        |> json_response(200)
+
+      assert shown["content_group"]["image_url"] == first["content_group"]["image_url"]
+
+      second =
+        patch_image(
+          token,
+          ~p"/api/admin/content_groups/#{group.id}",
+          "https://cdn.example.com/show.jpg?v=2"
+        )
+
+      assert second["content_group"]["image"] != first["content_group"]["image"]
+
+      assert absolute_image?(
+               second["content_group"]["image_url"],
+               second["content_group"]["image"]
+             )
+
+      assert Repo.get!(ContentGroup, group.id).image == second["content_group"]["image"]
+
+      again =
+        patch_image(
+          token,
+          ~p"/api/admin/content_groups/#{group.id}",
+          "https://cdn.example.com/show.jpg?v=2"
+        )
+
+      assert again["content_group"]["image"] == second["content_group"]["image"]
+      assert again["differences"]["image"] == nil
+    end
+
+    test "replaces a piece image", %{token: token, catalog: catalog} do
+      use_tmp_uploads()
+      stub_feed(nil, images: true)
+      group = content_group_fixture(catalog)
+
+      created =
+        authed(token)
+        |> post(~p"/api/admin/content_groups/#{group.id}/pieces", %{
+          "api_ref" => "img-piece-#{System.unique_integer([:positive])}",
+          "title" => "Episode",
+          "date_published" => "2024-04-03"
+        })
+        |> json_response(201)
+
+      piece_id = created["content_piece"]["id"]
+
+      patched =
+        patch_image(
+          token,
+          ~p"/api/admin/content_pieces/#{piece_id}",
+          "https://cdn.example.com/own.jpg"
+        )
+
+      assert patched["content_piece"]["image"]
+
+      assert absolute_image?(
+               patched["content_piece"]["image_url"],
+               patched["content_piece"]["image"]
+             )
+
+      shown =
+        authed(token) |> get(~p"/api/admin/content_pieces/#{piece_id}") |> json_response(200)
+
+      assert shown["content_piece"]["image_url"] == patched["content_piece"]["image_url"]
+    end
+
+    test "an update pack replaces the group image", %{token: token, catalog: catalog} do
+      use_tmp_uploads()
+      stub_feed(nil, images: true)
+
+      created =
+        post_pack(token, %{
+          "mode" => "create",
+          "catalog_id" => catalog.id,
+          "content_group" => %{
+            "title" => "Art",
+            "image_url" => "https://cdn.example.com/show.jpg"
+          },
+          "pieces" => [
+            %{
+              "title" => "One",
+              "media" => %{"type" => "audio", "url" => "https://audio.example.com/1.mp3"}
+            }
+          ]
+        })
+
+      group_id = created["content_group"]["id"]
+      original = Repo.get!(ContentGroup, group_id).image
+      assert original
+
+      updated =
+        post_pack(token, %{
+          "mode" => "update",
+          "catalog_id" => catalog.id,
+          "content_group" => %{
+            "id" => group_id,
+            "image_url" => "https://cdn.example.com/cover.jpg"
+          },
+          "pieces" => []
+        })
+
+      assert updated["warnings"] == []
+      replaced = Repo.get!(ContentGroup, group_id).image
+      assert replaced
+      assert replaced != original
+      assert absolute_image?(updated["content_group"]["image_url"], replaced)
+
+      repeated =
+        post_pack(token, %{
+          "mode" => "update",
+          "catalog_id" => catalog.id,
+          "content_group" => %{
+            "id" => group_id,
+            "image_url" => "https://cdn.example.com/cover.jpg"
+          },
+          "pieces" => [
+            %{
+              "title" => "One",
+              "external_id" => "one",
+              "image_url" => "https://cdn.example.com/own.jpg",
+              "media" => %{"type" => "audio", "url" => "https://audio.example.com/1.mp3"}
+            }
+          ]
+        })
+
+      assert repeated["warnings"] == []
+      assert Repo.get!(ContentGroup, group_id).image == replaced
+    end
+  end
+
+  defp patch_image(token, path, url) do
+    authed(token) |> patch(path, %{"image_url" => url}) |> json_response(200)
+  end
+
+  defp absolute_image?(url, filename) do
+    %URI{scheme: scheme, host: host} = URI.parse(url)
+    scheme in ["http", "https"] and is_binary(host) and String.contains?(url, filename)
+  end
+
   describe "agent guide" do
     test "returns markdown by default", %{token: token} do
       conn = authed(token) |> get(~p"/api/admin/agent_guide")
@@ -324,9 +536,10 @@ defmodule QlariusWeb.Api.Admin.ContentGroupControllerTest do
         |> json_response(200)
 
       assert body["topics"] == ["overview", "content_groups"]
-      assert body["version"] == "2026-10-31.4"
+      assert body["version"] == "2026-11-01.2"
       assert body["guide"] =~ "rss_imports"
       assert body["guide"] =~ "show_piece_thumbnails"
+      assert body["guide"] =~ "replaces the stored image"
       assert is_list(body["endpoints"])
     end
 

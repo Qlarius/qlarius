@@ -11,14 +11,17 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
   duplicated. A YouTube match in a different group of the catalog is
   skipped so pieces are not moved between groups.
 
-  Images are downloaded before the transaction. A failed image becomes a
-  warning and does not fail the pack.
+  Images are downloaded before the transaction. On update, a present
+  `image_url` replaces the stored file when that source URL is new. The
+  same URL is kept. A failed image becomes a warning and does not fail
+  the pack.
   """
 
   import Ecto.Query
 
+  alias Qlarius.AdminApi.{ImageUrls, RemoteImage}
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece, Creators, ImportImage}
+  alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece, Creators}
 
   @modes ~w(create update)
   @refreshable [
@@ -335,12 +338,14 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
   defp plan_refresh(piece, existing, refresh_fields) do
     refresh_attrs = Map.take(piece.attrs, refresh_fields)
     changes = ContentPiece.import_changeset(existing, refresh_attrs).changes
-    needs_image? = is_nil(existing.image) and is_binary(piece.image_url)
+    image_action = RemoteImage.replace_action(existing, piece.image_url)
 
-    action = if changes == %{} and not needs_image?, do: :unchanged, else: :update
+    action =
+      if changes == %{} and image_action == :keep, do: :unchanged, else: :update
 
     piece
     |> Map.put(:action, action)
+    |> Map.put(:image_action, image_action)
     |> Map.put(:fields_changed?, changes != %{})
     |> Map.put(:existing, existing)
     |> Map.put(:refresh_attrs, refresh_attrs)
@@ -386,12 +391,22 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
   defp write(mode, catalog, group, group_attrs, group_params, plans) do
     scope_group = group || %ContentGroup{catalog: catalog, catalog_id: catalog.id}
 
-    {group_image, group_warnings} = maybe_group_image(mode, scope_group, group_attrs)
+    {group_image, group_source, group_warnings} =
+      maybe_group_image(mode, scope_group, group_attrs)
+
     {plans, piece_warnings} = download_piece_images(plans, scope_group)
 
     Repo.transaction(fn ->
       with {:ok, group} <-
-             save_group(mode, catalog, group, group_attrs, group_params, group_image),
+             save_group(
+               mode,
+               catalog,
+               group,
+               group_attrs,
+               group_params,
+               group_image,
+               group_source
+             ),
            {:ok, plans} <- save_pieces(group, plans) do
         detail(group, plans, group_warnings ++ piece_warnings, false)
       else
@@ -400,32 +415,41 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
     end)
   end
 
-  defp maybe_group_image(mode, group, %{image_url: url}) when is_binary(url) do
-    if mode == "create" or is_nil(group.image) do
-      case ImportImage.store(url, group, "group") do
-        {:ok, filename} -> {filename, []}
-        {:error, reason} -> {nil, ["content_group image: #{reason}"]}
-      end
-    else
-      {nil, []}
+  defp maybe_group_image(_mode, group, %{image_url: url}) when is_binary(url) do
+    cond do
+      RemoteImage.unchanged?(group, url) ->
+        {nil, nil, []}
+
+      RemoteImage.untracked?(group, url) ->
+        {nil, url, []}
+
+      true ->
+        case RemoteImage.store(group, url, "group") do
+          {:ok, %{file_name: filename}} -> {filename, url, []}
+          {:ok, nil} -> {nil, nil, []}
+          {:error, reason} -> {nil, nil, ["content_group image: #{reason}"]}
+        end
     end
   end
 
-  defp maybe_group_image(_mode, _group, _attrs), do: {nil, []}
+  defp maybe_group_image(_mode, _group, _attrs), do: {nil, nil, []}
 
   defp download_piece_images(plans, scope_group) do
     {plans, warnings} =
       Enum.map_reduce(plans, [], fn plan, warnings ->
         needs_image? =
           is_binary(plan.image_url) and
-            (plan.action == :create or (plan.action == :update and is_nil(plan.existing.image)))
+            (plan.action == :create or plan[:image_action] == :replace)
 
         if needs_image? do
           basename = "piece-#{plan.attrs[:external_id] || plan.index}"
 
-          case ImportImage.store(plan.image_url, scope_group, basename) do
-            {:ok, filename} ->
+          case RemoteImage.store(scope_group, plan.image_url, basename) do
+            {:ok, %{file_name: filename}} ->
               {Map.put(plan, :image, filename), warnings}
+
+            {:ok, nil} ->
+              {plan, warnings}
 
             {:error, reason} ->
               {image_failed(plan), ["piece #{plan.index} image: #{reason}" | warnings]}
@@ -443,11 +467,14 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
 
   defp image_failed(plan), do: plan
 
-  defp save_group(mode, catalog, group, attrs, _params, image) do
+  defp save_group(mode, catalog, group, attrs, _params, image, source_url) do
     attrs =
       attrs
       |> Map.delete(:image_url)
       |> then(fn attrs -> if image, do: Map.put(attrs, :image, image), else: attrs end)
+      |> then(fn attrs ->
+        if source_url, do: Map.put(attrs, :image_source_url, source_url), else: attrs
+      end)
 
     case mode do
       "create" ->
@@ -532,7 +559,16 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
     end
   end
 
-  defp put_image(attrs, %{image: image}) when is_binary(image), do: Map.put(attrs, :image, image)
+  defp put_image(attrs, %{image: image, image_url: url}) when is_binary(image) do
+    attrs
+    |> Map.put(:image, image)
+    |> Map.put(:image_source_url, url)
+  end
+
+  defp put_image(attrs, %{image_action: :remember, image_url: url}) when is_binary(url) do
+    Map.put(attrs, :image_source_url, url)
+  end
+
   defp put_image(attrs, _plan), do: attrs
 
   # ----- output -----
@@ -601,6 +637,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
       title: group.title,
       description: group.description,
       image: group.image,
+      image_url: ImageUrls.content_image_url(group),
       source_provider: group.source_provider,
       source_url: group.source_url,
       feed_url: group.feed_url,
