@@ -49,8 +49,8 @@ Every error body has `error` (a code), `message`, and `guide` (this page).
 | --- | --- | --- |
 | GET | /api/admin/agent_guide | This guide |
 | GET | /api/admin/creators | Creators and their catalogs |
-| GET | /api/admin/content_groups?catalog_id= | Groups in a catalog, including display toggles |
-| PATCH | /api/admin/content_groups/:id | Update a group. `show_piece_thumbnails` turns episode images on (see `?topic=content_groups`) |
+| GET | /api/admin/content_groups?catalog_id= | Groups in a catalog, including display toggles and absolute `image_url` |
+| PATCH | /api/admin/content_groups/:id | Update a group. `image_url` sets the image; `show_piece_thumbnails` turns episode images on (see `?topic=content_groups`) |
 | GET | /api/admin/rss/preview?feed_url= | Read a podcast feed |
 | POST | /api/admin/content_groups/rss_imports | Import a feed as a group |
 | POST | /api/admin/content_groups/packs | Create or update a group from a pack |

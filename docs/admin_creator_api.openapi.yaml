@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Qadabra admin creator API
-  version: "2026-11-01.2"
+  version: "2026-11-01.3"
   description: >
     Bearer token on /api/admin. Every create requires api_ref. Every write
     accepts dry_run. Price fields are rejected. See priv/agent_guides/creators.md.
@@ -81,7 +81,8 @@ paths:
       description: >
         image_url (http or https) sets or replaces the creator image. The
         stored file name changes, so the public URL changes even when the
-        source URL differs only by a query string. GET returns image_url as
+        source URL differs only by a query string. The same source URL leaves
+        the stored file in place. GET returns image_url as
         an absolute URL. dry_run reports differences.image (current, requested)
         and does not download. A non-http(s) URL, a failed download, or a
         non-image is 422.
@@ -226,7 +227,8 @@ paths:
       summary: Update a catalog
       description: >
         image_url (http or https) sets or replaces the catalog image and
-        changes the stored file name. GET returns absolute image_url.
+        changes the stored file name. The same source URL leaves the stored
+        file in place. GET returns absolute image_url.
         dry_run reports differences.image without downloading. A non-http(s)
         URL, a failed download, or a non-image is 422.
       parameters:
@@ -262,7 +264,8 @@ paths:
         show_piece_descriptions (default true), and show_open_in_tab (default true).
         image_url (http or https) sets or replaces the group image. The stored
         file name changes, so the public URL changes even when the source URL
-        differs only by a query string. GET returns image_url as an absolute URL.
+        differs only by a query string. The same source URL leaves the stored
+        file in place. GET returns image_url as an absolute URL.
         dry_run reports differences.image (current, requested) and does not download.
         A non-http(s) URL, a failed download, or a non-image is 422.
         These display booleans exist only on the content group. dry_run returns
@@ -309,7 +312,8 @@ paths:
     patch:
       summary: Update a piece
       description: >
-        image_url (http or https) sets or replaces the piece image. GET returns
+        image_url (http or https) sets or replaces the piece image. The same
+        source URL leaves the stored file in place. GET returns
         absolute image_url. dry_run reports differences.image without downloading.
         A non-http(s) URL, a failed download, or a non-image is 422.
       responses:

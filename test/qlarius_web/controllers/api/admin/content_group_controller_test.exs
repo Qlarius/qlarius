@@ -536,7 +536,8 @@ defmodule QlariusWeb.Api.Admin.ContentGroupControllerTest do
         |> json_response(200)
 
       assert body["topics"] == ["overview", "content_groups"]
-      assert body["version"] == "2026-11-01.2"
+      assert body["version"] == "2026-11-01.3"
+      assert body["guide"] =~ "differences.image"
       assert body["guide"] =~ "rss_imports"
       assert body["guide"] =~ "show_piece_thumbnails"
       assert body["guide"] =~ "replaces the stored image"

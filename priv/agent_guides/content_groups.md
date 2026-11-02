@@ -210,12 +210,36 @@ same body without `dry_run` to save. Do not send `price`, `price_default`,
 `tiqit_classes`, or `tiqit_class`; those return `422 price_not_writable`.
 Piece order stays on `POST /api/admin/content_groups/:id/pieces/reorder`.
 
+## Images
+
+`image_url` on a group, catalog, creator, or piece is an http or https URL.
+`PATCH` downloads it and stores a new file, so the public URL changes even
+when the source URL differs only by a query string. Sending the same source
+URL again leaves the stored file in place. `GET` returns `image_url` as an
+absolute URL next to `image` (the stored file name).
+
+```json
+PATCH /api/admin/content_groups/345
+{"image_url": "https://cdn.example.com/show.jpg", "dry_run": true}
+```
+
+`dry_run` does not download. `differences.image` is `{current, requested}`:
+`current` is the stored absolute URL or null, `requested` is the URL you
+sent. The same body without `dry_run` saves. A URL that is not http(s) is
+`422`. A failed download or a file that is not an image is `422` on that
+PATCH. A pack still reports a failed image as a warning.
+
+On a pack `mode: update`, `content_group.image_url` or a piece `image_url`
+replaces the stored image only when that URL changed. Create still skips
+piece art that matches the group image or is shared by several pieces.
+
 ## Response
 
 Every write returns:
 
-- `content_group`: the group, including its feed settings and the three
-  display booleans above.
+- `content_group`: the group, including its feed settings, the three
+  display booleans above, `image` (stored file name), and `image_url`
+  (absolute).
 - `pieces[]`: `{index, status, id, external_id, title, media_type, reason?}`
   where status is `created`, `updated`, `unchanged`, or `skipped`.
 - `counts`: totals per status.
