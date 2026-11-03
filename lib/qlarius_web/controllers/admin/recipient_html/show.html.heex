@@ -30,17 +30,11 @@
             <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div class="shrink-0">
                 <p class="text-xs text-base-content/50">Brand image</p>
-                <%= if @recipient.graphic_url do %>
-                  <img
-                    src={brand_image_url(@recipient)}
-                    alt={"#{@recipient.name} brand image"}
-                    class="mt-1 w-32 rounded-lg border border-base-300 object-cover"
-                  />
-                <% else %>
-                  <div class="mt-1 flex size-32 items-center justify-center rounded-lg bg-base-200">
-                    <.icon name="hero-photo" class="size-6 text-base-content/40" />
-                  </div>
-                <% end %>
+                <img
+                  src={recipient_brand_image_url(@recipient)}
+                  alt={"#{@recipient.name} brand image"}
+                  class="mt-1 size-32 rounded-lg border border-base-300 bg-base-200 object-contain"
+                />
               </div>
               <dl class="grid min-w-0 flex-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 <.detail_item label="Message" value={@recipient.message} />
@@ -50,6 +44,24 @@
                 <.detail_item label="Site URL" value={@recipient.site_url} />
               </dl>
             </div>
+            <.form
+              :let={f}
+              for={@sequence_changeset}
+              action={~p"/admin/recipients/#{@recipient}"}
+              method="put"
+              id="promo-sequence-assign"
+              class="max-w-md"
+            >
+              <input type="hidden" name="return_to" value="show" />
+              <.input
+                field={f[:promo_sequence_id]}
+                type="select"
+                label="Promo sequence"
+                prompt="None (built-in banners)"
+                options={sequence_options(@sequences)}
+              />
+              <button type="submit" class="btn btn-primary btn-sm mt-3">Save sequence</button>
+            </.form>
           </.panel>
 
           <.panel

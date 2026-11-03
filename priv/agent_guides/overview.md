@@ -3,7 +3,8 @@
 You are calling the Qadabra admin API on behalf of a Qadabra admin. Read this
 guide before making any write. It is served at `GET /api/admin/agent_guide`
 (`?format=json` for JSON, `?topic=creators`, `?topic=content_groups`,
-`?topic=traits`, `?topic=ad_categories`, or `?topic=campaigns` for one section).
+`?topic=traits`, `?topic=ad_categories`, `?topic=campaigns`, or
+`?topic=promo_sequences` for one section).
 
 ## Authentication
 
@@ -60,6 +61,7 @@ Every error body has `error` (a code), `message`, and `guide` (this page).
 | GET | /api/admin/traits/integrity_report | Read-only catalog checks, including an `excludes` health section |
 | GET | /api/admin/ad_categories | Sponster ad taxonomy rows by category; also import, remap, prune (see `?topic=ad_categories`) |
 | GET | /api/admin/marketers | Marketers with counts; also create (find-or-create by `api_ref`), update, delete (see `?topic=campaigns`) |
+| GET | /api/admin/promo_sequences | Embed banner sequences (wide and narrow tracks, bounce image). Assign with `promo_sequence_id` on a recipient (see `?topic=promo_sequences`) |
 | GET | /api/admin/media_piece_types | Ad types, pricing, required fields, and which types the API can create |
 | POST | /api/admin/media_pieces | Create an ad (HTTPS image or multipart banner); also list, update, delete |
 | POST | /api/admin/trait_groups | Trait groups (`role` include or anti, single or multi-topic), then targets, sequences, campaigns, a one-call PTP build, and the coverage report (see `?topic=campaigns`) |

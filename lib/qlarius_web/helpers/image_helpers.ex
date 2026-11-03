@@ -1,8 +1,4 @@
 defmodule QlariusWeb.Helpers.ImageHelpers do
-  import Ecto.Query
-
-  alias Qlarius.Creators.Creator
-  alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.Uploaders.RecipientBrandImage
@@ -113,35 +109,17 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
   @doc """
   Returns the brand image URL for a Sponster recipient.
 
-  Falls back to the linked Creator's image when the recipient has no brand image.
-  Pass `creator:` when the creator is already loaded to avoid an extra query.
+  A recipient with no brand image uses the tip jar default.
   """
   def recipient_brand_image_url(recipient, opts \\ [])
 
   def recipient_brand_image_url(nil, _opts), do: placeholder_image_url()
 
-  def recipient_brand_image_url(%Recipient{} = recipient, opts) do
-    creator = Keyword.get(opts, :creator) || creator_for_recipient(recipient.id)
-
-    cond do
-      recipient.graphic_url ->
-        RecipientBrandImage.url({recipient.graphic_url, recipient})
-
-      creator && creator.image ->
-        CreatorImage.url({creator.image, creator}, :original)
-
-      true ->
-        placeholder_image_url()
-    end
+  def recipient_brand_image_url(%Recipient{graphic_url: nil} = recipient, _opts) do
+    RecipientBrandImage.url({nil, recipient})
   end
 
-  defp creator_for_recipient(recipient_id) do
-    case Repo.get(Recipient, recipient_id) do
-      %{creator_id: creator_id} when is_integer(creator_id) ->
-        Repo.get(Creator, creator_id)
-
-      _ ->
-        Repo.one(from c in Creator, where: c.recipient_id == ^recipient_id, limit: 1)
-    end
+  def recipient_brand_image_url(%Recipient{} = recipient, _opts) do
+    RecipientBrandImage.url({recipient.graphic_url, recipient})
   end
 end

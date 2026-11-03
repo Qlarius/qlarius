@@ -164,19 +164,23 @@ defmodule Qlarius.AdminApi.CreatorRecipients do
 
   defp preview(scope, creator, params) do
     changeset =
-      Recipient.changeset(%Recipient{creator_id: creator.id}, %{
-        "user_id" => scope.user.id,
-        "name" => params["name"],
-        "description" => params["description"],
-        "message" => params["message"] || "Thank you for supporting #{params["name"]}.",
-        "site_url" => params["site_url"],
-        "contact_email" => params["contact_email"],
-        "recipient_type_id" => params["recipient_type_id"] || 1,
-        "split_code" => Ecto.UUID.generate(),
-        "api_ref" => params["api_ref"],
-        "target_amount" => "0.00",
-        "is_primary" => is_nil(Recipients.primary_id(creator.id))
-      })
+      Recipient.changeset(
+        %Recipient{creator_id: creator.id},
+        %{
+          "user_id" => scope.user.id,
+          "name" => params["name"],
+          "description" => params["description"],
+          "message" => params["message"] || "Thank you for supporting #{params["name"]}.",
+          "site_url" => params["site_url"],
+          "contact_email" => params["contact_email"],
+          "recipient_type_id" => params["recipient_type_id"] || 1,
+          "split_code" => Ecto.UUID.generate(),
+          "api_ref" => params["api_ref"],
+          "target_amount" => "0.00",
+          "is_primary" => is_nil(Recipients.primary_id(creator.id))
+        }
+        |> Recipients.put_promo_sequence_id(params)
+      )
 
     if changeset.valid? do
       {:ok, Ecto.Changeset.apply_changes(changeset)}
@@ -189,26 +193,28 @@ defmodule Qlarius.AdminApi.CreatorRecipients do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     primary? = is_nil(Recipients.primary_id(creator.id))
 
+    attrs =
+      %{
+        "user_id" => scope.user.id,
+        "approved_by_user_id" => scope.user.id,
+        "approval_date" => now,
+        "name" => params["name"],
+        "description" => params["description"],
+        "message" => params["message"] || "Thank you for supporting #{params["name"]}.",
+        "site_url" => params["site_url"],
+        "contact_email" => params["contact_email"],
+        "recipient_type_id" => params["recipient_type_id"] || 1,
+        "split_code" => Ecto.UUID.generate(),
+        "referral_code" => Referrals.generate_referral_code("recipient"),
+        "target_amount" => "0.00",
+        "api_ref" => params["api_ref"],
+        "creator_id" => creator.id,
+        "is_primary" => primary?
+      }
+      |> Recipients.put_promo_sequence_id(params)
+
     Repo.transaction(fn ->
-      case %Recipient{}
-           |> Recipient.changeset(%{
-             "user_id" => scope.user.id,
-             "approved_by_user_id" => scope.user.id,
-             "approval_date" => now,
-             "name" => params["name"],
-             "description" => params["description"],
-             "message" => params["message"] || "Thank you for supporting #{params["name"]}.",
-             "site_url" => params["site_url"],
-             "contact_email" => params["contact_email"],
-             "recipient_type_id" => params["recipient_type_id"] || 1,
-             "split_code" => Ecto.UUID.generate(),
-             "referral_code" => Referrals.generate_referral_code("recipient"),
-             "target_amount" => "0.00",
-             "api_ref" => params["api_ref"],
-             "creator_id" => creator.id,
-             "is_primary" => primary?
-           })
-           |> Repo.insert() do
+      case %Recipient{} |> Recipient.changeset(attrs) |> Repo.insert() do
         {:ok, recipient} ->
           if primary? do
             creator

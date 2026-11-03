@@ -63,6 +63,7 @@ defmodule QlariusWeb.Api.Admin.RecipientController do
       referral_code: recipient.referral_code,
       recipient_type_id: recipient.recipient_type_id,
       is_primary: recipient.is_primary,
+      promo_sequence_id: recipient.promo_sequence_id,
       archived_at: recipient.archived_at,
       approval_date: recipient.approval_date,
       user_id: recipient.user_id

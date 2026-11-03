@@ -110,4 +110,15 @@ defmodule Qlarius.Sponster.Recipients do
   def change_recipient(%Recipient{} = recipient, attrs \\ %{}) do
     Recipient.changeset(recipient, attrs)
   end
+
+  @doc """
+  Copies an explicit sequence id onto create attrs. A blank value is left
+  unset so the changeset can apply the current default.
+  """
+  def put_promo_sequence_id(attrs, params) when is_map(attrs) and is_map(params) do
+    case Map.get(params, "promo_sequence_id") do
+      id when id in [nil, ""] -> attrs
+      id -> Map.put(attrs, "promo_sequence_id", id)
+    end
+  end
 end

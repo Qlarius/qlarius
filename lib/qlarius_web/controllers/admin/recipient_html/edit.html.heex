@@ -13,6 +13,7 @@
 
         <.recipient_form
           changeset={@changeset}
+          sequences={@sequences}
           action={~p"/admin/recipients/#{@recipient}"}
           method="put"
           submit_label="Save recipient"

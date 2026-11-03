@@ -26,6 +26,7 @@ defmodule Qlarius.Sponster.Recipient do
 
     belongs_to :creator, Qlarius.Creators.Creator
     belongs_to :user, Qlarius.Accounts.User
+    belongs_to :promo_sequence, Qlarius.Sponster.PromoSequence
     # recipient_type_id stays a plain integer (1 = publisher, 2 = charity, and so on).
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
 
@@ -50,9 +51,12 @@ defmodule Qlarius.Sponster.Recipient do
       :api_ref,
       :creator_id,
       :is_primary,
-      :archived_at
+      :archived_at,
+      :promo_sequence_id
     ])
     |> cast_attachments(attrs, [:graphic_url])
+    |> maybe_assign_default_sequence()
+    |> foreign_key_constraint(:promo_sequence_id)
     |> validate_required([
       :user_id,
       :name,
@@ -62,5 +66,28 @@ defmodule Qlarius.Sponster.Recipient do
     ])
     |> validate_number(:target_amount, greater_than_or_equal_to: Decimal.new("0"))
     |> ApiRef.validate()
+  end
+
+  # New recipients take the current default. Later default changes, and
+  # updates of recipients that already exist, leave promo_sequence_id alone.
+  defp maybe_assign_default_sequence(changeset) do
+    new? = Ecto.get_meta(changeset.data, :state) == :built
+
+    chosen =
+      get_change(changeset, :promo_sequence_id) || get_field(changeset, :promo_sequence_id)
+
+    cond do
+      not new? ->
+        changeset
+
+      not is_nil(chosen) ->
+        changeset
+
+      true ->
+        case Qlarius.Sponster.PromoSequences.default_id() do
+          nil -> changeset
+          id -> put_change(changeset, :promo_sequence_id, id)
+        end
+    end
   end
 end

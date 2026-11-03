@@ -38,6 +38,11 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   attr :split_panel_id, :string, default: "sponster-split-settings-panel"
   attr :info_context, :atom, default: :default
 
+  attr :promo_wide_slides, :list, default: nil
+  attr :promo_narrow_slides, :list, default: nil
+  attr :promo_max_height, :integer, default: nil
+  attr :promo_bounce_url, :string, default: nil
+
   attr :announcer_anon_display, :atom,
     default: :connect,
     values: [:connect, :promo],
@@ -439,6 +444,10 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         connect_href={@connect_href}
         connect_link_target={@connect_link_target}
         anon_display={@announcer_anon_display}
+        promo_wide_slides={@promo_wide_slides}
+        promo_narrow_slides={@promo_narrow_slides}
+        promo_max_height={@promo_max_height}
+        promo_bounce_url={@promo_bounce_url}
       />
     <% end %>
     """

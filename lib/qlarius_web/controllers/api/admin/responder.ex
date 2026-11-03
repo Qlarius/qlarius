@@ -293,7 +293,27 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:unknown_topic),
     do:
       {404, "unknown_topic",
-       "topic must be creators, content_groups, traits, ad_categories, or campaigns"}
+       "topic must be creators, content_groups, traits, ad_categories, campaigns, or promo_sequences"}
+
+  defp message(:promo_sequence_not_found),
+    do: {422, "promo_sequence_not_found", "promo_sequence_id does not match a sequence"}
+
+  defp message(:default_sequence),
+    do: {422, "default_sequence", "Mark another sequence as the default before deleting this one"}
+
+  defp message(:default_required),
+    do: {422, "default_required", "Mark another sequence as the default first"}
+
+  defp message(:invalid_track),
+    do: {422, "invalid_track", "track must be wide or narrow"}
+
+  defp message(:slide_not_found), do: {404, "slide_not_found", "Slide not found"}
+
+  defp message(:reorder_mismatch),
+    do: {422, "reorder_mismatch", "slide_ids must list every slide on that track once"}
+
+  defp message(:promo_image_required),
+    do: {422, "promo_image_required", "Send an image file or an https image_url"}
 
   defp message(:api_ref_required),
     do:

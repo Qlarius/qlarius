@@ -10,11 +10,12 @@ defmodule Qlarius.AdminApi.Recipients do
   alias Qlarius.AdminApi.{Idempotent, Params, Prices, RemoteImage}
   alias Qlarius.Referrals
   alias Qlarius.Repo
+  alias Qlarius.Sponster.PromoSequence
   alias Qlarius.Sponster.Recipient
   alias Qlarius.Wallets
   alias QlariusWeb.Uploaders.RecipientBrandImage
 
-  @fields ~w(name description message site_url contact_email recipient_type_id)
+  @fields ~w(name description message site_url contact_email recipient_type_id promo_sequence_id)
   @locked ~w(user_id split_code approval_date approved_by_user_id)
 
   def list(params) do
@@ -41,7 +42,8 @@ defmodule Qlarius.AdminApi.Recipients do
   end
 
   def create(%Scope{} = scope, params, opts) do
-    with :ok <- Prices.reject(params),
+    with {:ok, params} <- sequence_param(params),
+         :ok <- Prices.reject(params),
          :ok <- locked?(params) do
       Idempotent.create(Recipient, params,
         fields: @fields,
@@ -55,11 +57,11 @@ defmodule Qlarius.AdminApi.Recipients do
   end
 
   def update(%Scope{} = _scope, %Recipient{} = recipient, params, opts) do
-    attrs = Map.take(params, @fields)
-
-    with :ok <- Prices.reject(params),
+    with {:ok, params} <- sequence_param(params),
+         :ok <- Prices.reject(params),
          :ok <- immutable?(recipient, params),
          :ok <- locked?(params) do
+      attrs = Map.take(params, @fields)
       differences = Idempotent.differences(recipient, stringify_type(params), @fields)
 
       if opts[:dry_run] do
@@ -137,6 +139,7 @@ defmodule Qlarius.AdminApi.Recipients do
       "target_amount" => "0.00",
       "api_ref" => params["api_ref"]
     }
+    |> Qlarius.Sponster.Recipients.put_promo_sequence_id(params)
   end
 
   defp maybe_graphic(recipient, url) when is_binary(url) and url != "" do
@@ -147,6 +150,30 @@ defmodule Qlarius.AdminApi.Recipients do
   end
 
   defp maybe_graphic(recipient, _), do: {:ok, recipient}
+
+  defp sequence_param(params) do
+    if Map.has_key?(params, "promo_sequence_id") do
+      case params["promo_sequence_id"] do
+        value when value in [nil, ""] ->
+          {:ok, Map.put(params, "promo_sequence_id", nil)}
+
+        value ->
+          case Params.integer(value) do
+            nil ->
+              {:error, :promo_sequence_not_found}
+
+            id ->
+              if Repo.exists?(from s in PromoSequence, where: s.id == ^id) do
+                {:ok, Map.put(params, "promo_sequence_id", id)}
+              else
+                {:error, :promo_sequence_not_found}
+              end
+          end
+      end
+    else
+      {:ok, params}
+    end
+  end
 
   defp stringify_type(params) do
     case Params.integer(params["recipient_type_id"]) do

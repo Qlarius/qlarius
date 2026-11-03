@@ -22,11 +22,7 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
   import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.Widgets.UnauthCTA, only: [authed?: 1, wallet_strip_or_connect: 1]
 
-  @default_promo_slides [
-    "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThis_640.png",
-    "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsored_640.png",
-    "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_640.png"
-  ]
+  alias Qlarius.Sponster.PromoSequences
 
   attr :id_prefix, :string, default: "sponster"
   attr :current_scope, :map, default: nil
@@ -41,19 +37,28 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
     values: [:connect, :promo],
     doc: "Anonymous-viewer center content: READY+Connect strip or rotating promo banners."
 
-  attr :promo_slides, :list,
-    default: @default_promo_slides,
-    doc: "Banner image URLs for the :promo anon display (single set, all screen sizes)."
+  attr :promo_wide_slides, :list, default: nil
+  attr :promo_narrow_slides, :list, default: nil
+  attr :promo_max_height, :integer, default: nil
+  attr :promo_bounce_url, :string, default: nil
 
   def sponster_announcer_bar(assigns) do
     authed = authed?(assigns.current_scope)
     promo? = !authed && assigns.anon_display == :promo && !assigns.show_sponster_drawer
+    fallback = PromoSequences.fallback_slides()
 
     assigns =
       assigns
       |> assign(:authed, authed)
       |> assign(:promo?, promo?)
-      |> assign(:ads_count, if(authed, do: to_string(assigns.current_scope.ads_count || 0), else: ""))
+      |> assign(:wide_slides, slides_or_fallback(assigns.promo_wide_slides, fallback))
+      |> assign(:narrow_slides, slides_or_fallback(assigns.promo_narrow_slides, fallback))
+      |> assign(:promo_height, promo_height(assigns.promo_max_height))
+      |> assign(:bounce_src, assigns.promo_bounce_url || "/images/sponster_us_quarter.png")
+      |> assign(
+        :ads_count,
+        if(authed, do: to_string(assigns.current_scope.ads_count || 0), else: "")
+      )
       |> assign(
         :offered,
         if(authed,
@@ -73,7 +78,7 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
         <div class="sponster-announcer-coin-layer" aria-hidden="true">
           <div class="spin-bounce-background-item">
             <div class="spinner">
-              <img src="/images/sponster_us_quarter.png" alt="" />
+              <img src={@bounce_src} alt="" />
             </div>
           </div>
         </div>
@@ -90,13 +95,32 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
                the bar bottom, overflowing ~30px above the 50px bar. --%>
           <div class="relative h-[50px] flex-1 min-w-0 px-1">
             <div
-              id={"#{@id_prefix}-announcer-promo-carousel"}
+              id={"#{@id_prefix}-announcer-promo-carousel-narrow"}
               phx-hook="Carousel"
               phx-update="ignore"
               data-autoplay-interval="4000"
-              class="absolute inset-x-0 bottom-0 h-[80px] overflow-hidden"
+              class="absolute inset-x-0 bottom-0 overflow-hidden md:hidden"
+              style={"height: #{@promo_height}px"}
             >
-              <%= for slide <- @promo_slides do %>
+              <%= for slide <- @narrow_slides do %>
+                <div class="absolute inset-0 transition-opacity duration-1000 opacity-0" data-slide>
+                  <img
+                    class="absolute inset-0 h-full w-full object-contain object-bottom"
+                    src={slide}
+                    alt="Sponster promotion"
+                  />
+                </div>
+              <% end %>
+            </div>
+            <div
+              id={"#{@id_prefix}-announcer-promo-carousel-wide"}
+              phx-hook="Carousel"
+              phx-update="ignore"
+              data-autoplay-interval="4000"
+              class="absolute inset-x-0 bottom-0 overflow-hidden max-md:hidden"
+              style={"height: #{@promo_height}px"}
+            >
+              <%= for slide <- @wide_slides do %>
                 <div class="absolute inset-0 transition-opacity duration-1000 opacity-0" data-slide>
                   <img
                     class="absolute inset-0 h-full w-full object-contain object-bottom"
@@ -160,4 +184,10 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
     </div>
     """
   end
+
+  defp slides_or_fallback(slides, _fallback) when is_list(slides) and slides != [], do: slides
+  defp slides_or_fallback(_slides, fallback), do: fallback
+
+  defp promo_height(height) when is_integer(height) and height > 0 and height <= 400, do: height
+  defp promo_height(_), do: 80
 end

@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Admin.RecipientController do
   use QlariusWeb, :controller
 
+  alias Qlarius.Sponster.PromoSequences
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Sponster.Recipient
 
@@ -25,7 +26,9 @@ defmodule QlariusWeb.Admin.RecipientController do
     render(conn, "show.html",
       recipient: recipient,
       ledger_header: ledger_header,
-      ledger_entries_page: ledger_entries_page
+      ledger_entries_page: ledger_entries_page,
+      sequences: sequences(),
+      sequence_changeset: Recipients.change_recipient(recipient)
     )
   end
 
@@ -34,12 +37,18 @@ defmodule QlariusWeb.Admin.RecipientController do
   end
 
   def new(conn, _params) do
-    changeset = Recipients.change_recipient(%Recipient{})
-    render(conn, "new.html", changeset: changeset)
+    changeset =
+      %Recipient{promo_sequence_id: PromoSequences.default_id()}
+      |> Recipients.change_recipient()
+
+    render(conn, "new.html", changeset: changeset, sequences: sequences())
   end
 
   def create(conn, %{"recipient" => recipient_params}) do
-    params_with_user_id = Map.put(recipient_params, "user_id", conn.assigns.current_scope.user.id)
+    params_with_user_id =
+      recipient_params
+      |> normalize_sequence()
+      |> Map.put("user_id", conn.assigns.current_scope.user.id)
 
     case Recipients.create_recipient(params_with_user_id) do
       {:ok, _recipient} ->
@@ -48,27 +57,38 @@ defmodule QlariusWeb.Admin.RecipientController do
         |> redirect(to: ~p"/admin/recipients")
 
       {:error, changeset} ->
-        render(conn, "new.html", changeset: changeset)
+        render(conn, "new.html", changeset: changeset, sequences: sequences())
     end
   end
 
   def edit(conn, %{"id" => id}) do
     recipient = Recipients.get_recipient!(id)
     changeset = Recipients.change_recipient(recipient)
-    render(conn, "edit.html", recipient: recipient, changeset: changeset)
+    render(conn, "edit.html", recipient: recipient, changeset: changeset, sequences: sequences())
   end
 
   def update(conn, %{"id" => id, "recipient" => recipient_params}) do
     recipient = Recipients.get_recipient!(id)
 
-    case Recipients.update_recipient(recipient, recipient_params) do
-      {:ok, _recipient} ->
+    case Recipients.update_recipient(recipient, normalize_sequence(recipient_params)) do
+      {:ok, recipient} ->
+        dest =
+          if conn.params["return_to"] == "show" do
+            ~p"/admin/recipients/#{recipient}"
+          else
+            ~p"/admin/recipients"
+          end
+
         conn
         |> put_flash(:info, "Recipient updated successfully.")
-        |> redirect(to: ~p"/admin/recipients")
+        |> redirect(to: dest)
 
       {:error, changeset} ->
-        render(conn, "edit.html", recipient: recipient, changeset: changeset)
+        render(conn, "edit.html",
+          recipient: recipient,
+          changeset: changeset,
+          sequences: sequences()
+        )
     end
   end
 
@@ -79,5 +99,16 @@ defmodule QlariusWeb.Admin.RecipientController do
     conn
     |> put_flash(:info, "Recipient deleted successfully.")
     |> redirect(to: ~p"/admin/recipients")
+  end
+
+  defp sequences do
+    PromoSequences.list_sequences()
+  end
+
+  defp normalize_sequence(params) do
+    case Map.get(params, "promo_sequence_id") do
+      "" -> Map.put(params, "promo_sequence_id", nil)
+      _ -> params
+    end
   end
 end

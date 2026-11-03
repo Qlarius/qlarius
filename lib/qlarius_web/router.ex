@@ -493,6 +493,16 @@ defmodule QlariusWeb.Router do
     get "/recipients/:id", RecipientController, :show
     patch "/recipients/:id", RecipientController, :update
 
+    get "/promo_sequences", PromoSequenceController, :index
+    post "/promo_sequences", PromoSequenceController, :create
+    post "/promo_sequences/:id/slides/reorder", PromoSequenceController, :reorder
+    post "/promo_sequences/:id/slides", PromoSequenceController, :add_slide
+    patch "/promo_sequences/:id/slides/:slide_id", PromoSequenceController, :update_slide
+    delete "/promo_sequences/:id/slides/:slide_id", PromoSequenceController, :delete_slide
+    get "/promo_sequences/:id", PromoSequenceController, :show
+    patch "/promo_sequences/:id", PromoSequenceController, :update
+    delete "/promo_sequences/:id", PromoSequenceController, :delete
+
     get "/catalogs/:id", CatalogController, :show
     patch "/catalogs/:id", CatalogController, :update
     delete "/catalogs/:id", CatalogController, :delete
@@ -865,6 +875,16 @@ defmodule QlariusWeb.Router do
     get "/traits_index", TraitsIndexController, :index
     get "/mefile_tags_index", MeFileTagsIndexController, :index
     resources "/recipients", RecipientController
+
+    live_session :admin_promo_sequences,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/promo_sequences", PromoSequenceLive, :index
+      live "/promo_sequences/new", PromoSequenceLive, :new
+      live "/promo_sequences/:id", PromoSequenceLive, :edit
+    end
 
     live_session :admin_recipients,
       on_mount: [

@@ -5,9 +5,16 @@ defmodule QlariusWeb.Admin.RecipientHTML do
   import QlariusWeb.Components.MarketerUI
   alias Qlarius.Qlink.Urls
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
-  alias QlariusWeb.Uploaders.RecipientBrandImage
+
+  import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 1]
 
   embed_templates "recipient_html/*"
+
+  def sequence_options(sequences) do
+    Enum.map(sequences, fn sequence ->
+      {Qlarius.Sponster.PromoSequences.choice_label(sequence), sequence.id}
+    end)
+  end
 
   @doc """
   Copy/paste HTML for third-party sites. Loads the Sponster tipjar widget
@@ -35,10 +42,6 @@ defmodule QlariusWeb.Admin.RecipientHTML do
 
   def sponster_widget_preview_url(%{split_code: split_code}) when is_binary(split_code) do
     Urls.public_app_url("/widgets/ads_ext/#{URI.encode(split_code)}")
-  end
-
-  defp brand_image_url(recipient) do
-    RecipientBrandImage.url({recipient.graphic_url, recipient}, :original)
   end
 
   defp chicago_now_label do

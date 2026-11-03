@@ -7,9 +7,9 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-11-02.2"
+  @version "2026-11-03.1"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
-  @topics ~w(overview creators content_groups traits ad_categories campaigns)
+  @topics ~w(overview creators content_groups traits ad_categories campaigns promo_sequences)
 
   for topic <- @topics do
     @external_resource Path.join(@guides_dir, "#{topic}.md")
@@ -80,6 +80,31 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       purpose: "Create a recipient with no creator"
     },
     %{method: "PATCH", path: "/api/admin/recipients/:id", purpose: "Update a recipient"},
+    %{
+      method: "GET",
+      path: "/api/admin/promo_sequences",
+      purpose: "Promotional banner sequences for the embed carousel"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/promo_sequences",
+      purpose: "Create a promo sequence"
+    },
+    %{
+      method: "PATCH",
+      path: "/api/admin/promo_sequences/:id",
+      purpose: "Update a promo sequence, including its bounce image"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/promo_sequences/:id/slides",
+      purpose: "Add a wide or narrow slide"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/promo_sequences/:id/slides/reorder",
+      purpose: "Reorder one track"
+    },
     %{method: "GET", path: "/api/admin/catalogs/:id", purpose: "One catalog"},
     %{method: "PATCH", path: "/api/admin/catalogs/:id", purpose: "Update a catalog"},
     %{

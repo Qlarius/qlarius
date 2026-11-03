@@ -185,7 +185,10 @@ defmodule Qlarius.AdminApi.Creators do
         _ -> attrs
       end
 
-    Recipient.changeset(%Recipient{}, attrs)
+    Recipient.changeset(
+      %Recipient{},
+      Qlarius.Sponster.Recipients.put_promo_sequence_id(attrs, recipient_params)
+    )
   end
 
   defp recipient_site_url(%{"site_url" => url}, _creator) when is_binary(url) and url != "",

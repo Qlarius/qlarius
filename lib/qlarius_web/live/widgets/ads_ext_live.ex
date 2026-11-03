@@ -23,6 +23,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users
+  alias Qlarius.Sponster.PromoSequences
   alias QlariusWeb.SponsterRecipientSurface
 
   import QlariusWeb.Components.AdsComponents
@@ -41,12 +42,14 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def mount(params, _session, socket) do
     split_code = Map.get(params, "split_code")
-    recipient = Users.get_recipient_by_split_code(split_code)
+    recipient = split_code |> Users.get_recipient_by_split_code() |> PromoSequences.preload()
+    promo = PromoSequences.presentation(recipient)
 
     socket =
       socket
       |> assign(:page_title, "Sponster")
       |> assign(:split_code, split_code)
+      |> assign(:promo, promo)
       |> assign(:auth_referral_context, referral_context_for_recipient(recipient))
       |> SponsterRecipientSurface.init_assigns(recipient)
       # Attached last so it runs before LogoutModalHooks and can expand the
@@ -154,6 +157,15 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     flag_on? and anonymous?
   end
 
+  # The coin layer is 80px. Taller artwork needs a taller collapsed iframe.
+  defp collapsed_height(true, _height), do: "60"
+
+  defp collapsed_height(false, height) when is_integer(height) do
+    height |> max(80) |> Integer.to_string()
+  end
+
+  defp collapsed_height(false, _height), do: "80"
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -164,7 +176,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       <div
         id="ads-ext-postmessage-bridge"
         phx-hook="SponsterWidgetBridge"
-        data-collapsed-height={if authed?(@current_scope), do: "60", else: "80"}
+        data-collapsed-height={collapsed_height(authed?(@current_scope), @promo.max_height)}
         class="hidden"
         aria-hidden="true"
       >
@@ -200,6 +212,10 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
           announcer_id_prefix="ads-ext"
           split_panel_id="ads-ext-split-settings-panel"
           announcer_anon_display={:promo}
+          promo_wide_slides={@promo.wide}
+          promo_narrow_slides={@promo.narrow}
+          promo_max_height={@promo.max_height}
+          promo_bounce_url={@promo.bounce_url}
         />
 
         <%!-- Video Player Modal --%>
