@@ -278,6 +278,7 @@ defmodule QlariusWeb.Components.AdminSidebar do
               nav_link("Survey Categories", ~p"/admin/survey_categories"),
               subheading("System", "bg-base-content/30"),
               nav_link("MeFile Inspector", ~p"/admin/mefile_inspector"),
+              nav_link("Proxy users", ~p"/admin/proxy_users"),
               nav_link("Alias Words", ~p"/admin/alias_words"),
               nav_link("Global Variables", ~p"/admin/global_variables"),
               nav_link("Sponster Ledger", ~p"/admin/sponster_ledger"),

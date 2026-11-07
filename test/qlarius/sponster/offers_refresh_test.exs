@@ -199,18 +199,21 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
   end
 
   describe "throttled PTP activation" do
-    test "a regular me file activates only THROTTLE_AD_COUNT due offers" do
-      set_user_throttle!(count: 2, days: 7)
+    test "a me file activates only its throttle_ad_count due offers" do
       ctx = build_three_tap_context!([])
+      set_me_file_throttle!(ctx.me_file, count: 2, days: 7)
       offers = insert_due_throttled_offers!(ctx, 4)
 
       assert {:ok, %{activated: 2}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
-      assert Enum.count(reload!(offers), & &1.is_current) == 2
+
+      reloaded = reload!(offers)
+      assert length(reloaded) == 4
+      assert Enum.count(reloaded, & &1.is_current) == 2
     end
 
-    test "recent throttled events fill a regular me file's cap" do
-      set_user_throttle!(count: 2, days: 7)
+    test "recent throttled events fill a me file's cap" do
       ctx = build_three_tap_context!([])
+      set_me_file_throttle!(ctx.me_file, count: 2, days: 7)
       insert_throttled_events!(ctx, 2)
       offers = insert_due_throttled_offers!(ctx, 2)
 
@@ -218,30 +221,38 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       refute Enum.any?(reload!(offers), & &1.is_current)
     end
 
-    test "a proxy me file activates every due offer, even after recent throttled ads" do
-      set_user_throttle!(count: 2, days: 7)
-
+    test "throttle_days of 0 ignores recent throttled events" do
       ctx = build_three_tap_context!([])
-      attach_proxy!(ctx.me_file)
-      insert_throttled_events!(ctx, 2)
-      offers = insert_due_throttled_offers!(ctx, 6)
+      set_me_file_throttle!(ctx.me_file, count: 3, days: 0)
+      insert_throttled_events!(ctx, 5)
+      offers = insert_due_throttled_offers!(ctx, 5)
 
-      assert {:ok, %{activated: 6}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
-
-      reloaded = reload!(offers)
-      assert Enum.all?(reloaded, & &1.is_current)
-      assert Enum.all?(reloaded, & &1.is_throttled)
+      assert {:ok, %{activated: 3}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+      assert Enum.count(reload!(offers), & &1.is_current) == 3
     end
 
-    test "the activation job does not cap a proxy me file" do
-      set_user_throttle!(count: 2, days: 7)
-
+    test "a proxy me file uses its own throttle columns" do
       ctx = build_three_tap_context!([])
       attach_proxy!(ctx.me_file)
+      set_me_file_throttle!(ctx.me_file, count: 4, days: 0)
       offers = insert_due_throttled_offers!(ctx, 6)
 
+      assert {:ok, %{activated: 4}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+      assert Enum.count(reload!(offers), & &1.is_current) == 4
+    end
+
+    test "the activation job applies each me file's own cap" do
+      small = build_three_tap_context!([])
+      large = build_three_tap_context!([])
+      set_me_file_throttle!(small.me_file, count: 1, days: 7)
+      set_me_file_throttle!(large.me_file, count: 3, days: 7)
+      small_offers = insert_due_throttled_offers!(small, 4)
+      large_offers = insert_due_throttled_offers!(large, 4)
+
       assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
-      assert Enum.all?(reload!(offers), & &1.is_current)
+
+      assert Enum.count(reload!(small_offers), & &1.is_current) == 1
+      assert Enum.count(reload!(large_offers), & &1.is_current) == 3
     end
   end
 
@@ -285,6 +296,17 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
 
       assert {:ok, %{activated: 0}} = Offers.refresh_statuses_for_me_file(me_file.id)
       refute Repo.get!(Offer, offer.id).is_current
+    end
+
+    test "offer_counts counts a current offer for an unlaunched campaign but not as active" do
+      %{me_file: me_file, campaign: campaign} =
+        setup_current_three_tap_offer!(maximum_banner_count: 3, banner_retry_buffer_hours: 10)
+
+      assert %{total: 1, current: 1} = Offers.offer_counts([me_file.id])[me_file.id]
+
+      Repo.update!(Ecto.Changeset.change(campaign, %{launched_at: nil}))
+
+      assert %{total: 1, current: 0} = Offers.offer_counts([me_file.id])[me_file.id]
     end
   end
 
@@ -545,9 +567,10 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     |> NaiveDateTime.truncate(:second)
   end
 
-  defp set_user_throttle!(opts) do
-    Qlarius.System.set_global_variable("THROTTLE_AD_COUNT", to_string(opts[:count]))
-    Qlarius.System.set_global_variable("THROTTLE_DAYS", to_string(opts[:days]))
+  defp set_me_file_throttle!(me_file, opts) do
+    Repo.update_all(from(mf in MeFile, where: mf.id == ^me_file.id),
+      set: [throttle_ad_count: opts[:count], throttle_days: opts[:days]]
+    )
   end
 
   defp attach_proxy!(me_file) do

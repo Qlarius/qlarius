@@ -6,7 +6,7 @@ defmodule Qlarius.Sponster.Offers do
   import Ecto.Query
 
   alias Ecto.Multi
-  alias Qlarius.Accounts.UserProxy
+  alias Qlarius.Jobs.ReconcileOffersForMeFileWorker
   alias Qlarius.Repo
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.MediaPiecePhase
@@ -14,8 +14,8 @@ defmodule Qlarius.Sponster.Offers do
   alias Qlarius.Sponster.OfferCompletion
   alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
-  alias Qlarius.System
   alias Qlarius.Wallets.MeFileStatsBroadcaster
+  alias Qlarius.YouData.MeFiles.MeFile
 
   @completion_kind_full_funnel "full_funnel"
   @completion_kind_banner_max "banner_max"
@@ -123,6 +123,26 @@ defmodule Qlarius.Sponster.Offers do
     end
 
     {:ok, %{activated: activated, parked: parked, finalized: finalized}}
+  end
+
+  @doc """
+  Deletes every offer for a MeFile and rebuilds them from its current target
+  populations. Reconcile creates every eligible offer. Because the MeFile has
+  no offers left, it is treated as new: unthrottled offers and throttled offers
+  up to its own count are current, and the rest wait as pending. Ad events
+  stay, so completed ads stay completed.
+  """
+  def reset_for_me_file(me_file_id) when is_integer(me_file_id) do
+    {deleted, _} = from(o in Offer, where: o.me_file_id == ^me_file_id) |> Repo.delete_all()
+
+    :ok = ReconcileOffersForMeFileWorker.perform(%Oban.Job{args: %{"me_file_id" => me_file_id}})
+
+    counts = Map.get(offer_counts([me_file_id]), me_file_id, %{total: 0, current: 0})
+
+    MeFileStatsBroadcaster.broadcast_stats_updated(me_file_id)
+    MeFileStatsBroadcaster.broadcast_offers_updated(me_file_id)
+
+    {:ok, %{deleted: deleted, created: counts.total, current: counts.current}}
   end
 
   @doc """
@@ -326,28 +346,64 @@ defmodule Qlarius.Sponster.Offers do
   end
 
   def throttle_settings(me_file_id) when is_integer(me_file_id) do
-    if proxy_me_file?(me_file_id) do
-      # A proxy MeFile belongs to a true user's persona. It is not capped.
-      %{limit: nil, days: 0}
-    else
-      %{
-        limit: System.get_global_variable_int("THROTTLE_AD_COUNT", 3),
-        days: System.get_global_variable_int("THROTTLE_DAYS", 7)
-      }
-    end
+    me_file_id
+    |> List.wrap()
+    |> throttle_settings_for()
+    |> Map.get(me_file_id, %{limit: 0, days: 0})
+  end
+
+  @doc """
+  Total and current offer counts for many MeFiles, keyed by MeFile id.
+
+  `current` counts only offers whose campaign is live now, matching what the
+  MeFile sees and what the MeFile Inspector lists.
+  """
+  def offer_counts(me_file_ids) when is_list(me_file_ids) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    totals =
+      from(o in Offer,
+        where: o.me_file_id in ^me_file_ids,
+        group_by: o.me_file_id,
+        select: {o.me_file_id, count(o.id)}
+      )
+      |> Repo.all()
+
+    current =
+      from(o in Offer,
+        join: c in assoc(o, :campaign),
+        as: :campaign,
+        where: o.me_file_id in ^me_file_ids and o.is_current == true,
+        group_by: o.me_file_id,
+        select: {o.me_file_id, count(o.id)}
+      )
+      |> CampaignFilters.live_now(now)
+      |> Repo.all()
+      |> Map.new()
+
+    Map.new(totals, fn {me_file_id, total} ->
+      {me_file_id, %{total: total, current: Map.get(current, me_file_id, 0)}}
+    end)
+  end
+
+  @doc """
+  Throttle settings for many MeFiles in one query, keyed by MeFile id.
+  """
+  def throttle_settings_for(me_file_ids) when is_list(me_file_ids) do
+    from(mf in MeFile,
+      where: mf.id in ^me_file_ids,
+      select: {mf.id, %{limit: mf.throttle_ad_count, days: mf.throttle_days}}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   def throttle_budget(me_file_id, now) when is_integer(me_file_id) do
-    %{limit: limit, days: days} = throttle_settings(me_file_id)
-
-    if is_nil(limit) do
-      %{limit: nil, days: 0, current: 0, completed: 0, remaining: nil}
-    else
-      throttle_budget(me_file_id, now, limit, days)
-    end
+    throttle_budget(me_file_id, now, throttle_settings(me_file_id))
   end
 
-  defp throttle_budget(me_file_id, now, limit, days) do
+  def throttle_budget(me_file_id, now, %{limit: limit, days: days})
+      when is_integer(me_file_id) do
     current = count_current_throttled_offers(me_file_id)
 
     completed =
@@ -365,20 +421,6 @@ defmodule Qlarius.Sponster.Offers do
       completed: completed,
       remaining: max(0, limit - max(current, completed))
     }
-  end
-
-  def proxy_me_file_query do
-    from(up in UserProxy,
-      join: u in assoc(up, :proxy_user),
-      join: mf in assoc(u, :me_file),
-      select: mf.id
-    )
-  end
-
-  defp proxy_me_file?(me_file_id) do
-    proxy_me_file_query()
-    |> where([_up, _u, mf], mf.id == ^me_file_id)
-    |> Repo.exists?()
   end
 
   defp activate_unthrottled_for_me_file(me_file_id, now) do
@@ -412,11 +454,7 @@ defmodule Qlarius.Sponster.Offers do
       |> CampaignFilters.live_now(now)
       |> Repo.all()
 
-    offer_ids =
-      case throttle_budget(me_file_id, now).remaining do
-        nil -> pending
-        remaining -> Enum.take(pending, remaining)
-      end
+    offer_ids = Enum.take(pending, throttle_budget(me_file_id, now).remaining)
 
     if offer_ids == [] do
       0

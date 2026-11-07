@@ -6,6 +6,7 @@ defmodule Qlarius.Accounts.DevProxySignupTest do
   alias Qlarius.Accounts.User
   alias Qlarius.Accounts.UserProxy
   alias Qlarius.Repo
+  alias Qlarius.YouData.MeFiles.MeFile
 
   @trigger "5551234567"
   @true_alias "trae@qlarius.com"
@@ -90,6 +91,13 @@ defmodule Qlarius.Accounts.DevProxySignupTest do
         })
 
       assert is_nil(proxy.mobile_number_hash)
+
+      assert %{throttle_ad_count: 25, throttle_days: 0} =
+               Repo.get_by!(MeFile, user_id: proxy.id)
+
+      assert %{throttle_ad_count: 3, throttle_days: 7} =
+               Repo.get_by!(MeFile, user_id: true_user.id)
+
       assert {:ok, _} = Accounts.activate_proxy_user(true_user.id, proxy.id)
 
       link =

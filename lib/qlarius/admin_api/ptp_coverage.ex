@@ -3,17 +3,17 @@ defmodule Qlarius.AdminApi.PtpCoverage do
   Read-only coverage of PTP campaigns for one month.
 
   Scope comes from the area segment of each campaign's api_ref. Throttle-blocked
-  users currently hold a pending throttled PTP offer, which is the queue the
-  global cap holds back.
+  users currently hold a pending throttled PTP offer, which is the queue each
+  MeFile's own throttle holds back.
   """
 
   import Ecto.Query
 
   alias Qlarius.ApiRef
   alias Qlarius.Repo
-  alias Qlarius.System
   alias Qlarius.Sponster.{AdEvent, Offer}
   alias Qlarius.Sponster.Campaigns.Campaign
+  alias Qlarius.YouData.MeFiles.MeFile
 
   def report(month) do
     with {:ok, start, stop} <- month_range(month || current_month()) do
@@ -109,23 +109,16 @@ defmodule Qlarius.AdminApi.PtpCoverage do
     end
   end
 
+  # Each MeFile is held to its own count and window. Days of 0 has no
+  # completed-ad window, so those MeFiles are never blocked here.
   defp throttle_blocked do
-    cap = System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
-    days = System.get_global_variable_int("THROTTLE_DAYS", 7)
-
-    since =
-      NaiveDateTime.add(
-        NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-        -days * 86_400,
-        :second
-      )
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
     waiting =
       from(o in Offer,
         join: c in Campaign,
         on: c.id == o.campaign_id,
         where: c.is_ptp == true and o.is_current == false and o.is_throttled == true,
-        where: o.me_file_id not in subquery(Qlarius.Sponster.Offers.proxy_me_file_query()),
         distinct: true,
         select: o.me_file_id
       )
@@ -135,9 +128,13 @@ defmodule Qlarius.AdminApi.PtpCoverage do
       0
     else
       from(ae in AdEvent,
-        where: ae.me_file_id in ^waiting and ae.is_throttled == true and ae.created_at >= ^since,
-        group_by: ae.me_file_id,
-        having: count(ae.id) >= ^cap,
+        join: mf in MeFile,
+        on: mf.id == ae.me_file_id,
+        where: ae.me_file_id in ^waiting and ae.is_throttled == true,
+        where: mf.throttle_days > 0,
+        where: ae.created_at >= fragment("? - make_interval(days => ?)", ^now, mf.throttle_days),
+        group_by: [ae.me_file_id, mf.throttle_ad_count],
+        having: count(ae.id) >= mf.throttle_ad_count,
         select: ae.me_file_id
       )
       |> Repo.all()

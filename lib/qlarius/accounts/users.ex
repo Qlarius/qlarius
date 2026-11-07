@@ -71,6 +71,48 @@ defmodule Qlarius.Accounts.Users do
   end
 
   @doc """
+  Every proxy across all true users, ordered by proxy alias.
+  """
+  def list_all_proxies do
+    UserProxy
+    |> join(:inner, [p], u in assoc(p, :proxy_user), as: :proxy_user)
+    |> order_by([proxy_user: u], asc: u.alias)
+    |> preload([:true_user, proxy_user: :me_file])
+    |> Repo.all()
+  end
+
+  def get_proxy!(id) do
+    UserProxy
+    |> Repo.get!(id)
+    |> Repo.preload([:true_user, proxy_user: :me_file])
+  end
+
+  @doc """
+  Saves a proxy's alias and its MeFile throttle together.
+  """
+  def update_proxy_details(%UserProxy{proxy_user: %User{me_file: %MeFile{}} = user}, attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(
+      :user,
+      user
+      |> User.changeset(Map.take(attrs, ["alias"]))
+      |> Ecto.Changeset.unsafe_validate_unique(:alias, Repo)
+    )
+    |> Ecto.Multi.update(
+      :me_file,
+      MeFile.throttle_changeset(
+        user.me_file,
+        Map.take(attrs, ["throttle_ad_count", "throttle_days"])
+      )
+    )
+    |> Repo.transaction()
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, _step, changeset, _changes} -> {:error, changeset}
+    end
+  end
+
+  @doc """
   Retrieves a recipient by its split_code.
   """
   def get_recipient_by_split_code(nil), do: nil

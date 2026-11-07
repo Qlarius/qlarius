@@ -31,7 +31,7 @@ defmodule QlariusWeb.Api.Admin.PromoSequenceControllerTest do
       |> get(~p"/api/admin/agent_guide?topic=promo_sequences&format=json")
       |> json_response(200)
 
-    assert body["version"] == "2026-11-03.1"
+    assert body["version"] == "2026-11-07.1"
     assert body["guide"] =~ "writes no row and no file"
     assert body["guide"] =~ "Sponster"
     assert Enum.any?(body["endpoints"], &(&1["path"] == "/api/admin/promo_sequences"))

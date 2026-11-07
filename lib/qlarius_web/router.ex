@@ -886,6 +886,15 @@ defmodule QlariusWeb.Router do
       live "/promo_sequences/:id", PromoSequenceLive, :edit
     end
 
+    live_session :admin_proxy_users,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/proxy_users", ProxyUsersLive, :index
+      live "/proxy_users/:id", ProxyUsersLive, :edit
+    end
+
     live_session :admin_recipients,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},

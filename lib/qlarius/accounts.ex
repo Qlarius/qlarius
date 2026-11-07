@@ -51,13 +51,21 @@ defmodule Qlarius.Accounts do
     |> Ecto.Multi.insert(:me_file, fn %{user: user} ->
       referral_code = Qlarius.Referrals.generate_referral_code("mefile")
 
-      MeFile.changeset(%MeFile{}, %{
-        user_id: user.id,
-        date_of_birth: attrs[:date_of_birth],
-        display_name: attrs[:alias],
-        referral_code: referral_code,
-        credit_allowance: Qlarius.Wallets.default_credit_allowance()
-      })
+      proxy? = not is_nil(attrs[:true_user_id])
+
+      MeFile.changeset(
+        %MeFile{},
+        Map.merge(
+          %{
+            user_id: user.id,
+            date_of_birth: attrs[:date_of_birth],
+            display_name: attrs[:alias],
+            referral_code: referral_code,
+            credit_allowance: Qlarius.Wallets.default_credit_allowance()
+          },
+          MeFile.default_throttle(proxy?)
+        )
+      )
     end)
     |> Ecto.Multi.insert(:ledger_header, fn %{me_file: me_file} ->
       LedgerHeader.changeset(%LedgerHeader{}, %{

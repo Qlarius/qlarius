@@ -214,10 +214,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
   defp apply_new_user_activation(offers, false, _me_file_id), do: offers
 
   defp apply_new_user_activation(offers, true, me_file_id) do
-    case Offers.throttle_settings(me_file_id).limit do
-      nil -> Enum.map(offers, &Map.put(&1, :is_current, true))
-      throttle_limit -> split_new_user_activation(offers, throttle_limit)
-    end
+    split_new_user_activation(offers, Offers.throttle_settings(me_file_id).limit)
   end
 
   defp split_new_user_activation(offers, throttle_limit) do

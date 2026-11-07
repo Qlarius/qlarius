@@ -6,7 +6,6 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Campaigns.CampaignFilters
-  alias Qlarius.System
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
 
   @impl Oban.Worker
@@ -15,14 +14,12 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     Logger.info("📊 ActivatePendingOffersWorker: Starting activation cycle")
 
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-    throttle_limit = System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
-    throttle_days = System.get_global_variable_int("THROTTLE_DAYS", 7)
 
     # Get counts before activation for summary
     pending_unthrottled = count_pending_unthrottled_offers(now)
     pending_throttled = count_pending_throttled_offers(now)
 
-    Logger.info("📊 Config: throttle_limit=#{throttle_limit}, throttle_days=#{throttle_days}")
+    Logger.info("📊 Config: throttle limits are per MeFile")
 
     Logger.info(
       "📊 Pending offers: #{pending_unthrottled} unthrottled, #{pending_throttled} throttled"
@@ -122,21 +119,22 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
     me_files_count = map_size(throttled_offers_by_me_file)
 
+    settings_by_me_file =
+      throttled_offers_by_me_file
+      |> Map.keys()
+      |> Offers.throttle_settings_for()
+
     {total_activated, blocked_count} =
       Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers},
                                                           {activated_acc, blocked_acc} ->
-        budget = Offers.throttle_budget(me_file_id, now)
+        settings = Map.get(settings_by_me_file, me_file_id, %{limit: 0, days: 0})
+        budget = Offers.throttle_budget(me_file_id, now, settings)
         current_count = budget.current
         completed_count = budget.completed
         remaining_slots = budget.remaining
         throttle_limit = budget.limit
 
-        offers_to_activate =
-          case remaining_slots do
-            nil -> offers
-            n when is_integer(n) and n > 0 -> Enum.take(offers, n)
-            _ -> []
-          end
+        offers_to_activate = Enum.take(offers, remaining_slots)
 
         if offers_to_activate != [] do
           offer_ids = Enum.map(offers_to_activate, & &1.id)

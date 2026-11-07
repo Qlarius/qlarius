@@ -29,6 +29,8 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :split_reminder_shown_count, :integer, default: 0
     field :tag_display_mode, :string, default: "list"
     field :credit_allowance, :decimal, default: Decimal.new("0.00")
+    field :throttle_ad_count, :integer, default: 3
+    field :throttle_days, :integer, default: 7
 
     belongs_to :user, User
     has_one :ledger_header, LedgerHeader
@@ -55,14 +57,51 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       :split_reminder_dismissed_at,
       :split_reminder_shown_count,
       :tag_display_mode,
-      :credit_allowance
+      :credit_allowance,
+      :throttle_ad_count,
+      :throttle_days
     ])
     |> validate_required([:user_id])
+    |> validate_throttle()
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_inclusion(:strong_start_status, ["active", "completed", "skipped", "dismissed"])
     |> validate_inclusion(:tag_display_mode, ~w(tag list))
     |> validate_number(:credit_allowance, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:user_id)
+  end
+
+  def throttle_changeset(me_file, attrs) do
+    me_file
+    |> cast(attrs, [:throttle_ad_count, :throttle_days])
+    |> validate_throttle()
+  end
+
+  # Days of 0 turns off the completed-ad window; only the current-offer cap applies.
+  defp validate_throttle(changeset) do
+    changeset
+    |> validate_required([:throttle_ad_count, :throttle_days])
+    |> validate_number(:throttle_ad_count,
+      greater_than_or_equal_to: 0,
+      less_than_or_equal_to: 1000
+    )
+    |> validate_number(:throttle_days, greater_than_or_equal_to: 0, less_than_or_equal_to: 365)
+  end
+
+  @doc """
+  Throttle values copied onto a new MeFile. Proxies use the PROXY_* globals.
+  """
+  def default_throttle(proxy?) do
+    if proxy? do
+      %{
+        throttle_ad_count: Qlarius.System.get_global_variable_int("PROXY_THROTTLE_AD_COUNT", 25),
+        throttle_days: Qlarius.System.get_global_variable_int("PROXY_THROTTLE_DAYS", 0)
+      }
+    else
+      %{
+        throttle_ad_count: Qlarius.System.get_global_variable_int("THROTTLE_AD_COUNT", 3),
+        throttle_days: Qlarius.System.get_global_variable_int("THROTTLE_DAYS", 7)
+      }
+    end
   end
 
   # def display_name_dynamic(me_file) do

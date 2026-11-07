@@ -37,21 +37,22 @@ The system consists of 7 core Oban workers organized into 5 phases:
 
 **Logic:**
 ```
-1. Get THROTTLE_AD_COUNT and THROTTLE_DAYS from global variables
-2. Activate all unthrottled offers where pending_until <= now
-3. For throttled offers:
+1. Activate all unthrottled offers where pending_until <= now
+2. For throttled offers:
    a. Group by me_file_id
-   b. For each me_file:
+   b. Load throttle_ad_count and throttle_days for those me_files in one query
+   c. For each me_file:
       - Count current throttled offers (is_current=true, is_throttled=true)
-      - Count completed throttled ads in last 7 days
-      - remaining_slots = THROTTLE_AD_COUNT - max(current_count, completed_count)
+      - Count completed throttled ads in the last throttle_days days (skipped when 0)
+      - remaining_slots = throttle_ad_count - max(current_count, completed_count)
       - Activate up to remaining_slots offers (oldest pending_until first)
 ```
 
 **Throttling Rules:**
-- Rule 1: Max THROTTLE_AD_COUNT throttled offers active at once
-- Rule 2: Max THROTTLE_AD_COUNT throttled offers completed in rolling 7-day window
+- Rule 1: Max throttle_ad_count throttled offers active at once
+- Rule 2: Max throttle_ad_count throttled offers completed in a rolling throttle_days window
 - Unthrottled offers activate immediately when pending_until passes
+- Every eligible offer is created; offers over the cap wait with is_current=false
 
 ---
 
@@ -178,8 +179,12 @@ Stored in `global_variables` table, accessed via `Qlarius.System` context:
 
 | Name | Default | Description |
 |------|---------|-------------|
-| `THROTTLE_AD_COUNT` | 3 | Max throttled offers active/completed per me_file |
-| `THROTTLE_DAYS` | 7 | Rolling window for completed throttled ads |
+| `THROTTLE_AD_COUNT` | 3 | Copied to `me_files.throttle_ad_count` when a me_file is created |
+| `THROTTLE_DAYS` | 7 | Copied to `me_files.throttle_days` when a me_file is created |
+| `PROXY_THROTTLE_AD_COUNT` | 25 | Copied to a proxy me_file's `throttle_ad_count` |
+| `PROXY_THROTTLE_DAYS` | 0 | Copied to a proxy me_file's `throttle_days` |
+
+The activation jobs read the me_file columns. Admins override a proxy's values at `/admin/proxy_users`.
 
 **Usage:**
 ```elixir

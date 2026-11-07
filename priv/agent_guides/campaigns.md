@@ -88,9 +88,13 @@ PTP campaigns are created with `is_throttled: true` unless you send
 `is_throttled` explicitly. Throttling spaces a user's ads out so they never
 get many at once and then nothing.
 
-The throttle cap is **global**: `THROTTLE_AD_COUNT` ads per `THROTTLE_DAYS`
-days (currently 3 per 7) applies to all throttled campaigns together, not to
-each campaign. It counts throttled ad events in the window, and a completed
+The throttle cap is **per MeFile**: each MeFile stores its own
+`throttle_ad_count` ads per `throttle_days` days, and that cap applies to all
+throttled campaigns together, not to each campaign. A new MeFile copies
+`THROTTLE_AD_COUNT` and `THROTTLE_DAYS` from Global Variables when it is
+created (proxy MeFiles copy `PROXY_THROTTLE_AD_COUNT` and
+`PROXY_THROTTLE_DAYS`), and an admin can override a proxy's values. Changing a
+Global Variable later affects only MeFiles created after the change. It counts throttled ad events in the window, and a completed
 3-tap ad records more than one event (a banner view and a click-through), so
 in practice a user completes fewer throttled ads than the raw number
 suggests. Do not change these Global Variables; report coverage concerns to
