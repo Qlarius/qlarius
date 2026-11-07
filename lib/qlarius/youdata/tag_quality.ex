@@ -239,7 +239,7 @@ defmodule Qlarius.YouData.TagQuality do
   end
 
   defp count_limit_text(:yellow, limit) do
-    "Some marketers might have low confidence in this data if they think there are too many tags. " <>
+    "Some marketers might have low confidence in this data if they think there are too many tag values. " <>
       count_limit_advice(limit)
   end
 

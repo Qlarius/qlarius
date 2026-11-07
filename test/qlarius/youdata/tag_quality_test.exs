@@ -34,7 +34,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
 
     assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
-             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 3 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
+             "Some marketers might have low confidence in this data if they think there are too many tag values. Consider prioritizing to 3 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     assert reason(tagged(parent, children), :count).text ==
              "Most marketers will be skeptical of this many tag values as truthful. Consider prioritizing to 3 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
@@ -58,7 +58,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     max_children = [child!(maximum, "A"), child!(maximum, "B")]
 
     assert reason(tagged(maximum, max_children), :count).text ==
-             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
+             "Some marketers might have low confidence in this data if they think there are too many tag values. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     hard = parent!(category, "Hard", %{hard_max_tags: 1})
     hard_one = child!(hard, "Only")
@@ -328,7 +328,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert confirmed.status == :green
 
     assert reason(confirmed, :confirmed).text ==
-             "Some marketers might have low confidence in this data if they think there are too many tags. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
+             "Some marketers might have low confidence in this data if they think there are too many tag values. Consider prioritizing to 1 or fewer tag values. If all the current values are truly accurate, you can \"Confirm\" as is."
 
     assert reason(confirmed, :confirmed).withdraw_kind == "count"
     refute reason(confirmed, :count)
