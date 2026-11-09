@@ -521,7 +521,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           position_strategy="fixed"
           trigger_type="click"
           use_floating_size={false}
-          class="w-max max-w-[min(20rem,calc(100vw-1.5rem))] min-w-[15rem] p-1.5 shadow-xl"
+          class="w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl! p-2 shadow-xl"
         >
           <:trigger>
             <button class={[
@@ -533,79 +533,72 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </button>
           </:trigger>
           <:content>
-            <p class="px-3 pt-1.5 pb-1 text-xs font-medium text-base-content/55">Top up wallet</p>
-            <div class="arqade-menu">
+            <p class="topup-menu__title">Top up wallet</p>
+            <div class="topup-menu">
               <button
-                :if={@sponster_ads_available?}
                 type="button"
-                id={"#{@id}-sponster-open"}
-                class="arqade-menu-row"
-                phx-hook="WalletTopupOpenSponster"
+                id={
+                  if @sponster_ads_available?,
+                    do: "#{@id}-sponster-open",
+                    else: "#{@id}-sponster-open-disabled"
+                }
+                class="topup-row"
+                phx-hook={@sponster_ads_available? && "WalletTopupOpenSponster"}
                 data-popover-id={"#{@id}-topup"}
                 data-drawer-delay-ms="280"
                 data-parent-phx-id={@parent_phx_id}
+                disabled={not @sponster_ads_available?}
+                title={if not @sponster_ads_available?, do: "No ads available right now"}
               >
-                <%!-- `Sponster_logo_white_horiz.svg` is not shipped; color horiz is in priv/static/images. --%>
-                <img
-                  src="/images/Sponster_logo_color_horiz.svg"
-                  alt="Sponster"
-                  class="h-5 w-auto max-w-[7rem] shrink-0 object-contain object-left"
-                  decoding="async"
-                />
-                <span class="ml-auto shrink-0 whitespace-nowrap tabular-amount">
-                  {@ads_count} ads • {if @offered_amount,
-                    do: format_usd(@offered_amount),
-                    else: "$0.00"}
+                <span class="topup-row__body">
+                  <%!-- `Sponster_logo_white_horiz.svg` is not shipped; color horiz is in priv/static/images. --%>
+                  <img
+                    src="/images/Sponster_logo_color_horiz.svg"
+                    alt="Sponster"
+                    class="h-5 w-auto max-w-[7rem] object-contain object-left"
+                    decoding="async"
+                  />
+                  <span class="topup-row__hint">
+                    {if @sponster_ads_available?,
+                      do: "#{@ads_count} #{if @ads_count == 1, do: "ad", else: "ads"} ready",
+                      else: "No ads right now"}
+                  </span>
+                </span>
+                <span class="topup-row__amount">
+                  {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
                 </span>
               </button>
-              <button
-                :if={not @sponster_ads_available?}
-                type="button"
-                id={"#{@id}-sponster-open-disabled"}
-                disabled
-                aria-disabled="true"
-                title="No ads available right now"
-                class="arqade-menu-row"
-              >
-                <img
-                  src="/images/Sponster_logo_color_horiz.svg"
-                  alt="Sponster"
-                  class="h-5 w-auto max-w-[7rem] shrink-0 object-contain object-left"
-                  decoding="async"
-                />
-                <span class="ml-auto shrink-0 whitespace-nowrap tabular-amount">
-                  {@ads_count} ads • {if @offered_amount,
-                    do: format_usd(@offered_amount),
-                    else: "$0.00"}
-                </span>
-              </button>
+
               <button
                 type="button"
-                class="arqade-menu-row"
+                id={"#{@id}-daily-gift"}
+                class="topup-row"
                 phx-click="daily-gift"
                 disabled={not @daily_gift_available?}
-                title={
-                  if not @daily_gift_available?,
-                    do: "You can claim again 24 hours after your last daily gift"
-                }
               >
-                <.icon name="hero-gift" class="arqade-menu-row__icon" />
-                <span>Daily gift</span>
-                <span class="ml-auto shrink-0 tabular-amount">$0.50</span>
-              </button>
-              <button
-                type="button"
-                class="arqade-menu-row"
-                phx-click={Phoenix.LiveView.JS.show(to: "##{@id}-credit-debit-soon")}
-              >
-                <.icon name="hero-credit-card" class="arqade-menu-row__icon" />
-                <span>Credit / Debit</span>
-                <span
-                  id={"#{@id}-credit-debit-soon"}
-                  class="ml-auto hidden shrink-0 text-xs text-base-content/55"
-                >
-                  Coming soon
+                <span class="topup-row__icon">
+                  <.icon name="hero-gift" class="size-5" />
                 </span>
+                <span class="topup-row__body">
+                  <span class="topup-row__label">Daily gift</span>
+                  <span class="topup-row__hint">
+                    {if @daily_gift_available?,
+                      do: "Free once a day",
+                      else: "Collected. Back 24 hours after your claim."}
+                  </span>
+                </span>
+                <span class="topup-row__amount">{format_usd(Wallets.daily_gift_amount())}</span>
+              </button>
+
+              <button type="button" class="topup-row" disabled>
+                <span class="topup-row__icon">
+                  <.icon name="hero-credit-card" class="size-5" />
+                </span>
+                <span class="topup-row__body">
+                  <span class="topup-row__label">Credit / Debit</span>
+                  <span class="topup-row__hint">Add funds with a card</span>
+                </span>
+                <span class="topup-row__soon">Soon</span>
               </button>
             </div>
           </:content>
@@ -1287,7 +1280,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           {ContentPiece.episode_label(@piece)}
         </span>
         <span class="flex items-center gap-1">
-          <.icon name="hero-clock" class="w-3 h-3" /><span data-arqade-selected-duration>
+          <.icon name="hero-clock" class="w-3 h-3" />
+          <span data-arqade-selected-duration>
             {@piece.duration}
           </span>
         </span>

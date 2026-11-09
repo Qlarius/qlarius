@@ -2742,9 +2742,37 @@ Hooks.Popover = {
     }
   },
 
+  /**
+   * Put a portaled panel back under the hook so LiveView patches it in place
+   * (otherwise the open panel in body keeps stale content, e.g. an enabled
+   * Daily gift row after the claim). Server markup also resets the open
+   * classes and inline position, so keep them for `updated`.
+   */
+  beforeUpdate() {
+    if (!this.isOpen || !this.contentEl) return
+    this._openStyle = {
+      content: this.contentEl.getAttribute("style"),
+      arrow: this.arrowEl?.getAttribute("style") || null
+    }
+    this._restoreFixedPortal()
+  },
+
+  _reapplyOpenState() {
+    const saved = this._openStyle
+    this._openStyle = null
+    if (saved?.content) this.contentEl.setAttribute("style", saved.content)
+    if (saved?.arrow && this.arrowEl) this.arrowEl.setAttribute("style", saved.arrow)
+    this._portalFixedToBody()
+    this.contentEl.classList.remove("hidden", "opacity-0")
+  },
+
   updated() {
     const nextContent = this.el.querySelector("[data-popover-content]")
     const nextArrow = this.el.querySelector("[data-popover-arrow]")
+    if (nextContent === this.contentEl && this.isOpen) {
+      this.arrowEl = nextArrow || null
+      this._reapplyOpenState()
+    }
     if (nextContent && nextContent !== this.contentEl) {
       if (this.cleanupAutoUpdate) {
         this.cleanupAutoUpdate()

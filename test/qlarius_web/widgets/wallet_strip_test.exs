@@ -67,10 +67,12 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
       assert html =~ "hero-arrow-long-left"
       assert html =~ "$1.64"
       assert html =~ "Top up wallet"
-      assert html =~ "arqade-menu-row"
+      assert html =~ "topup-row"
       assert html =~ ~s(id="strip-sponster-open")
-      assert html =~ "9 ads • $1.14"
+      assert html =~ "9 ads ready"
+      assert html =~ "$1.14"
       assert html =~ "Daily gift"
+      assert html =~ "Free once a day"
     end
 
     test "a used daily gift is a disabled row" do
@@ -84,7 +86,9 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
         )
 
       assert html =~ ~s(id="strip-sponster-open-disabled")
+      assert html =~ "No ads right now"
       assert html =~ ~r/phx-click="daily-gift"[^>]*disabled|disabled[^>]*phx-click="daily-gift"/
+      assert html =~ "Collected. Back 24 hours after your claim."
     end
   end
 
