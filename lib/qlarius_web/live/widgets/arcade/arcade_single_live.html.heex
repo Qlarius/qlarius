@@ -334,7 +334,7 @@
                             disabled={is_authed && !can_afford}
                             class={"btn-widget btn-widget-solid btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
                           >
-                            {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
+                            {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} •
                             <span class="font-bold tabular-amount">
                               {format_usd(@default_tiqit_class.price, zero_free: true)}
                             </span>

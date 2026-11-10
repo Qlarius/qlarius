@@ -136,9 +136,9 @@ Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Ti
 
 ## Arqade
 
-The Arqade group and single-piece pages (`widgets/arcade/`) render in the app, as widgets and inside Qlink, so **colours stay on the neutral widget ramp** (see Auth sheet). The pre-purchase state stays minimal: "Buy Tiqit • $0.10" and ⋯, nothing more; what a tiqit gets you is in the confirm dialog.
+The Arqade group and single-piece pages (`widgets/arcade/`) render in the app, as widgets and inside Qlink, so **colours stay on the neutral widget ramp** (see Auth sheet). The pre-purchase state stays minimal: "Buy • $0.10" and ⋯, nothing more; what a tiqit gets you is in the confirm dialog.
 
-- **Buy / Get Tiqit / Accept Gift** use `.btn-widget-solid`: the one filled action, widget-800 with a base-100 label (flips on the dark ramp), like the auth sheet's `.auth-cta`. `.btn-widget-emphasis` (outlined) stays on Tiqit Pass, gift dialogs, the proxy sheet and the Qlink announcer toggle.
+- **Buy / Get / Accept Gift** use `.btn-widget-solid`: the one filled action, widget-800 with a base-100 label (flips on the dark ramp), like the auth sheet's `.auth-cta`. `.btn-widget-emphasis` (outlined) stays on Tiqit Pass, gift dialogs, the proxy sheet and the Qlink announcer toggle.
 - **⋯** is a circle the height of Buy (56px). Its menu (Full purchase options, Share, Gift) is compact rows with hairline dividers (`.arqade-menu`, `.arqade-menu-row`).
 - **Gutters:** the Buy row uses the hero's side gutter (16px; 12px in Qlink / full-screen embeds), and the list column is 16px on phones, so artwork, Buy and rows share one edge. Desktop overrides use `md:!…`, because `app.css` emits base spacing utilities twice and the later copy beats plain `md:` variants.
 - **Description:** three lines with a "Show full" chip floating over the end of the last line, so it costs no height. Phones keep vertical space for the episode list: no extra lines or gaps in the hero.
