@@ -172,8 +172,6 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
               value_text="READY"
               anon_strobe?={true}
             />
-            <%!-- Connecting funds the wallet, as top up does --%>
-            <.icon name="hero-arrow-long-left" class="wallet-strip-arrow" />
             <%= if @on_click do %>
               <button type="button" phx-click={@on_click} class={connect_classes}>
                 <.connect_strip_cta_label />

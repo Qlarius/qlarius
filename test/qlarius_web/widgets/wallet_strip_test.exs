@@ -53,7 +53,7 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
   end
 
   describe "wallet_strip/1" do
-    test "pill, arrow and top up sit together; the top up menu is compact rows" do
+    test "the pill and top up sit together; the top up menu is compact rows" do
       html =
         render_component(&Components.wallet_strip/1,
           id: "strip",
@@ -64,7 +64,7 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
         )
 
       assert html =~ "wallet-strip-tray__row"
-      assert html =~ "hero-arrow-long-left"
+      refute html =~ "hero-arrow"
       assert html =~ "$1.64"
       assert html =~ "Top up wallet"
       assert html =~ "topup-row"
@@ -92,12 +92,13 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
     end
   end
 
-  test "anonymous strip shows READY, the arrow and Connect" do
+  test "anonymous strip shows READY and a Connect button with its own arrow" do
     html = render_component(&UnauthCTA.wallet_strip_or_connect/1, scope: %Scope{}, id: "anon")
 
     assert html =~ "READY"
     assert html =~ "wallet-strip-tray__row"
-    assert html =~ "hero-arrow-long-left"
+    assert html =~ "hero-arrow-left"
+    refute html =~ "hero-arrow-long-left"
     assert html =~ "Connect"
   end
 end

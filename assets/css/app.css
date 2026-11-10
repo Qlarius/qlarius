@@ -2133,8 +2133,7 @@
 
   /* Wallet strip (wallet pill + top up / Connect) in Arqade, tip jar and
      Tiqit Pass: a full-width row with a hairline above, the pill and its
-     action kept together as one centred unit. When funded, an arrow points
-     from top up into the wallet. */
+     action kept together as one centred unit. */
   .wallet-strip-tray {
     @apply w-full min-w-0 border-t pt-3 text-base-content;
     border-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
@@ -2142,10 +2141,6 @@
 
   .wallet-strip-tray__row {
     @apply flex min-w-0 flex-row flex-nowrap items-center justify-center gap-1.5;
-  }
-
-  .wallet-strip-arrow {
-    @apply h-4 w-4 shrink-0 text-sponster-600 dark:text-sponster-300;
   }
 
   /* Wallet strip Connect / Top up — transparent fill; border + text match `WalletBalance`. */

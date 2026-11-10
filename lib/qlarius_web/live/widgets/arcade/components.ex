@@ -512,9 +512,6 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <div class="wallet-strip-tray__row">
         <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
-        <%!-- Top up flows into the wallet --%>
-        <.icon name="hero-arrow-long-left" class="wallet-strip-arrow" />
-
         <.popover
           id={"#{@id}-topup"}
           placement="top"
