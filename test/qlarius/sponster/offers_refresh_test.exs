@@ -1,6 +1,8 @@
 defmodule Qlarius.Sponster.OffersRefreshTest do
   use Qlarius.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias Qlarius.Accounts.Marketer
   alias Qlarius.Accounts.{User, UserProxy}
   alias Qlarius.Jobs.ActivatePendingOffersWorker
@@ -289,6 +291,30 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       refute Enum.any?(reload!(capped_offers), & &1.is_current)
       assert Enum.count(reload!(open_offers), & &1.is_current) == 2
       refute Enum.any?(reload!(ended_offers), & &1.is_current)
+    end
+
+    test "a cron tick blocked by a running job is logged" do
+      log =
+        capture_log(fn ->
+          ActivatePendingOffersWorker.handle_unique_skip(
+            [:oban, :plugin, :stop],
+            %{},
+            %{
+              plugin: Oban.Plugins.Cron,
+              jobs: [
+                %Oban.Job{
+                  id: 91,
+                  worker: "Qlarius.Jobs.ActivatePendingOffersWorker",
+                  state: "executing",
+                  conflict?: true
+                }
+              ]
+            },
+            nil
+          )
+        end)
+
+      assert log =~ "ActivatePendingOffersWorker: skipped, job 91 is still executing"
     end
   end
 

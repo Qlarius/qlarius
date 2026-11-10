@@ -38,6 +38,13 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     {throttled_activated, throttled_blocked, me_files_processed} =
       activate_throttled_offers(now)
 
+    if unthrottled_activated == 0 and throttled_activated == 0 do
+      Logger.info(
+        "ActivatePendingOffersWorker: nothing to activate " <>
+          "(#{pending_unthrottled} unthrottled due, #{me_files_processed} throttled MeFiles, #{throttled_blocked} already at cap)"
+      )
+    end
+
     # Summary log
     Logger.info("""
     📊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,4 +203,41 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   defp broadcast_activations do
     CampaignPubSub.broadcast_offers_activated()
   end
+
+  @telemetry_id "qlarius-activate-pending-offers-skip"
+
+  @doc false
+  def attach_skip_logger do
+    :telemetry.detach(@telemetry_id)
+
+    :telemetry.attach(
+      @telemetry_id,
+      [:oban, :plugin, :stop],
+      &__MODULE__.handle_unique_skip/4,
+      nil
+    )
+  end
+
+  @doc false
+  def handle_unique_skip(_event, _measure, %{plugin: Oban.Plugins.Cron, jobs: jobs}, _config) do
+    Enum.each(jobs, &log_unique_skip/1)
+  end
+
+  def handle_unique_skip(_event, _measure, _meta, _config), do: :ok
+
+  defp log_unique_skip(%{
+         worker: "Qlarius.Jobs.ActivatePendingOffersWorker",
+         conflict?: true,
+         id: id,
+         state: state
+       }) do
+    require Logger
+
+    Logger.warning(
+      "ActivatePendingOffersWorker: skipped, job #{id} is still #{state}. " <>
+        "A new run waits until that row leaves #{state}; Lifeline discards a stuck executing job 30 minutes after it started."
+    )
+  end
+
+  defp log_unique_skip(_job), do: :ok
 end
