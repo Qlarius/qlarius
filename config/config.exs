@@ -10,7 +10,8 @@ import Config
 config :qlarius, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10, targets: 5, offers: 10, activations: 3, maintenance: 3],
+  # activations is 1 so ActivatePendingOffersWorker cannot overlap itself.
+  queues: [default: 10, targets: 5, offers: 10, activations: 1, maintenance: 3],
   repo: Qlarius.Repo,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},

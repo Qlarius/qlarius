@@ -410,10 +410,51 @@ defmodule Qlarius.Sponster.Offers do
       if days == 0 do
         0
       else
-        since = NaiveDateTime.add(now, -days * 24 * 60 * 60, :second)
-        count_completed_throttled_ads(me_file_id, since)
+        count_completed_throttled_ads(me_file_id, window_start(now, days))
       end
 
+    budget(limit, days, current, completed)
+  end
+
+  @doc """
+  Throttle budgets for many MeFiles, keyed by MeFile id.
+
+  MeFiles that share a count and a window are counted together. The rule is
+  read once and passed into those queries, so each ad event does not look up
+  its MeFile. A days value of 0 skips the completed count.
+  """
+  def throttle_budgets([], _now), do: %{}
+
+  def throttle_budgets(me_file_ids, %NaiveDateTime{} = now) when is_list(me_file_ids) do
+    settings = throttle_settings_for(me_file_ids)
+
+    grouped =
+      Enum.group_by(settings, fn {_id, rule} -> rule end, fn {id, _rule} -> id end)
+
+    known =
+      Enum.reduce(grouped, %{}, fn {%{limit: limit, days: days}, ids}, acc ->
+        current = current_throttled_counts(ids)
+
+        completed =
+          if days == 0, do: %{}, else: completed_throttled_counts(ids, window_start(now, days))
+
+        Enum.reduce(ids, acc, fn id, acc ->
+          Map.put(
+            acc,
+            id,
+            budget(limit, days, Map.get(current, id, 0), Map.get(completed, id, 0))
+          )
+        end)
+      end)
+
+    Enum.reduce(me_file_ids, known, fn id, acc ->
+      Map.put_new(acc, id, budget(0, 0, 0, 0))
+    end)
+  end
+
+  defp window_start(now, days), do: NaiveDateTime.add(now, -days * 24 * 60 * 60, :second)
+
+  defp budget(limit, days, current, completed) do
     %{
       limit: limit,
       days: days,
@@ -421,6 +462,48 @@ defmodule Qlarius.Sponster.Offers do
       completed: completed,
       remaining: max(0, limit - max(current, completed))
     }
+  end
+
+  defp current_throttled_counts(me_file_ids) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    me_file_ids
+    |> Enum.chunk_every(2_000)
+    |> Enum.reduce(%{}, fn ids, acc ->
+      counts =
+        from(o in Offer,
+          join: c in assoc(o, :campaign),
+          as: :campaign,
+          where: o.me_file_id in ^ids,
+          where: o.is_current == true,
+          where: o.is_throttled == true,
+          group_by: o.me_file_id,
+          select: {o.me_file_id, count(o.id)}
+        )
+        |> CampaignFilters.live_now(now)
+        |> Repo.all()
+
+      Map.merge(acc, Map.new(counts))
+    end)
+  end
+
+  # `since` is the rule's window, the same instant for every MeFile in the chunk.
+  defp completed_throttled_counts(me_file_ids, since) do
+    me_file_ids
+    |> Enum.chunk_every(2_000)
+    |> Enum.reduce(%{}, fn ids, acc ->
+      counts =
+        from(ae in AdEvent,
+          where: ae.me_file_id in ^ids,
+          where: ae.is_throttled == true,
+          where: ae.created_at >= ^since,
+          group_by: ae.me_file_id,
+          select: {ae.me_file_id, count(ae.id)}
+        )
+        |> Repo.all()
+
+      Map.merge(acc, Map.new(counts))
+    end)
   end
 
   defp activate_unthrottled_for_me_file(me_file_id, now) do

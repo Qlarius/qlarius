@@ -241,6 +241,21 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       assert Enum.count(reload!(offers), & &1.is_current) == 4
     end
 
+    test "throttle_budgets counts every me file that shares a rule in one pass" do
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      capped = build_three_tap_context!([])
+      open = build_three_tap_context!([])
+      set_me_file_throttle!(capped.me_file, count: 2, days: 7)
+      set_me_file_throttle!(open.me_file, count: 2, days: 7)
+      insert_throttled_events!(capped, 2)
+
+      budgets = Offers.throttle_budgets([capped.me_file.id, open.me_file.id], now)
+
+      assert budgets[capped.me_file.id].remaining == 0
+      assert budgets[open.me_file.id].remaining == 2
+      assert budgets[capped.me_file.id] == Offers.throttle_budget(capped.me_file.id, now)
+    end
+
     test "the activation job applies each me file's own cap" do
       small = build_three_tap_context!([])
       large = build_three_tap_context!([])
@@ -253,6 +268,27 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
 
       assert Enum.count(reload!(small_offers), & &1.is_current) == 1
       assert Enum.count(reload!(large_offers), & &1.is_current) == 3
+    end
+
+    test "the activation job leaves a capped me file and an ended campaign pending" do
+      capped = build_three_tap_context!([])
+      open = build_three_tap_context!([])
+      ended = build_three_tap_context!([])
+      set_me_file_throttle!(capped.me_file, count: 2, days: 7)
+      set_me_file_throttle!(open.me_file, count: 2, days: 7)
+      set_me_file_throttle!(ended.me_file, count: 5, days: 7)
+      insert_throttled_events!(capped, 2)
+      capped_offers = insert_due_throttled_offers!(capped, 3)
+      open_offers = insert_due_throttled_offers!(open, 4)
+      ended_offers = insert_due_throttled_offers!(ended, 2)
+
+      Repo.update!(Ecto.Changeset.change(ended.campaign, %{end_date: hours_ago(1)}))
+
+      assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
+
+      refute Enum.any?(reload!(capped_offers), & &1.is_current)
+      assert Enum.count(reload!(open_offers), & &1.is_current) == 2
+      refute Enum.any?(reload!(ended_offers), & &1.is_current)
     end
   end
 

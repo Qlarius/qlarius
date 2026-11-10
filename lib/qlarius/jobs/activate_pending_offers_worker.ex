@@ -1,5 +1,13 @@
 defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
-  use Oban.Worker, queue: :activations, max_attempts: 1
+  # One run at a time for as long as a job is queued or executing. A slow cycle
+  # must not stack on the next cron tick and hold the database pool.
+  use Oban.Worker,
+    queue: :activations,
+    max_attempts: 1,
+    unique: [
+      period: :infinity,
+      states: [:available, :scheduled, :executing, :retryable]
+    ]
 
   import Ecto.Query
   alias Qlarius.Repo
@@ -99,75 +107,90 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   defp activate_throttled_offers(now) do
     require Logger
 
-    throttled_offers_by_me_file =
-      from(o in Offer,
-        join: c in assoc(o, :campaign),
-        as: :campaign,
-        where: o.is_current == false,
-        where: o.is_throttled == true,
-        where: o.pending_until <= ^now,
-        order_by: [asc: o.me_file_id, asc: o.pending_until, asc: o.id],
-        select: %{
-          id: o.id,
-          me_file_id: o.me_file_id,
-          campaign_id: o.campaign_id
-        }
-      )
-      |> CampaignFilters.live_now(now)
-      |> Repo.all()
-      |> Enum.group_by(& &1.me_file_id)
+    me_file_ids = pending_throttled_me_file_ids(now)
+    budgets = Offers.throttle_budgets(me_file_ids, now)
+    open = Enum.filter(me_file_ids, fn id -> budgets[id].remaining > 0 end)
 
-    me_files_count = map_size(throttled_offers_by_me_file)
+    Logger.info(
+      "ActivatePendingOffersWorker: #{length(me_file_ids)} MeFiles with due throttled offers, #{length(open)} under their cap"
+    )
 
-    settings_by_me_file =
-      throttled_offers_by_me_file
-      |> Map.keys()
-      |> Offers.throttle_settings_for()
+    activated =
+      open
+      |> Enum.chunk_every(500)
+      |> Enum.reduce(0, fn ids, acc -> acc + activate_within_budget(ids, budgets, now) end)
 
-    {total_activated, blocked_count} =
-      Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers},
-                                                          {activated_acc, blocked_acc} ->
-        settings = Map.get(settings_by_me_file, me_file_id, %{limit: 0, days: 0})
-        budget = Offers.throttle_budget(me_file_id, now, settings)
-        current_count = budget.current
-        completed_count = budget.completed
-        remaining_slots = budget.remaining
-        throttle_limit = budget.limit
+    {activated, length(me_file_ids) - length(open), length(me_file_ids)}
+  end
 
-        offers_to_activate = Enum.take(offers, remaining_slots)
+  defp pending_throttled_me_file_ids(now) do
+    from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
+      where: o.is_current == false,
+      where: o.is_throttled == true,
+      where: o.pending_until <= ^now,
+      distinct: true,
+      select: o.me_file_id
+    )
+    |> CampaignFilters.live_now(now)
+    |> Repo.all()
+  end
 
-        if offers_to_activate != [] do
-          offer_ids = Enum.map(offers_to_activate, & &1.id)
-          campaign_ids = Enum.map(offers_to_activate, & &1.campaign_id) |> Enum.uniq()
+  defp activate_within_budget(me_file_ids, budgets, now) do
+    limits = Enum.map(me_file_ids, fn id -> {id, budgets[id].remaining} end)
+    offers = due_offers_within_budget(limits, now)
 
-          {activated, _} =
-            from(o in Offer,
-              where: o.id in ^offer_ids
-            )
-            |> Repo.update_all(set: [is_current: true, updated_at: now])
+    offers
+    |> Enum.group_by(& &1.me_file_id)
+    |> Enum.reduce(0, fn {_me_file_id, rows}, acc ->
+      ids = Enum.map(rows, & &1.id)
 
-          if activated > 0 do
-            Logger.debug(
-              "📊 MeFile #{me_file_id}: ✅ activated #{activated}/#{length(offers)} (current=#{current_count}, completed=#{completed_count}, slots=#{remaining_slots})"
-            )
+      {activated, _} =
+        from(o in Offer, where: o.id in ^ids)
+        |> Repo.update_all(set: [is_current: true, updated_at: now])
 
-            Enum.each(campaign_ids, fn campaign_id ->
-              CampaignPubSub.broadcast_offers_created(campaign_id, activated)
-            end)
-          end
+      if activated > 0 do
+        rows
+        |> Enum.map(& &1.campaign_id)
+        |> Enum.uniq()
+        |> Enum.each(&CampaignPubSub.broadcast_offers_created(&1, activated))
+      end
 
-          {activated_acc + activated, blocked_acc}
-        else
-          Logger.debug(
-            "📊 MeFile #{me_file_id}: ⛔ blocked #{length(offers)} offers (current=#{current_count}, completed=#{completed_count}, limit=#{throttle_limit})"
-          )
+      acc + activated
+    end)
+  end
 
-          {activated_acc, blocked_acc + 1}
-        end
-      end)
+  # The campaign predicates match CampaignFilters.live_now/2. LIMIT is the
+  # MeFile's remaining slots, so a capped MeFile never reaches this query.
+  defp due_offers_within_budget(limits, now) do
+    {ids, remainings} = Enum.unzip(limits)
 
-    # Return tuple with counts for summary
-    {total_activated, blocked_count, me_files_count}
+    sql = """
+    SELECT picked.id, picked.me_file_id, picked.campaign_id
+    FROM unnest($1::int[], $2::int[]) AS lim(me_file_id, remaining)
+    JOIN LATERAL (
+      SELECT o.id, o.me_file_id, o.campaign_id
+      FROM offers o
+      INNER JOIN campaigns c ON c.id = o.campaign_id
+      WHERE o.me_file_id = lim.me_file_id
+        AND o.is_current = FALSE
+        AND o.is_throttled = TRUE
+        AND o.pending_until <= $3
+        AND c.deactivated_at IS NULL
+        AND c.launched_at IS NOT NULL
+        AND (c.start_date IS NULL OR c.start_date <= $3)
+        AND (c.end_date IS NULL OR c.end_date >= $3)
+      ORDER BY o.pending_until, o.id
+      LIMIT lim.remaining
+    ) AS picked ON TRUE
+    """
+
+    %{rows: rows} = Repo.query!(sql, [ids, remainings, now])
+
+    Enum.map(rows, fn [id, me_file_id, campaign_id] ->
+      %{id: id, me_file_id: me_file_id, campaign_id: campaign_id}
+    end)
   end
 
   defp broadcast_activations do

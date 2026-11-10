@@ -39,13 +39,12 @@ The system consists of 7 core Oban workers organized into 5 phases:
 ```
 1. Activate all unthrottled offers where pending_until <= now
 2. For throttled offers:
-   a. Group by me_file_id
-   b. Load throttle_ad_count and throttle_days for those me_files in one query
-   c. For each me_file:
-      - Count current throttled offers (is_current=true, is_throttled=true)
-      - Count completed throttled ads in the last throttle_days days (skipped when 0)
-      - remaining_slots = throttle_ad_count - max(current_count, completed_count)
-      - Activate up to remaining_slots offers (oldest pending_until first)
+   a. List the MeFiles that have a due throttled offer (ids only)
+   b. Group those MeFiles by their throttle rule (count and days), read once
+   c. For each rule, count current throttled offers and completed throttled ads
+      in that rule's window (days of 0 skips the completed count)
+   d. Skip MeFiles already at the cap
+   e. For the rest, activate up to the remaining slots (oldest pending_until first)
 ```
 
 **Throttling Rules:**
