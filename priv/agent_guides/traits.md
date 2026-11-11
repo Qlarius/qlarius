@@ -10,6 +10,11 @@ question, and one survey answer per child.
 - `GET /api/admin/traits?q=<name>` to check the parent does not already
   exist. If it does, reform it by id instead of creating a duplicate.
 - `GET /api/admin/traits/:id` for its children, tag counts, and survey text.
+- `GET /api/admin/traits_catalog` for the tags available when planning
+  targeting. Parents and children, survey text, and search terms. No conflict
+  links.
+- `GET /api/admin/traits_catalog_with_relationships` is the same catalog plus
+  `exclusive_child_ids` on each parent. Use it only when those links matter.
 
 ## Write with a design pack
 
@@ -293,8 +298,10 @@ The response has `created`, `skipped`, and `relationship_ids`.
 `POST .../unmake_exclusive` removes only the `conflicts` links between that
 child and its siblings.
 
-`exclusive_child_ids` on `GET /api/admin/traits/:id` and on `traits_catalog`
-lists children that conflict with every other active non-skip sibling.
+`exclusive_child_ids` on `GET /api/admin/traits/:id` and on
+`GET /api/admin/traits_catalog_with_relationships` lists children that
+conflict with every other active non-skip sibling. The plain
+`traits_catalog` leaves that out.
 
 When a design pack or `POST /traits/:id/children` adds a child, and a sibling
 already conflicts with all the other active children, the new child gets that

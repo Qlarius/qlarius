@@ -596,18 +596,35 @@ defmodule Qlarius.YouData.TraitRelationships do
     Repo.all(query)
   end
 
+  # A child is exclusive when the stored conflict row with every other sibling
+  # uses the smaller id first. Counting those edges stays linear in the
+  # conflict set. Rebuilding `ids -- [id]` per child copied the whole sibling
+  # list, and postal-code parents (tens of thousands of children) made
+  # GET /api/admin/traits_catalog_with_relationships take tens of seconds.
   defp exclusive_among(ids, pairs \\ nil) do
     pairs = pairs || conflict_pairs(ids)
+    needed = length(ids) - 1
 
-    if length(ids) < 2 do
+    if needed < 1 do
       []
     else
-      Enum.filter(ids, fn id ->
-        Enum.all?(ids -- [id], fn other ->
-          {left, right} = if id > other, do: {other, id}, else: {id, other}
-          MapSet.member?(pairs, {left, right})
+      id_set = MapSet.new(ids)
+
+      counts =
+        Enum.reduce(pairs, %{}, fn {a, b}, acc ->
+          {left, right} = if a > b, do: {b, a}, else: {a, b}
+
+          if left != right and {a, b} == {left, right} and MapSet.member?(id_set, left) and
+               MapSet.member?(id_set, right) do
+            acc
+            |> Map.update(left, 1, &(&1 + 1))
+            |> Map.update(right, 1, &(&1 + 1))
+          else
+            acc
+          end
         end)
-      end)
+
+      Enum.filter(ids, fn id -> Map.get(counts, id, 0) == needed end)
     end
   end
 

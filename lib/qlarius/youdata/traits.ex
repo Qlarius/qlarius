@@ -515,8 +515,23 @@ defmodule Qlarius.YouData.Traits do
   @doc """
   Same hierarchy as `traits_index_by_parent/0`, plus input type, survey texts,
   and the active surveys that present each parent.
+
+  This is the tag list for planning targeting. It does not include conflict
+  links. Use `traits_catalog_with_relationships/0` for `exclusive_child_ids`.
   """
   def traits_catalog do
+    build_traits_catalog(false)
+  end
+
+  @doc """
+  `traits_catalog/0` plus `exclusive_child_ids` on each parent: children that
+  conflict with every other active non-skip sibling.
+  """
+  def traits_catalog_with_relationships do
+    build_traits_catalog(true)
+  end
+
+  defp build_traits_catalog(include_relationships) do
     index = traits_index_by_parent()
 
     parent_ids =
@@ -544,7 +559,13 @@ defmodule Qlarius.YouData.Traits do
       end
 
     active_survey_ids_by_question = active_survey_ids_by_question(parents)
-    exclusive_ids = Qlarius.YouData.TraitRelationships.exclusive_ids_by_parent(parent_ids)
+
+    exclusive_ids =
+      if include_relationships do
+        Qlarius.YouData.TraitRelationships.exclusive_ids_by_parent(parent_ids)
+      else
+        %{}
+      end
 
     children =
       if child_ids == [] do
@@ -580,30 +601,36 @@ defmodule Qlarius.YouData.Traits do
               |> Map.put(:survey_answer, catalog_answer(cmeta && cmeta.survey_answer))
             end)
 
-          parent
-          |> Map.put(:input_type, meta && meta.input_type)
-          |> Map.put(:is_active, true)
-          |> Map.put(:meta_1, meta && meta.meta_1)
-          |> Map.put(:meta_2, meta && meta.meta_2)
-          |> Map.put(:meta_3, meta && meta.meta_3)
-          |> Map.put(:has_search_filter, meta && meta.has_search_filter)
-          |> Map.put(:search_terms, (meta && meta.search_terms) || [])
-          |> Map.put(:ideal_min_tags, meta && meta.ideal_min_tags)
-          |> Map.put(:ideal_max_tags, meta && meta.ideal_max_tags)
-          |> Map.put(:hard_max_tags, meta && meta.hard_max_tags)
-          |> Map.put(:unripe_days, meta && meta.unripe_days)
-          |> Map.put(:ripen_days, meta && meta.ripen_days)
-          |> Map.put(:stale_days, meta && meta.stale_days)
-          |> Map.put(:expired_days, meta && meta.expired_days)
-          |> Map.put(:skip_exempt, meta && meta.skip_exempt)
-          |> Map.put(:nudge_text, meta && meta.nudge_text)
-          |> Map.put(:exclusive_child_ids, Map.get(exclusive_ids, parent.id, []))
-          |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
-          |> Map.put(
-            :active_survey_ids,
-            active_survey_ids_for(meta, active_survey_ids_by_question)
-          )
-          |> Map.put(:children, kids)
+          parent =
+            parent
+            |> Map.put(:input_type, meta && meta.input_type)
+            |> Map.put(:is_active, true)
+            |> Map.put(:meta_1, meta && meta.meta_1)
+            |> Map.put(:meta_2, meta && meta.meta_2)
+            |> Map.put(:meta_3, meta && meta.meta_3)
+            |> Map.put(:has_search_filter, meta && meta.has_search_filter)
+            |> Map.put(:search_terms, (meta && meta.search_terms) || [])
+            |> Map.put(:ideal_min_tags, meta && meta.ideal_min_tags)
+            |> Map.put(:ideal_max_tags, meta && meta.ideal_max_tags)
+            |> Map.put(:hard_max_tags, meta && meta.hard_max_tags)
+            |> Map.put(:unripe_days, meta && meta.unripe_days)
+            |> Map.put(:ripen_days, meta && meta.ripen_days)
+            |> Map.put(:stale_days, meta && meta.stale_days)
+            |> Map.put(:expired_days, meta && meta.expired_days)
+            |> Map.put(:skip_exempt, meta && meta.skip_exempt)
+            |> Map.put(:nudge_text, meta && meta.nudge_text)
+            |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
+            |> Map.put(
+              :active_survey_ids,
+              active_survey_ids_for(meta, active_survey_ids_by_question)
+            )
+            |> Map.put(:children, kids)
+
+          if include_relationships do
+            Map.put(parent, :exclusive_child_ids, Map.get(exclusive_ids, parent.id, []))
+          else
+            parent
+          end
         end)
 
       Map.put(category, :parent_traits, parent_traits)

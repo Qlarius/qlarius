@@ -535,6 +535,7 @@ defmodule QlariusWeb.Router do
     patch "/trait_categories/:id", TraitCategoryController, :update
 
     get "/traits_catalog", TraitController, :catalog
+    get "/traits_catalog_with_relationships", TraitController, :catalog_with_relationships
     get "/trait_search", TraitController, :search
     get "/trait_relationships", TraitRelationshipController, :index
     post "/trait_relationships/bulk", TraitRelationshipController, :bulk

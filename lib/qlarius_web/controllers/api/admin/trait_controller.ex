@@ -44,6 +44,10 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     json(conn, %{trait_categories: Traits.traits_catalog()})
   end
 
+  def catalog_with_relationships(conn, _params) do
+    json(conn, %{trait_categories: Traits.traits_catalog_with_relationships()})
+  end
+
   # Same ranking the Builder (scope=builder, top 15 surveyed traits) and Qai
   # (scope=all, top 10 active traits) use, including the score and the field
   # each query word hit.

@@ -151,8 +151,21 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     catalog =
       ctx.token |> authed() |> get(~p"/api/admin/traits_catalog") |> json_response(200)
 
-    listed =
+    plain =
       catalog["trait_categories"]
+      |> Enum.flat_map(& &1["parent_traits"])
+      |> Enum.find(&(&1["id"] == ctx.parent.id))
+
+    refute Map.has_key?(plain, "exclusive_child_ids")
+
+    with_relationships =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/traits_catalog_with_relationships")
+      |> json_response(200)
+
+    listed =
+      with_relationships["trait_categories"]
       |> Enum.flat_map(& &1["parent_traits"])
       |> Enum.find(&(&1["id"] == ctx.parent.id))
 
