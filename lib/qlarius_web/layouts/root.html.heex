@@ -214,5 +214,7 @@
   </head>
   <body>
     {@inner_content}
+    <%!-- Fixed so iOS drops the PWA top fade. Out of flow, so page spacers stay put. --%>
+    <div class="ios-pwa-status-strip page-canvas" aria-hidden="true"></div>
   </body>
 </html>
