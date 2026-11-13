@@ -442,6 +442,15 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:zip_query_too_short),
     do: {422, "zip_query_too_short", "q must be at least 2 characters"}
 
+  defp message(:zips_required),
+    do: {422, "zips_required", "zips must list at least one zip code"}
+
+  defp message(:invalid_zips),
+    do: {422, "invalid_zips", "zips must be a list of zip code strings"}
+
+  defp message(:too_many_zips),
+    do: {422, "too_many_zips", "Send at most 2000 zip codes per call"}
+
   defp message(:trait_group_not_found),
     do: {422, "trait_group_not_found", "One or more trait groups were not found"}
 

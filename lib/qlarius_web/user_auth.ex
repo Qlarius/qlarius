@@ -365,6 +365,39 @@ defmodule QlariusWeb.UserAuth do
     conn
   end
 
+  @admin_read_limited_message "Too many admin reads. Batch lookups instead of calling one record at a time in parallel. Resolve zip codes with POST /api/admin/zip_codes/lookup."
+
+  def rate_limit_admin_api_reads(conn, _opts) do
+    if conn.method in ["GET", "HEAD"] do
+      case bearer_token(conn) do
+        nil ->
+          conn
+
+        token ->
+          case Qlarius.AdminApi.ReadLimit.check(token) do
+            :ok ->
+              register_before_send(conn, fn conn ->
+                Qlarius.AdminApi.ReadLimit.release(token)
+                conn
+              end)
+
+            {:error, :rate_limited} ->
+              conn
+              |> put_resp_header("retry-after", "60")
+              |> put_status(429)
+              |> json(%{
+                error: "rate_limited",
+                message: @admin_read_limited_message,
+                guide: @admin_api_guide <> "?topic=campaigns"
+              })
+              |> halt()
+          end
+      end
+    else
+      conn
+    end
+  end
+
   def rate_limit_admin_api_writes(conn, _opts) do
     if conn.method in ["GET", "HEAD", "OPTIONS"] do
       conn

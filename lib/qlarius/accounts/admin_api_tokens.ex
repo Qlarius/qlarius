@@ -31,18 +31,14 @@ defmodule Qlarius.Accounts.AdminApiTokens do
   def authenticate(raw) when is_binary(raw) do
     token =
       AdminApiToken
+      |> join(:inner, [t], u in assoc(t, :user))
       |> where([t], t.token_hash == ^hash(raw) and is_nil(t.revoked_at))
-      |> preload(:user)
+      |> preload([_t, u], user: u)
       |> Repo.one()
 
     case token do
       %{user: %{role: "admin"} = user} = token ->
-        now = DateTime.utc_now() |> DateTime.truncate(:second)
-
-        Repo.update_all(from(t in AdminApiToken, where: t.id == ^token.id),
-          set: [last_used_at: now]
-        )
-
+        touch_last_used(token)
         {:ok, user, token}
 
       %{user: %User{}} ->
@@ -67,6 +63,19 @@ defmodule Qlarius.Accounts.AdminApiTokens do
         |> Ecto.Changeset.change(%{revoked_at: now})
         |> Repo.update()
     end
+  end
+
+  # A burst of reads was updating this column on every call. Once a minute is
+  # enough to see that the token is still in use, and it keeps the write off
+  # the hot path.
+  defp touch_last_used(%{id: id, last_used_at: last}) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    if is_nil(last) or DateTime.diff(now, last, :second) >= 60 do
+      Repo.update_all(from(t in AdminApiToken, where: t.id == ^id), set: [last_used_at: now])
+    end
+
+    :ok
   end
 
   defp hash(raw) do

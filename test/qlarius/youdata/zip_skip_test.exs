@@ -50,6 +50,7 @@ defmodule Qlarius.YouData.ZipSkipTest do
 
     assert {:ok, nil} = TraitManager.ensure_skipped_child(ctx.scope, ctx.work)
     assert Traits.active_skipped_child(ctx.work.id).id == skip.id
+
     assert Traits.active_skipped_child_id_by_parent([ctx.home.id, ctx.work.id]) == %{
              ctx.work.id => skip.id
            }
@@ -68,8 +69,23 @@ defmodule Qlarius.YouData.ZipSkipTest do
 
     assert {:ok, nil} = TraitManager.ensure_skipped_child(ctx.scope, ctx.work)
     assert Traits.get_zip_code_trait(ctx.work.id, "60614").id == zip.id
+
     assert Traits.search_zip_codes(ctx.work.id, "606") == [
              %{id: zip.id, zip_code: "60614", location: "Chicago, IL"}
+           ]
+
+    po_box =
+      insert_trait!(nil, "60614", parent_trait_id: ctx.work.id)
+      |> Ecto.Changeset.change(%{meta_1: "Chicago, IL", meta_2: "PO BOX", display_order: 11})
+      |> Repo.update!()
+
+    assert Traits.search_zip_codes(ctx.work.id, "60614") == [
+             %{id: zip.id, zip_code: "60614", location: "Chicago, IL"}
+           ]
+
+    assert Traits.lookup_zip_codes(ctx.work.id, ["60614", "00000"]) == [
+             %{id: zip.id, zip: "60614", location: "Chicago, IL", type: "STANDARD"},
+             %{id: po_box.id, zip: "60614", location: "Chicago, IL", type: "PO BOX"}
            ]
 
     marketer = marketer_fixture()

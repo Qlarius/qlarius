@@ -878,6 +878,28 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
+  Exact zip-to-trait lookup for one parent.
+
+  Returns every active, non-skip child whose name is in `zip_codes`, including
+  types other than STANDARD. A zip with no row is absent. Callers compare the
+  result to the requested list to build a missing set.
+  """
+  def lookup_zip_codes(_parent_trait_id, []), do: []
+
+  def lookup_zip_codes(parent_trait_id, zip_codes) when is_list(zip_codes) do
+    from(t in Trait,
+      where: t.parent_trait_id == ^parent_trait_id,
+      where: t.trait_name in ^zip_codes,
+      where: t.is_active == true and t.is_skipped_tag == false,
+      select: %{id: t.id, zip: t.trait_name, location: t.meta_1, type: t.meta_2}
+    )
+    |> Repo.all()
+    |> Enum.sort_by(fn row ->
+      {row.zip, if(row.type == "STANDARD", do: 0, else: 1), row.type || "", row.id}
+    end)
+  end
+
+  @doc """
   Searches active children of a parent by title or lookup metadata.
 
   Matches `trait_name`, `meta_1`, `meta_2`, and `meta_3`. Used for code lists
@@ -917,49 +939,67 @@ defmodule Qlarius.YouData.Traits do
 
   @doc """
   Searches for zip code child traits by zip code prefix or city/state name.
-  Only returns STANDARD type zip codes.
+
+  Only returns STANDARD type zip codes. A full 5-digit `search_term` matches
+  `trait_name` exactly so the lookup can use the parent-and-name index.
   """
   def search_zip_codes(parent_trait_id, search_term, limit \\ 1000) do
     search_term = String.trim(search_term)
 
-    if String.length(search_term) < 2 do
-      []
-    else
-      search_pattern = "%#{search_term}%"
-      zip_prefix_pattern = "#{search_term}%"
+    cond do
+      String.length(search_term) < 2 ->
+        []
 
-      query =
-        from t in Trait,
-          where: t.parent_trait_id == ^parent_trait_id,
-          where: t.is_active == true and t.is_skipped_tag == false,
-          where: t.meta_2 == "STANDARD",
-          where:
-            ilike(t.trait_name, ^zip_prefix_pattern) or
-              ilike(t.meta_1, ^search_pattern),
-          order_by: [
-            asc:
-              fragment(
-                "CAST(CASE WHEN ? ~ '^[0-9]+$' THEN ? ELSE '99999' END AS INTEGER)",
-                t.trait_name,
-                t.trait_name
-              )
-          ],
-          select: %{
-            id: t.id,
-            zip_code: t.trait_name,
-            location: t.meta_1
-          }
+      exact_zip?(search_term) ->
+        exact_standard_zip(parent_trait_id, search_term, limit)
 
-      query =
-        if limit == :all do
-          query
-        else
-          from t in query, limit: ^limit
-        end
-
-      Repo.all(query)
+      true ->
+        prefix_zip_codes(parent_trait_id, search_term, limit)
     end
   end
+
+  defp exact_zip?(term), do: String.match?(term, ~r/^\d{5}$/)
+
+  defp exact_standard_zip(parent_trait_id, zip, limit) do
+    from(t in Trait,
+      where: t.parent_trait_id == ^parent_trait_id,
+      where: t.trait_name == ^zip,
+      where: t.is_active == true and t.is_skipped_tag == false,
+      where: t.meta_2 == "STANDARD",
+      order_by: [asc: t.id],
+      select: %{id: t.id, zip_code: t.trait_name, location: t.meta_1}
+    )
+    |> apply_zip_limit(limit)
+    |> Repo.all()
+  end
+
+  defp prefix_zip_codes(parent_trait_id, search_term, limit) do
+    search_pattern = "%#{search_term}%"
+    zip_prefix_pattern = "#{search_term}%"
+
+    from(t in Trait,
+      where: t.parent_trait_id == ^parent_trait_id,
+      where: t.is_active == true and t.is_skipped_tag == false,
+      where: t.meta_2 == "STANDARD",
+      where:
+        ilike(t.trait_name, ^zip_prefix_pattern) or
+          ilike(t.meta_1, ^search_pattern),
+      order_by: [
+        asc:
+          fragment(
+            "CAST(CASE WHEN ? ~ '^[0-9]+$' THEN ? ELSE '99999' END AS INTEGER)",
+            t.trait_name,
+            t.trait_name
+          )
+      ],
+      select: %{id: t.id, zip_code: t.trait_name, location: t.meta_1}
+    )
+    |> apply_zip_limit(limit)
+    |> Repo.all()
+  end
+
+  defp apply_zip_limit(query, :all), do: query
+  defp apply_zip_limit(query, limit), do: from(t in query, limit: ^limit)
 
   # defp filter_empty_traits(category) do
   #   %{category | traits: Enum.filter(category.traits, &(length(&1.values) > 0))}

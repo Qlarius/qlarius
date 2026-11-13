@@ -10,4 +10,11 @@ defmodule QlariusWeb.Api.Admin.ZipCodeController do
       {:error, reason} -> Responder.error(conn, reason)
     end
   end
+
+  def lookup(conn, params) do
+    case TraitGroups.lookup_zips(params["parent_trait_id"], params["zips"]) do
+      {:ok, result} -> json(conn, result)
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
 end

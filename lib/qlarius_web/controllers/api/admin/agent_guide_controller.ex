@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-11-11.1"
+  @version "2026-11-13.1"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview creators content_groups traits ad_categories campaigns promo_sequences)
 
@@ -337,10 +337,16 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       purpose: "Create a trait group from existing traits (dry_run supported)"
     },
     %{
+      method: "POST",
+      path: "/api/admin/zip_codes/lookup",
+      purpose:
+        "Resolve a list of zips to trait ids for one parent. One call, not one zip at a time"
+    },
+    %{
       method: "GET",
       path: "/api/admin/zip_codes?q=",
       purpose:
-        "Search zip traits under Home Zip Code, or parent_trait_id. q must be at least 2 characters"
+        "Search up to 50 STANDARD zip traits. A 5-digit q is exact. Do not call once per zip"
     },
     %{
       method: "POST",

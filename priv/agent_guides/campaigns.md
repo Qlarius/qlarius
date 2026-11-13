@@ -227,12 +227,23 @@ Build groups before targets. A target never creates groups for you.
   editing the shared one.
 - `DELETE /api/admin/trait_groups/:id` only when the group is on no band.
   `?dry_run=true` first.
-- `GET /api/admin/zip_codes?q=` searches zip traits. `q` must be at least 2
-  characters. With no `parent_trait_id`, the ids are children of Home Zip Code.
-  Pass `parent_trait_id` to search another zip parent, such as Work Zip Code.
-  The response names the parent. Use those ids as `trait_ids` on a group whose
-  `parent_trait_id` is that same parent. Do not adjust the ids. Zip targeting
-  is an ordinary trait group. There is no radius search.
+- `POST /api/admin/zip_codes/lookup` resolves a list of zip codes in one call:
+  `{parent_trait_id, zips: ["85001", ...]}`. `parent_trait_id` is required.
+  Home Zip Code and Work Zip Code are different parents, so a radius that
+  covers both is two calls, not one zip at a time. Send at most 2000 zips.
+  The response is `{parent_trait_id, parent_trait_name, found, missing}`.
+  Each `found` entry is `{id, zip, location, type}` for an active child whose
+  name matches exactly, including types other than STANDARD. A zip with no
+  child is listed in `missing`. Use the ids as `trait_ids` on a group whose
+  `parent_trait_id` is that same parent. Do not adjust the ids.
+- `GET /api/admin/zip_codes?q=` searches one prefix. `q` must be at least 2
+  characters, and the response is capped at 50 STANDARD zips. A full 5-digit
+  `q` matches that zip exactly and still returns only STANDARD. With no
+  `parent_trait_id`, the parent is Home Zip Code. Do not call this once per
+  zip, and do not run those calls in parallel. Admin token reads are limited
+  and answer `429 rate_limited` when a client fans out. Zip targeting is an
+  ordinary trait group. There is no radius search. Zip children are not in
+  the traits catalog.
 
 ## Targets
 
@@ -478,7 +489,8 @@ in, and ring 2 is everyone in Phoenix. The campaign comes back with
 | Read this guide | `GET /api/admin/agent_guide?topic=campaigns` |
 | Choose an ad category row | `GET /api/admin/ad_categories` |
 | Choose a writable ad type | `GET /api/admin/media_piece_types` |
-| Look up traits, including zips | traits catalog, `GET /api/admin/zip_codes?q=` (Home Zip Code unless you pass `parent_trait_id`) |
+| Look up a list of zips | `POST /api/admin/zip_codes/lookup` with `parent_trait_id` and `zips` (one call per parent, not one call per zip) |
+| Search a zip prefix | `GET /api/admin/zip_codes?q=` (at most 50 STANDARD results; Home Zip Code unless you pass `parent_trait_id`) |
 | Or build everything below in one call | `POST /api/admin/ptp_campaigns/builds` |
 | Create the marketer | `POST /api/admin/marketers` |
 | Create the ad | `POST /api/admin/media_pieces` |
@@ -507,7 +519,8 @@ in, and ring 2 is everyone in Phoenix. The campaign comes back with
 - `409 frozen_target`: a launched campaign still uses this target.
 - `409 trait_group_shared`: create a new group instead of editing this one.
 - `422 traits_required`, `422 traits_not_children`, `422 traits_not_found`,
-  `422 drop_not_in_bullseye`, `422 empty_band`, `422 zip_query_too_short`.
+  `422 drop_not_in_bullseye`, `422 empty_band`, `422 zip_query_too_short`,
+  `422 zips_required`, `422 invalid_zips`, `422 too_many_zips`.
 - `422 role_immutable`: a group's role is fixed; create a new group.
 - `422 include_group_required`: a band would hold only Anti-Trait Groups.
 - `422 trait_in_both_roles`: an answer is in an include group and an anti

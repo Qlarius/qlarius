@@ -786,6 +786,89 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
     assert Enum.map(other["zip_codes"], & &1["id"]) == [work_zip.id]
   end
 
+  test "zip lookup resolves a list in one call and keeps non-standard types", %{
+    token: token,
+    n: n
+  } do
+    zip = "86" <> (rem(n, 1000) |> Integer.to_string() |> String.pad_leading(3, "0"))
+    home = TargetingFixtures.zip_parent_fixture("Home Zip Code")
+    standard = TargetingFixtures.zip_code_fixture(home, zip, "Phoenix, AZ")
+
+    po_box =
+      %Trait{
+        trait_name: zip,
+        parent_trait_id: home.id,
+        display_order: 2,
+        is_active: true,
+        input_type: "single_select_zip",
+        meta_1: "Phoenix, AZ",
+        meta_2: "PO BOX",
+        added_by: 0,
+        modified_by: 0
+      }
+      |> Repo.insert!()
+
+    conn = authed(token)
+
+    body =
+      conn
+      |> post(~p"/api/admin/zip_codes/lookup", %{
+        parent_trait_id: home.id,
+        zips: [zip, zip, "00000", 1234]
+      })
+      |> json_response(200)
+
+    assert body["parent_trait_id"] == home.id
+    assert body["parent_trait_name"] == "Home Zip Code"
+    assert body["missing"] == ["00000", "01234"]
+
+    assert Enum.map(body["found"], & &1["id"]) == [standard.id, po_box.id]
+    assert Enum.map(body["found"], & &1["type"]) == ["STANDARD", "PO BOX"]
+    assert hd(body["found"])["zip"] == zip
+    assert hd(body["found"])["location"] == "Phoenix, AZ"
+
+    missing_parent =
+      conn
+      |> post(~p"/api/admin/zip_codes/lookup", %{zips: [zip]})
+      |> json_response(422)
+
+    assert missing_parent["error"] == "parent_trait_id_required"
+
+    empty =
+      conn
+      |> post(~p"/api/admin/zip_codes/lookup", %{parent_trait_id: home.id, zips: []})
+      |> json_response(422)
+
+    assert empty["error"] == "zips_required"
+
+    too_many =
+      conn
+      |> post(~p"/api/admin/zip_codes/lookup", %{
+        parent_trait_id: home.id,
+        zips: Enum.map(1..2_001, &Integer.to_string/1)
+      })
+      |> json_response(422)
+
+    assert too_many["error"] == "too_many_zips"
+  end
+
+  test "admin token reads fan out to 429", %{token: token} do
+    Process.put(:admin_api_read_limit, 2)
+    conn = authed(token)
+
+    for _ <- 1..2 do
+      conn |> get(~p"/api/admin/zip_codes?q=8") |> json_response(422)
+    end
+
+    limited =
+      conn
+      |> get(~p"/api/admin/zip_codes?q=8")
+      |> json_response(429)
+
+    assert limited["error"] == "rate_limited"
+    assert limited["message"] =~ "POST /api/admin/zip_codes/lookup"
+  end
+
   defp marketer_id(conn, ref) do
     body =
       conn

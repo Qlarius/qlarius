@@ -158,6 +158,26 @@ defmodule Qlarius.AdminApi.TraitGroups do
     end
   end
 
+  @max_zip_lookup 2_000
+
+  def lookup_zips(parent_trait_id, zips) when is_list(zips) do
+    with {:ok, parent} <- require_zip_parent(parent_trait_id),
+         {:ok, names} <- normalize_zip_list(zips) do
+      found = Traits.lookup_zip_codes(parent.id, names)
+      found_names = MapSet.new(found, & &1.zip)
+
+      {:ok,
+       %{
+         parent_trait_id: parent.id,
+         parent_trait_name: parent.trait_name,
+         found: found,
+         missing: Enum.reject(names, &MapSet.member?(found_names, &1))
+       }}
+    end
+  end
+
+  def lookup_zips(_parent_trait_id, _zips), do: {:error, :invalid_zips}
+
   def search_zips(query, parent_trait_id \\ nil) do
     cond do
       query in [nil, ""] or String.length(String.trim(to_string(query))) < 2 ->
@@ -178,6 +198,56 @@ defmodule Qlarius.AdminApi.TraitGroups do
         end
     end
   end
+
+  defp require_zip_parent(id) when id in [nil, ""], do: {:error, :parent_trait_id_required}
+
+  defp require_zip_parent(id) do
+    case zip_parent(id) do
+      nil -> {:error, :zip_parent_not_found}
+      parent -> {:ok, parent}
+    end
+  end
+
+  defp normalize_zip_list([]) do
+    {:error, :zips_required}
+  end
+
+  defp normalize_zip_list(zips) do
+    names =
+      Enum.reduce_while(zips, [], fn zip, acc ->
+        case normalize_zip(zip) do
+          {:ok, name} -> {:cont, [name | acc]}
+          :error -> {:halt, :error}
+        end
+      end)
+
+    case names do
+      :error ->
+        {:error, :invalid_zips}
+
+      names ->
+        names = names |> Enum.reverse() |> Enum.uniq()
+
+        if length(names) > @max_zip_lookup do
+          {:error, :too_many_zips}
+        else
+          {:ok, names}
+        end
+    end
+  end
+
+  defp normalize_zip(zip) when is_binary(zip) do
+    case String.trim(zip) do
+      "" -> :error
+      name -> {:ok, name}
+    end
+  end
+
+  defp normalize_zip(zip) when is_integer(zip) and zip >= 0 and zip <= 99_999 do
+    {:ok, zip |> Integer.to_string() |> String.pad_leading(5, "0")}
+  end
+
+  defp normalize_zip(_), do: :error
 
   defp zip_parent(id) when id in [nil, ""], do: home_zip_parent()
 

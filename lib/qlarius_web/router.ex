@@ -463,6 +463,7 @@ defmodule QlariusWeb.Router do
   scope "/api/admin", QlariusWeb.Api.Admin do
     pipe_through [
       :api,
+      :rate_limit_admin_api_reads,
       :fetch_admin_api_scope,
       :require_admin_api_user,
       :put_trait_audit_label,
@@ -590,6 +591,7 @@ defmodule QlariusWeb.Router do
     patch "/marketers/:id", MarketerController, :update
     delete "/marketers/:id", MarketerController, :delete
 
+    post "/zip_codes/lookup", ZipCodeController, :lookup
     get "/zip_codes", ZipCodeController, :index
 
     get "/trait_groups", TraitGroupController, :index
