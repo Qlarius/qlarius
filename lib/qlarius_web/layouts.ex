@@ -489,6 +489,11 @@ defmodule QlariusWeb.Layouts do
         transform: none !important;
       }
 
+      /* Letterboxed Home Screen icon: 100vh includes the status bar. */
+      html.ios-pwa-letterbox .slide-panels .modal-dual-pane {
+        height: 100% !important;
+      }
+
       .slide-panels .modal-dual-pane.modal-open {
         z-index: 60 !important;
       }
@@ -548,7 +553,7 @@ defmodule QlariusWeb.Layouts do
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
-                  class="page-canvas flex-shrink-0"
+                  class="page-canvas pwa-top-inset flex-shrink-0"
                   style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
                 >
                 </div>
@@ -618,7 +623,7 @@ defmodule QlariusWeb.Layouts do
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
-                  class="page-canvas flex-shrink-0"
+                  class="page-canvas pwa-top-inset flex-shrink-0"
                   style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
                 >
                 </div>

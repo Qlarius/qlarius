@@ -14,7 +14,6 @@
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="color-scheme"
       content={
@@ -76,6 +75,21 @@
           window.navigator.standalone === true;
         if (isIOS && isPWA) {
           document.documentElement.classList.add("ios-pwa");
+          // Letterbox: status bar is outside the page (top inset 0, and the
+          // screen is taller than the layout viewport). An icon saved with
+          // black-translucent still has a top inset, so it stays on the old spacing.
+          const syncIosPwaLetterbox = () => {
+            const probe = document.createElement("div");
+            probe.style.cssText = "position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)";
+            document.documentElement.appendChild(probe);
+            const inset = parseFloat(window.getComputedStyle(probe).paddingTop) || 0;
+            probe.remove();
+            const covered = window.screen.height - window.innerHeight;
+            document.documentElement.classList.toggle("ios-pwa-letterbox", inset === 0 && covered >= 20);
+          };
+          syncIosPwaLetterbox();
+          window.addEventListener("DOMContentLoaded", syncIosPwaLetterbox);
+          window.addEventListener("orientationchange", () => requestAnimationFrame(syncIosPwaLetterbox));
         }
 
         // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS).
@@ -214,7 +228,7 @@
   </head>
   <body>
     {@inner_content}
-    <%!-- Fixed so iOS drops the PWA top fade. Out of flow, so page spacers stay put. --%>
+    <%!-- Edge-to-edge installs only. A letterboxed icon hides this so it does not cover the title. --%>
     <div class="ios-pwa-status-strip page-canvas" aria-hidden="true"></div>
   </body>
 </html>

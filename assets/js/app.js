@@ -832,9 +832,24 @@ function detectIosPwa() {
   return isIOS && isPWA
 }
 
+function syncIosPwaLetterbox() {
+  if (!detectIosPwa()) {
+    document.documentElement.classList.remove('ios-pwa-letterbox')
+    return
+  }
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)'
+  document.documentElement.appendChild(probe)
+  const inset = parseFloat(window.getComputedStyle(probe).paddingTop) || 0
+  probe.remove()
+  const covered = window.screen.height - window.innerHeight
+  document.documentElement.classList.toggle('ios-pwa-letterbox', inset === 0 && covered >= 20)
+}
+
 function applyIosPwaLayoutFix() {
   if (!detectIosPwa()) return
   document.documentElement.classList.add('ios-pwa')
+  syncIosPwaLetterbox()
 }
 
 Hooks.PWADetect = {

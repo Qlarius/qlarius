@@ -4367,10 +4367,9 @@
   }
 
   /*
-   * iOS 26+ draws a fade over the top of an installed PWA. A fixed opaque
-   * box at the viewport top makes WebKit drop it and paint the status bar
-   * in this color. 11px sits inside the status bar, above the in-flow
-   * spacer (safe-area minus 25px, at least 12px), so the header does not move.
+   * Edge-to-edge Home Screen icons still draw under the status bar. The strip
+   * matches the page color there and stays out of the header. It does not
+   * remove the system fade. Letterboxed icons hide it (see the unlayered rules).
    */
   .ios-pwa-status-strip {
     display: none;
@@ -6761,6 +6760,54 @@ html[data-theme="dark"] .mobile-shell .arqade-surface {
 .select.auth-select:focus-within {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--color-widget-700);
+}
+
+/*
+ * Home Screen icon added after black-translucent was removed. The status bar
+ * sits above the page, safe-area-inset-top is 0, and 100vh still includes the
+ * status bar (WebKit bug 316008), which would push the tab bar off screen.
+ * Icons that still report a top inset never get this class.
+ */
+html.ios-pwa-letterbox,
+html.ios-pwa-letterbox body {
+  height: 100%;
+  background-color: var(--color-base-200);
+}
+
+html[data-theme="dark"].ios-pwa-letterbox,
+html[data-theme="dark"].ios-pwa-letterbox body {
+  background-color: var(--color-base-300);
+}
+
+html.ios-pwa-letterbox body :has(> .mobile-shell) {
+  height: 100%;
+  min-height: 0;
+}
+
+html.ios-pwa-letterbox .mobile-shell {
+  height: 100%;
+  min-height: 0;
+}
+
+html.ios-pwa-letterbox .pwa-top-inset {
+  display: none;
+}
+
+html.ios-pwa-letterbox .mobile-layout-content {
+  padding-top: 0;
+}
+
+html.ios-pwa-letterbox .ios-pwa-status-strip {
+  display: none;
+}
+
+html.ios-pwa-letterbox #hi-page,
+html.ios-pwa-letterbox #hi-page .h-screen {
+  height: 100%;
+}
+
+html.ios-pwa-letterbox .min-h-screen {
+  min-height: 100%;
 }
 
 /*
