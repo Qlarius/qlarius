@@ -41,8 +41,14 @@
     return id;
   }
 
+  function forcedTheme(el) {
+    const theme = el && el.getAttribute('data-force-theme');
+    return theme === 'light' || theme === 'dark' ? `&force_theme=${theme}` : '';
+  }
+
   function widgetUrl(baseUrl, path) {
-    return `${baseUrl}${path}?host_url=${encodeURIComponent(document.URL)}&sync_id=${encodeURIComponent(pageSyncId())}&force_theme=light`;
+    const marker = document.getElementById('tiqit-paywall-hide-start');
+    return `${baseUrl}${path}?host_url=${encodeURIComponent(document.URL)}&sync_id=${encodeURIComponent(pageSyncId())}${forcedTheme(marker)}`;
   }
 
   function initTiqitArqadeWidget() {

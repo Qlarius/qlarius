@@ -31,10 +31,16 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   @impl true
   def mount(params, _session, socket) do
     split_code = Map.get(params, "split_code")
-    force_theme = Map.get(params, "force_theme", "light")
     amounts_param = Map.get(params, "amounts")
 
     recipient = Users.get_recipient_by_split_code(split_code)
+
+    force_theme =
+      Qlarius.Widgets.Theme.for_recipient(
+        recipient,
+        :tip_jar_theme,
+        Map.get(params, "force_theme")
+      )
 
     amounts =
       case amounts_param do
@@ -66,6 +72,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       |> assign(:recipient, recipient)
       |> assign(:amounts, amounts)
       |> assign(:force_theme, force_theme)
+      |> assign(:widget_document_theme, Qlarius.Widgets.Theme.pin(force_theme))
       |> assign(:show_insta_tip_modal, false)
       |> assign(:insta_tip_amount, nil)
       |> assign(:show_insta_tip_thanks_modal, false)
@@ -189,7 +196,10 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       aria-hidden="true"
     >
     </div>
-    <div data-theme="light" class="bg-base-100 h-screen flex items-center justify-center mt-2">
+    <div
+      data-theme={Qlarius.Widgets.Theme.pin(@force_theme)}
+      class="bg-base-100 h-screen flex items-center justify-center mt-2"
+    >
       <%!-- In a host iframe, reports the card height so the host can fit the iframe (TipjarAutoHeight) --%>
       <div
         id="insta-tip-card-wrap"

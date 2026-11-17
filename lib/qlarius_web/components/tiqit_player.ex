@@ -97,7 +97,7 @@ defmodule QlariusWeb.Components.TiqitPlayer do
         "tiqit-content-modal-active",
         @leaving? && "tiqit-content-modal-leaving"
       ]}
-      data-theme={@force_theme}
+      data-theme={Qlarius.Widgets.Theme.pin(@force_theme)}
       phx-window-keydown={@close_event}
       phx-key="Escape"
       phx-target={@target}

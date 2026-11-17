@@ -23,7 +23,10 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
   def mount(%{"catalog_id" => catalog_id} = params, _session, socket) do
     catalog = Arcade.get_catalog!(catalog_id)
     scope = socket.assigns.current_scope
-    force_theme = Map.get(params, "force_theme", "light")
+
+    force_theme =
+      Qlarius.Widgets.Theme.for_catalog(catalog.id, Map.get(params, "force_theme"))
+
     default_tiqit_class = Catalog.default_tiqit_class(catalog)
     tiqit = Arcade.get_valid_catalog_tiqit(scope, catalog.id)
     has_tiqit? = !!tiqit
@@ -34,6 +37,7 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
         page_title: "Tiqit Pass",
         catalog: catalog,
         force_theme: force_theme,
+        widget_document_theme: Qlarius.Widgets.Theme.pin(force_theme),
         default_tiqit_class: default_tiqit_class,
         selected_tiqit_class: nil,
         selected_tiqit_class_adjusted_price: nil,
@@ -265,7 +269,7 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
     <div
       id="tiqit-pass-root"
       phx-hook="PostMessage"
-      data-theme={@force_theme}
+      data-theme={Qlarius.Widgets.Theme.pin(@force_theme)}
       class="min-h-screen w-full bg-transparent"
     >
       <div class="fixed inset-0 bg-black/55" aria-hidden="true"></div>

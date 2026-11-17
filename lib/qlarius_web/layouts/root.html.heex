@@ -2,8 +2,8 @@
 <html
   lang="en"
   class={["[scrollbar-gutter:stable]", assigns[:embed_document] && "embed-document"]}
-  data-theme={assigns[:qlink_document_theme]}
-  data-theme-mode={assigns[:qlink_document_theme] && "qlink"}
+  data-theme={document_theme(assigns)}
+  data-theme-mode={document_theme_mode(assigns)}
 >
   <head>
     <meta charset="utf-8" />
@@ -17,17 +17,17 @@
     <meta
       name="color-scheme"
       content={
-        case assigns[:qlink_document_theme] do
+        case document_theme(assigns) do
           "dark" -> "dark"
           "light" -> "light"
           _ -> "light dark"
         end
       }
     />
-    <%= if assigns[:qlink_document_theme] in ["light", "dark"] do %>
+    <%= if document_theme(assigns) in ["light", "dark"] do %>
       <meta
         name="theme-color"
-        content={if assigns[:qlink_document_theme] == "dark", do: "#1f2937", else: "#f3f4f6"}
+        content={if document_theme(assigns) == "dark", do: "#1f2937", else: "#f3f4f6"}
       />
     <% else %>
       <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
@@ -177,10 +177,12 @@
           }
         };
 
-        // QlinkPage.Show mount sets data-theme-mode="qlink" on <html>.
-        // Honor that pin (any host) and skip system / localStorage.
-        const qlinkPinned =
-          document.documentElement.getAttribute("data-theme-mode") === "qlink";
+        // Qlink pages pin "qlink". Widget embeds pin "widget" when a creator
+        // or force_theme chooses light or dark. System leaves the mode unset
+        // so the viewer (saved theme, then the device) wins.
+        const themeMode = document.documentElement.getAttribute("data-theme-mode");
+        const qlinkPinned = themeMode === "qlink";
+        const themePinned = qlinkPinned || themeMode === "widget";
 
         const applyThemeForCurrentPath = () => {
           const sp = new URLSearchParams(window.location.search);
@@ -194,7 +196,7 @@
             updateThemeColor(forceT === "dark");
             return;
           }
-          if (qlinkPinned) {
+          if (themePinned) {
             updateThemeColor(document.documentElement.getAttribute("data-theme") === "dark");
             return;
           }
@@ -206,7 +208,7 @@
         applyThemeForCurrentPath();
 
         const sp0 = new URLSearchParams(window.location.search);
-        if (!qlinkPinned && !sp0.get("force_theme")) {
+        if (!themePinned && !sp0.get("force_theme")) {
           window.addEventListener("storage", (e) => {
             if (e.key !== "phx:theme") return;
             setTheme(e.newValue || "system");

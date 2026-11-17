@@ -435,6 +435,29 @@ defmodule QlariusWeb.CreatorDashboard.Index do
           placeholder="Enter creator bio"
           autocomplete="off"
         />
+        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+          <.input
+            field={@form[:ad_strip_theme]}
+            type="select"
+            label="Ad strip"
+            options={Qlarius.Widgets.Theme.options()}
+          />
+          <.input
+            field={@form[:tip_jar_theme]}
+            type="select"
+            label="Tip jar"
+            options={Qlarius.Widgets.Theme.options()}
+          />
+          <.input
+            field={@form[:arqade_theme]}
+            type="select"
+            label="Arqade"
+            options={Qlarius.Widgets.Theme.options()}
+          />
+        </div>
+        <p class="mt-2 text-sm text-base-content/60">
+          System follows the viewer's device. An embed that passes force_theme still wins.
+        </p>
         <.image_upload_field
           upload={@uploads.image}
           label="Creator image"

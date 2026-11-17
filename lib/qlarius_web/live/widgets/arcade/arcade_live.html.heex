@@ -960,7 +960,7 @@
     group={@group}
     tiqit={@tiqit}
     leaving?={@tiqit_content_modal_leaving?}
-    force_theme={if @base_path == "/widgets", do: @force_theme}
+    force_theme={Qlarius.Widgets.Theme.widget_attr(@base_path, @force_theme)}
     target={@embed_phx_id && "#" <> @embed_phx_id}
   />
 </div>

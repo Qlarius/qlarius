@@ -17,7 +17,7 @@ defmodule Qlarius.AdminApi.Creators do
   alias Qlarius.Wallets
   alias QlariusWeb.Uploaders.RecipientBrandImage
 
-  @fields ~w(name bio)
+  @fields ~w(name bio ad_strip_theme tip_jar_theme arqade_theme)
   @recipient_fields ~w(name description message site_url contact_email recipient_type_id)
   @locked ~w(user_id split_code approval_date approved_by_user_id)
 

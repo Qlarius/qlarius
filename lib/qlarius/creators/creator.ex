@@ -17,6 +17,9 @@ defmodule Qlarius.Creators.Creator do
     field :image_source_url, :string
     field :is_verified, :boolean, default: false
     field :api_ref, :string
+    field :ad_strip_theme, :string, default: "system"
+    field :tip_jar_theme, :string, default: "system"
+    field :arqade_theme, :string, default: "system"
 
     belongs_to :recipient, Recipient
     has_many :recipients, Recipient, foreign_key: :creator_id
@@ -31,7 +34,22 @@ defmodule Qlarius.Creators.Creator do
   @doc false
   def changeset(creator, attrs) do
     creator
-    |> cast(attrs, [:name, :bio, :is_verified, :image, :api_ref])
+    |> cast(attrs, [
+      :name,
+      :bio,
+      :is_verified,
+      :image,
+      :api_ref,
+      :ad_strip_theme,
+      :tip_jar_theme,
+      :arqade_theme
+    ])
+    |> update_change(:ad_strip_theme, &normalize_theme/1)
+    |> update_change(:tip_jar_theme, &normalize_theme/1)
+    |> update_change(:arqade_theme, &normalize_theme/1)
+    |> validate_inclusion(:ad_strip_theme, ~w(light dark system))
+    |> validate_inclusion(:tip_jar_theme, ~w(light dark system))
+    |> validate_inclusion(:arqade_theme, ~w(light dark system))
     |> validate_required([:name])
     |> validate_length(:name, max: 100)
     |> validate_length(:bio, max: 500)
@@ -59,4 +77,7 @@ defmodule Qlarius.Creators.Creator do
   end
 
   defp maybe_store_image(changeset, _), do: changeset
+
+  defp normalize_theme(value) when value in [nil, ""], do: "system"
+  defp normalize_theme(value), do: value
 end

@@ -5,13 +5,16 @@ defmodule QlariusWeb.Widgets.ContentHTML do
 
   def show(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-100" data-theme={if @base_path == "/widgets", do: @force_theme}>
+    <div
+      class="min-h-screen bg-base-100"
+      data-theme={Qlarius.Widgets.Theme.widget_attr(@base_path, @force_theme)}
+    >
       <div class="container mx-auto px-4 py-4 max-w-4xl">
         <div class="mb-3">
           <.back navigate={
-            if @force_theme && @base_path == "/widgets",
+            if Qlarius.Widgets.Theme.pin(@force_theme) && @base_path == "/widgets",
               do:
-                "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}&force_theme=#{@force_theme}",
+                "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}&force_theme=#{Qlarius.Widgets.Theme.pin(@force_theme)}",
               else:
                 "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"
           }>

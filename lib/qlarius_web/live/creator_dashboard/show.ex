@@ -236,6 +236,29 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                       placeholder="Enter creator bio"
                       autocomplete="off"
                     />
+                    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                      <.input
+                        field={@form[:ad_strip_theme]}
+                        type="select"
+                        label="Ad strip"
+                        options={Qlarius.Widgets.Theme.options()}
+                      />
+                      <.input
+                        field={@form[:tip_jar_theme]}
+                        type="select"
+                        label="Tip jar"
+                        options={Qlarius.Widgets.Theme.options()}
+                      />
+                      <.input
+                        field={@form[:arqade_theme]}
+                        type="select"
+                        label="Arqade"
+                        options={Qlarius.Widgets.Theme.options()}
+                      />
+                    </div>
+                    <p class="mt-2 text-sm text-base-content/60">
+                      System follows the viewer's device. An embed that passes force_theme still wins.
+                    </p>
                     <.image_upload_field
                       upload={@uploads.image}
                       label="Creator image"
@@ -314,6 +337,11 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                       </p>
                       <p :if={@creator.bio in [nil, ""]} class="text-sm text-base-content/50">
                         No bio yet.
+                      </p>
+                      <p class="text-sm text-base-content/70">
+                        Ad strip {Qlarius.Widgets.Theme.label(@creator.ad_strip_theme)} · Tip jar {Qlarius.Widgets.Theme.label(
+                          @creator.tip_jar_theme
+                        )} · Arqade {Qlarius.Widgets.Theme.label(@creator.arqade_theme)}
                       </p>
                       <div class="grid max-w-md grid-cols-2 gap-3">
                         <.stat_tile label="Qlink pages" icon="hero-link">
@@ -562,7 +590,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                         </.link>
                         <p class="text-xs text-base-content/50">
                           {catalog.type |> to_string() |> String.capitalize()}
-                          <span :if={catalog.recipient}> ·   {catalog.recipient.name}</span>
+                          <span :if={catalog.recipient}> ·    {catalog.recipient.name}</span>
                         </p>
                       </div>
                       <.link navigate={~p"/creators/catalogs/#{catalog.id}"} class="btn btn-sm">

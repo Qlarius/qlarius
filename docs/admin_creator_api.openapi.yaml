@@ -53,6 +53,9 @@ paths:
                 api_ref: {type: string}
                 name: {type: string}
                 bio: {type: string}
+                ad_strip_theme: {type: string, enum: [light, dark, system], default: system}
+                tip_jar_theme: {type: string, enum: [light, dark, system], default: system}
+                arqade_theme: {type: string, enum: [light, dark, system], default: system}
                 image_url: {type: string, format: uri}
                 dry_run: {type: boolean}
                 on_existing: {type: string, enum: [skip, update]}
@@ -79,6 +82,9 @@ paths:
     patch:
       summary: Update a creator and its recipient
       description: >
+        Also accepts ad_strip_theme, tip_jar_theme, and arqade_theme
+        (light, dark, or system). system follows the viewer. An embed
+        force_theme of light or dark still wins.
         image_url (http or https) sets or replaces the creator image. The
         stored file name changes, so the public URL changes even when the
         source URL differs only by a query string. The same source URL leaves

@@ -85,6 +85,9 @@ defmodule QlariusWeb.Api.Admin.CreatorController do
     |> creator_json(:summary)
     |> Map.merge(%{
       bio: creator.bio,
+      ad_strip_theme: creator.ad_strip_theme,
+      tip_jar_theme: creator.tip_jar_theme,
+      arqade_theme: creator.arqade_theme,
       image: creator.image,
       image_url: ImageUrls.content_image_url(creator),
       is_verified: creator.is_verified

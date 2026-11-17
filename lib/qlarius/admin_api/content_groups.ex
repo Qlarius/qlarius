@@ -5,7 +5,7 @@ defmodule Qlarius.AdminApi.ContentGroups do
   alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece}
 
-  @fields ~w(title description show_piece_thumbnails show_piece_descriptions show_open_in_tab source_provider source_url feed_url feed_season feed_episode_types feed_auto_sync)
+  @fields ~w(title description show_piece_thumbnails show_piece_descriptions show_open_in_tab arqade_theme source_provider source_url feed_url feed_season feed_episode_types feed_auto_sync)
 
   def fetch(id) do
     case Params.integer(id) do

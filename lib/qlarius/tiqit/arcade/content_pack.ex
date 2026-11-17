@@ -648,6 +648,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPack do
       show_piece_thumbnails: group.show_piece_thumbnails,
       show_piece_descriptions: group.show_piece_descriptions,
       show_open_in_tab: group.show_open_in_tab,
+      arqade_theme: group.arqade_theme,
       api_ref: group.api_ref
     }
   end

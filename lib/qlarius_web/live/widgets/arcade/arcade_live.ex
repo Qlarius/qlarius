@@ -109,9 +109,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           _ -> nil
         end
 
-      # Default "light" (session from parent, else param, else light) so /widgets/... iframes
-      # match main-app palette without `?force_theme=light` — see ArcadeSingle/InstaTip/content_controller.
-      force_theme = session["force_theme"] || Map.get(params, "force_theme", "light")
+      explicit_theme = session["force_theme"] || Map.get(params, "force_theme")
 
       show_title =
         if Map.has_key?(session, "show_title"),
@@ -126,6 +124,16 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       #      `live_render/3`'s `:session` option (inline mounts).
       #   3. Default to "" (main-app style).
       base_path = socket.assigns[:base_path] || session["base_path"] || ""
+
+      # Embeds follow the content group, then the creator. An explicit
+      # force_theme of light or dark still wins. System leaves the page
+      # unpinned so it follows the viewer. The signed-in app ignores this.
+      force_theme =
+        if base_path == "/widgets" do
+          Qlarius.Widgets.Theme.for_group(group_id, explicit_theme)
+        else
+          Qlarius.Widgets.Theme.explicit(explicit_theme) || "system"
+        end
 
       full_viewport_embed? = session["embed_host"] == "tiqit_arqade"
       embed_card? = inline? and not full_viewport_embed?
@@ -166,6 +174,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          auth_referral_context: Qlarius.Referrals.Context.none(),
          auth_sheet_host_enabled?: auth_sheet_host_enabled?,
          force_theme: force_theme,
+         widget_document_theme: Qlarius.Widgets.Theme.widget_attr(base_path, force_theme),
          show_title: show_title,
          show_tiqit_content_modal: false,
          tiqit_content_modal_leaving?: false,

@@ -69,8 +69,12 @@
     "?host_url=" +
     encodeURIComponent(document.URL) +
     "&sync_id=" +
-    encodeURIComponent(syncId) +
-    "&force_theme=light";
+    encodeURIComponent(syncId);
+
+  var forceTheme = widgetDiv.getAttribute("data-force-theme");
+  if (forceTheme === "light" || forceTheme === "dark") {
+    widgetSrc += "&force_theme=" + encodeURIComponent(forceTheme);
+  }
 
   var iframe = document.createElement("iframe");
   iframe.id = "sponster_widget_iframe";

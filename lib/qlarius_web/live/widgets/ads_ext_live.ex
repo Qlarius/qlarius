@@ -45,9 +45,18 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     recipient = split_code |> Users.get_recipient_by_split_code() |> PromoSequences.preload()
     promo = PromoSequences.presentation(recipient)
 
+    force_theme =
+      Qlarius.Widgets.Theme.for_recipient(
+        recipient,
+        :ad_strip_theme,
+        Map.get(params, "force_theme")
+      )
+
     socket =
       socket
       |> assign(:page_title, "Sponster")
+      |> assign(:force_theme, force_theme)
+      |> assign(:widget_document_theme, Qlarius.Widgets.Theme.pin(force_theme))
       |> assign(:split_code, split_code)
       |> assign(:promo, promo)
       |> assign(:auth_referral_context, referral_context_for_recipient(recipient))

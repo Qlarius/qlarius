@@ -179,6 +179,26 @@ Catalogs and pieces have no display toggles. A new group starts with
 thumbnails off. The widget already draws the episode image when that flag
 is true.
 
+## Widget appearance
+
+`ad_strip_theme`, `tip_jar_theme`, and `arqade_theme` are each `light`, `dark`,
+or `system`. The default is `system`: the widget follows the viewer's saved
+theme, then their device. Light is only the fallback when a surface cannot
+follow the viewer.
+
+`PATCH /api/admin/creators/:id` writes them. `GET` returns them on the full
+creator. A content group may set its own `arqade_theme`; null inherits the
+creator. An embed URL that already passes `force_theme=light` or
+`force_theme=dark` still wins, so that parameter is optional.
+
+```json
+{"ad_strip_theme": "dark", "tip_jar_theme": "light", "arqade_theme": "system"}
+```
+
+Official embed scripts no longer append `force_theme=light`. A host that
+must pin one theme can set `data-force-theme="light"` or `"dark"` on the
+embed marker.
+
 ## Embeds
 
 `GET /api/admin/creators/:id/embeds` keeps top-level `split_code`,

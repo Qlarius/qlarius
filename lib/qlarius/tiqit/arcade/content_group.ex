@@ -19,6 +19,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :show_piece_thumbnails, :boolean, default: false
     field :show_piece_descriptions, :boolean, default: true
     field :show_open_in_tab, :boolean, default: true
+    field :arqade_theme, :string
 
     field :source_provider, :string
     field :source_url, :string
@@ -113,6 +114,16 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     {piece.season || 0, rank, number, piece.display_order || 0, piece.id}
   end
 
+  defp cast_arqade_theme(changeset, attrs) do
+    changeset
+    |> cast(attrs, [:arqade_theme])
+    |> update_change(:arqade_theme, fn
+      value when value in [nil, ""] -> nil
+      value -> value
+    end)
+    |> validate_inclusion(:arqade_theme, ~w(light dark system))
+  end
+
   defp title_sort_key(%ContentPiece{title: title}) when is_binary(title),
     do: String.downcase(title)
 
@@ -134,6 +145,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       :show_open_in_tab,
       :api_ref
     ])
+    |> cast_arqade_theme(attrs)
     |> validate_required([:title])
     |> ApiRef.validate()
     |> cast_assoc(
@@ -170,6 +182,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
       :last_synced_at,
       :api_ref
     ])
+    |> cast_arqade_theme(attrs)
     |> validate_required([:title])
     |> ApiRef.validate()
     |> validate_length(:title, max: 255)

@@ -184,9 +184,13 @@ order").
 
 ## Display settings
 
-These three booleans live on the content group. They are the only Arqade
-display toggles. Catalogs and pieces do not have them, and a group does not
-inherit them from its catalog.
+These three booleans live on the content group. Catalogs and pieces do not
+have them, and a group does not inherit them from its catalog.
+
+`arqade_theme` is separate. `light`, `dark`, or `system` overrides the
+creator's arqade theme for this group. Null, or leaving the field off,
+inherits the creator. `system` follows the viewer. An embed `force_theme` of
+`light` or `dark` still wins, and that query parameter is optional.
 
 - `show_piece_thumbnails` (default `false`): when true, the widget at
   `/widgets/arqade/group/:id` shows an image on each episode row. The image

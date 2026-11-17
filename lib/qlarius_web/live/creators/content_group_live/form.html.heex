@@ -56,6 +56,20 @@
             </.panel>
 
             <.panel
+              id="group-appearance-section"
+              title="Appearance"
+              description="How this arqade looks when it is embedded. Same as creator leaves the choice on the creator."
+            >
+              <.input
+                field={@form[:arqade_theme]}
+                type="select"
+                label="Theme"
+                prompt={"Same as creator (#{Qlarius.Widgets.Theme.label(@creator.arqade_theme)})"}
+                options={Qlarius.Widgets.Theme.options()}
+              />
+            </.panel>
+
+            <.panel
               id="group-display-section"
               title="Display options"
               description={"How the #{Catalog.type_label(@catalog.piece_type, 2, capitalize: false)} list looks in the player."}

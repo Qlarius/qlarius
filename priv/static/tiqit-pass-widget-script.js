@@ -77,8 +77,12 @@
       "?host_url=" +
       encodeURIComponent(document.URL) +
       "&sync_id=" +
-      encodeURIComponent(pageSyncId()) +
-      "&force_theme=light";
+      encodeURIComponent(pageSyncId());
+
+    var forceTheme = gate.getAttribute("data-force-theme");
+    if (forceTheme === "light" || forceTheme === "dark") {
+      iframeUrl += "&force_theme=" + encodeURIComponent(forceTheme);
+    }
 
     console.log("[Tiqit Pass] Creating iframe with URL:", iframeUrl);
 

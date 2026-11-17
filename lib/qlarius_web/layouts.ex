@@ -1066,6 +1066,18 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  def document_theme(assigns) do
+    assigns[:qlink_document_theme] || assigns[:widget_document_theme]
+  end
+
+  def document_theme_mode(assigns) do
+    cond do
+      assigns[:qlink_document_theme] in ["light", "dark"] -> "qlink"
+      assigns[:widget_document_theme] in ["light", "dark"] -> "widget"
+      true -> nil
+    end
+  end
+
   def debug_assigns(assigns) do
     if @debug_enabled and System.get_env("DEBUG") == "true" do
       ~H"""

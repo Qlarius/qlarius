@@ -100,7 +100,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           _ -> nil
         end
 
-      force_theme = session["force_theme"] || Map.get(params, "force_theme", "light")
+      explicit_theme = session["force_theme"] || Map.get(params, "force_theme")
 
       # `base_path` resolution order mirrors `ArcadeLive`:
       #   1. Already assigned by a router `on_mount` hook
@@ -110,6 +110,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       #      `live_render/3`'s `:session` option (inline mounts).
       #   3. Default to "" (main-app style).
       base_path = socket.assigns[:base_path] || session["base_path"] || ""
+
+      force_theme =
+        if base_path == "/widgets" do
+          Qlarius.Widgets.Theme.for_piece(piece_id, explicit_theme)
+        else
+          Qlarius.Widgets.Theme.explicit(explicit_theme) || "system"
+        end
+
       return_to = Paths.piece(base_path, piece_id)
 
       socket =
@@ -136,6 +144,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           auth_referral_context: Qlarius.Referrals.Context.none(),
           auth_sheet_host_enabled?: auth_sheet_host_enabled?,
           force_theme: force_theme,
+          widget_document_theme: Qlarius.Widgets.Theme.widget_attr(base_path, force_theme),
           show_tiqit_content_modal: false,
           tiqit_content_modal_leaving?: false,
           tiqit_content_modal_close_timer_ref: nil,
