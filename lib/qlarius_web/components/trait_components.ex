@@ -187,7 +187,7 @@ defmodule QlariusWeb.Components.TraitComponents do
       >
         <span class="trait-tag__name">
           {@parent_trait_name}
-          <.icon :if={@tap_to_edit?} name="hero-chevron-right" class="h-3 w-3 shrink-0" />
+          <.icon :if={@tap_to_edit?} name="hero-chevron-right" class="h-4 w-4 shrink-0" />
         </span>
         <span :if={@tags_traits != []} class="trait-tag__values">
           {Enum.map_join(@tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}

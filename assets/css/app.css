@@ -3159,7 +3159,7 @@
   }
 
   .mefile-row__label {
-    @apply text-[13px] font-medium leading-snug text-youdata-600 dark:text-youdata-300;
+    @apply text-base font-bold leading-tight text-youdata-600 dark:text-youdata-300;
   }
 
   .mefile-row__value {
@@ -3285,11 +3285,15 @@
 
   .builder-result-bone {
     display: flex;
-    min-height: 4.75rem;
+    min-height: 5.25rem;
     flex-direction: column;
-    padding: 0.5rem 0.875rem 0.5625rem 1.5625rem;
+    padding: calc(0.5rem + 4px) 0.875rem 0.5625rem 1.5625rem;
     border-radius: 0 0.625rem 0.625rem 0;
     background-color: color-mix(in oklab, var(--color-youdata-500) 10%, var(--color-base-100));
+    background-image: linear-gradient(
+      color-mix(in oklab, var(--color-youdata-500) 35%, var(--color-base-100)) 0 4px,
+      transparent 4px
+    );
   }
 
   .builder-results__query {
@@ -3411,15 +3415,15 @@
   }
 
   /* Sits in the punched hole. The hole is a mask, so the light cannot be
-     drawn inside the tag. 6px matches the 3px-radius hole so the color
+     drawn inside the tag. 8px matches the 4px-radius hole so the color
      fills it. */
   .trait-signal {
     position: absolute;
     left: 12px;
     top: 50%;
     z-index: 2;
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 9999px;
     transform: translate(-50%, -50%);
     pointer-events: none;
@@ -3544,10 +3548,18 @@
     border-color: color-mix(in oklab, var(--color-success) 28%, transparent);
   }
 
+  /*
+   * The top band is the older card's 4px border. It is painted on the tag
+   * itself, above the edge colour, and ::before starts below it. The fill's
+   * top-left cut is 7.4px so its diagonal stays 1px inside the outer 11px
+   * cut, and its hole sits 1.5px higher because the fill box is offset
+   * 4px top and 1px bottom, so both holes land on the same spot.
+   */
   .trait-tag {
     @apply relative inline-flex max-w-full flex-col;
     isolation: isolate;
-    padding: 0.5rem 0.875rem 0.5625rem 1.5625rem;
+    padding: calc(0.5rem + 4px) 0.875rem 0.5625rem 1.5625rem;
+    --tag-top: var(--color-youdata-500);
     --tag-fill: color-mix(
       in oklab,
       var(--color-youdata-500) var(--tag-tint, 17%),
@@ -3558,29 +3570,34 @@
       var(--color-youdata-500) var(--tag-edge, 60%),
       var(--color-base-100)
     );
+    background-image: linear-gradient(var(--tag-top) 0 4px, transparent 4px);
     border-radius: 0 0.625rem 0.625rem 0;
     clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px), 0 11px);
-    -webkit-mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
-    mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
+    -webkit-mask: radial-gradient(circle 4px at 12px 50%, transparent 95%, #000 100%);
+    mask: radial-gradient(circle 4px at 12px 50%, transparent 95%, #000 100%);
   }
 
   .trait-tag::before {
     content: "";
     position: absolute;
-    inset: 1px;
+    inset: 4px 1px 1px 1px;
     z-index: -1;
     background-color: var(--tag-fill);
-    border-radius: 0 calc(0.625rem - 1px) calc(0.625rem - 1px) 0;
+    border-radius: 0 0 calc(0.625rem - 1px) 0;
     clip-path: polygon(
-      10.4px 0,
+      7.4px 0,
       100% 0,
       100% 100%,
       10.4px 100%,
       0 calc(100% - 10.4px),
-      0 10.4px
+      0 7.4px
     );
-    -webkit-mask: radial-gradient(circle 3px at 11px 50%, transparent 95%, #000 100%);
-    mask: radial-gradient(circle 3px at 11px 50%, transparent 95%, #000 100%);
+    -webkit-mask: radial-gradient(
+      circle 4px at 11px calc(50% - 1.5px),
+      transparent 95%,
+      #000 100%
+    );
+    mask: radial-gradient(circle 4px at 11px calc(50% - 1.5px), transparent 95%, #000 100%);
     transition: background-color 0.15s ease;
   }
 
@@ -3629,21 +3646,25 @@
   }
 
   .trait-tag__name {
-    @apply flex items-center gap-0.5 text-xs font-semibold text-youdata-900 dark:text-youdata-300;
+    @apply flex items-center gap-1 text-base font-bold leading-tight text-youdata-600 dark:text-youdata-300;
+  }
+
+  .trait-tag--empty .trait-tag__name {
+    @apply text-base-content/65 dark:text-base-content/75;
   }
 
   .trait-tag__name .hero-chevron-right {
-    @apply opacity-60;
+    @apply opacity-40;
   }
 
   .trait-tag__values {
-    @apply mt-0.5 text-sm leading-snug text-base-content;
+    @apply mt-1 text-sm leading-snug text-base-content/85;
   }
 
   /* Blank tag: the prompt, then Skip as a small pill at the bottom right,
      kept clear of the prompt */
   .trait-tag__empty {
-    @apply mt-0.5 flex flex-wrap items-end gap-x-5 gap-y-1.5 text-sm italic leading-snug text-base-content/50;
+    @apply mt-1 flex flex-wrap items-end gap-x-5 gap-y-1.5 text-sm italic leading-snug text-base-content/50;
   }
 
   .trait-tag__skip {
@@ -4723,6 +4744,82 @@
     .trait-card-animate.trait-animate-delete::after {
       background-color: rgb(239 68 68 / 0.16);
       box-shadow: inset 0 0 0 2px rgb(239 68 68 / 0.4);
+    }
+  }
+
+  /*
+   * Tag shape: the cut corners clip an inset ring, so a save or delete
+   * recolours the top band solid and washes the fill instead.
+   */
+  .trait-card-animate.trait-tag.trait-animate-update::after {
+    background-color: transparent;
+    background-image: linear-gradient(
+      var(--color-success) 0 4px,
+      color-mix(in oklch, var(--color-success) 24%, transparent) 4px
+    );
+    box-shadow: none;
+  }
+
+  .trait-card-animate.trait-tag.trait-animate-delete::after {
+    background-color: transparent;
+    background-image: linear-gradient(
+      var(--color-error) 0 4px,
+      color-mix(in oklch, var(--color-error) 22%, transparent) 4px
+    );
+    box-shadow: none;
+  }
+
+  @supports not (background: color-mix(in oklch, white 50%, transparent)) {
+    .trait-card-animate.trait-tag.trait-animate-update::after {
+      background-image: linear-gradient(var(--color-success) 0 4px, rgb(34 197 94 / 0.18) 4px);
+    }
+
+    .trait-card-animate.trait-tag.trait-animate-delete::after {
+      background-image: linear-gradient(var(--color-error) 0 4px, rgb(239 68 68 / 0.16) 4px);
+    }
+  }
+
+  /*
+   * Blank tag: the warning band rests muted and throbs to full warning, with
+   * the same faint wash (about 0.1 to 0.26) the older card header used.
+   */
+  @keyframes trait-tag-empty-strobe {
+    0%,
+    100% {
+      opacity: 0.38;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .trait-tag--empty {
+    --tag-top: color-mix(in oklab, var(--color-warning) 55%, var(--color-base-100));
+  }
+
+  .trait-tag.empty-trait-header-strobe::after {
+    background-color: transparent;
+    background-image: linear-gradient(
+      var(--color-warning) 0 4px,
+      color-mix(in oklab, var(--color-warning) 26%, transparent) 4px
+    );
+    opacity: 0.38;
+    animation-name: trait-tag-empty-strobe;
+  }
+
+  .trait-card-animate.trait-tag.trait-animate-update::after {
+    animation: trait-update-pulse-overlay 0.95s ease-in-out;
+  }
+
+  .trait-card-animate.trait-tag.trait-animate-delete::after {
+    animation: trait-delete-pulse-overlay 0.95s ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trait-tag.empty-trait-header-strobe::after {
+      animation: none;
+      opacity: 0.6;
     }
   }
 
