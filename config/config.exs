@@ -82,6 +82,11 @@ config :qlarius, :ad_jump,
   use_location_replace: true,
   replace_strategy: :universal
 
+# Centralized ad rates (all amounts in USD).
+config :qlarius, :ad_rates,
+  video_publisher_credit_amt: "0.02",
+  three_tap_publisher_credit_amt: "0.01"
+
 # Tiqit player frame override. `:auto` (default) lets
 # `QlariusWeb.Components.TiqitPlayer.play_frame_for/1` pick by context:
 # `:modal` for inline Qlink embeds, `:page` for `/widgets/...` standalone,

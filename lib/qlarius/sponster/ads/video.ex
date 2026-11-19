@@ -2,6 +2,7 @@ defmodule Qlarius.Sponster.Ads.Video do
   alias Qlarius.Repo
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.MediaPiecePhase
+  alias Qlarius.Sponster.Ads.Rates
   alias Qlarius.Wallets
   alias Qlarius.Jobs.HandleOfferCompletionWorker
 
@@ -58,6 +59,15 @@ defmodule Qlarius.Sponster.Ads.Video do
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
 
+        # Video publisher credit comes out of Sponster's keep. If the keep is
+        # smaller than the configured credit, cap it so the keep never goes
+        # negative.
+        sponster_to_recipient_amt =
+          cap_sponster_to_recipient_amt(
+            Rates.video_publisher_credit_amt(),
+            ad_event_attrs.event_sponster_collect_amt
+          )
+
         Map.merge(ad_event_attrs, %{
           recipient_id: recipient.id,
           event_split_code: recipient.split_code,
@@ -65,8 +75,8 @@ defmodule Qlarius.Sponster.Ads.Video do
           event_recipient_collect_amt: split_amount_to_recipient,
           event_me_file_collect_amt: adjusted_me_file_collect_amt,
           event_sponster_collect_amt:
-            Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
-          event_sponster_to_recipient_amt: Decimal.new("0.01")
+            Decimal.sub(ad_event_attrs.event_sponster_collect_amt, sponster_to_recipient_amt),
+          event_sponster_to_recipient_amt: sponster_to_recipient_amt
         })
       else
         ad_event_attrs
@@ -111,6 +121,21 @@ defmodule Qlarius.Sponster.Ads.Video do
 
       {:error, changeset} ->
         {:error, changeset}
+    end
+  end
+
+  defp cap_sponster_to_recipient_amt(%Decimal{} = desired, %Decimal{} = keep) do
+    zero = Decimal.new("0.00")
+
+    cond do
+      Decimal.compare(keep, zero) != :gt ->
+        zero
+
+      Decimal.compare(desired, keep) == :gt ->
+        keep
+
+      true ->
+        desired
     end
   end
 
