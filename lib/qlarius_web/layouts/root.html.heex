@@ -27,7 +27,7 @@
     <%= if document_theme(assigns) in ["light", "dark"] do %>
       <meta
         name="theme-color"
-        content={if document_theme(assigns) == "dark", do: "#1f2937", else: "#f3f4f6"}
+        content={if document_theme(assigns) == "dark", do: "#000000", else: "#f3f4f6"}
       />
     <% else %>
       <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
@@ -153,13 +153,21 @@
         
         const updateThemeColor = (isDark) => {
           const themeColor = isDark ? "#000000" : "#f3f4f6";
-          let metaTag = document.querySelector('meta[name="theme-color"]:not([media])');
-          if (!metaTag) {
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute('name', 'theme-color');
+          const tags = document.querySelectorAll('meta[name="theme-color"]');
+          tags.forEach((tag, index) => {
+            if (index === 0) {
+              tag.removeAttribute("media");
+              tag.setAttribute("content", themeColor);
+            } else {
+              tag.remove();
+            }
+          });
+          if (tags.length === 0) {
+            const metaTag = document.createElement("meta");
+            metaTag.setAttribute("name", "theme-color");
+            metaTag.setAttribute("content", themeColor);
             document.head.appendChild(metaTag);
           }
-          metaTag.setAttribute('content', themeColor);
         };
 
         const setTheme = (theme) => {
@@ -231,6 +239,6 @@
   <body>
     {@inner_content}
     <%!-- Edge-to-edge installs only. A letterboxed icon hides this so it does not cover the title. --%>
-    <div class="ios-pwa-status-strip page-canvas" aria-hidden="true"></div>
+    <div class="ios-pwa-status-strip" aria-hidden="true"></div>
   </body>
 </html>

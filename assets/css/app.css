@@ -4388,9 +4388,13 @@
   }
 
   /*
-   * Edge-to-edge Home Screen icons still draw under the status bar. The strip
-   * matches the page color there and stays out of the header. It does not
-   * remove the system fade. Letterboxed icons hide it (see the unlayered rules).
+   * Edge-to-edge Home Screen icons draw under the status bar. iOS samples a
+   * fixed element at the top edge (about 4px in) and extends that colour into
+   * the status-bar fade. This strip is that sample. It lives outside
+   * `.mobile-shell`, so it must not use `.page-canvas`: the document dark
+   * canvas is #1c1c1e, while the shell page is #000. A taller strip would
+   * cover the header. The fade itself is system glass and stays; matching
+   * the page colour makes it disappear. Letterboxed icons hide it.
    */
   .ios-pwa-status-strip {
     display: none;
@@ -4405,6 +4409,11 @@
     height: 11px;
     z-index: 70;
     pointer-events: none;
+    background-color: var(--color-base-200);
+  }
+
+  html[data-theme="dark"].ios-pwa .ios-pwa-status-strip {
+    background-color: #000000;
   }
 
   html.ios-pwa .mobile-bottom-nav-area {
@@ -6865,6 +6874,16 @@ html[data-theme="dark"] .mobile-shell .arqade-surface {
  * status bar (WebKit bug 316008), which would push the tab bar off screen.
  * Icons that still report a top inset never get this class.
  */
+html.ios-pwa,
+html.ios-pwa body {
+  background-color: var(--color-base-200);
+}
+
+html[data-theme="dark"].ios-pwa,
+html[data-theme="dark"].ios-pwa body {
+  background-color: #000000;
+}
+
 html.ios-pwa-letterbox,
 html.ios-pwa-letterbox body {
   height: 100%;
@@ -6873,7 +6892,7 @@ html.ios-pwa-letterbox body {
 
 html[data-theme="dark"].ios-pwa-letterbox,
 html[data-theme="dark"].ios-pwa-letterbox body {
-  background-color: var(--color-base-300);
+  background-color: #000000;
 }
 
 html.ios-pwa-letterbox body :has(> .mobile-shell) {
