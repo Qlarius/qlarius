@@ -3,7 +3,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   import Ecto.Query, except: [update: 2, update: 3]
 
   alias Qlarius.Sponster.AdEvent
-  alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
+  alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType, Rates}
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets
   alias Qlarius.Jobs.HandleOfferCompletionWorker
@@ -53,6 +53,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
 
+        publisher_credit = Rates.three_tap_publisher_credit_amt()
+
         updated_attrs =
           Map.merge(ad_event_attrs, %{
             recipient_id: recipient.id,
@@ -63,8 +65,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
             event_me_file_collect_amt: adjusted_me_file_collect_amt,
             # update the sponster keep to give  $0.01 to recipient
             event_sponster_collect_amt:
-              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
-            event_sponster_to_recipient_amt: Decimal.new("0.01")
+              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, publisher_credit),
+            event_sponster_to_recipient_amt: publisher_credit
           })
 
         updated_attrs
@@ -176,6 +178,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
 
+        publisher_credit = Rates.three_tap_publisher_credit_amt()
+
         updated_attrs =
           Map.merge(ad_event_attrs, %{
             recipient_id: recipient.id,
@@ -184,8 +188,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
             event_recipient_collect_amt: split_amount_to_recipient,
             event_me_file_collect_amt: adjusted_me_file_collect_amt,
             event_sponster_collect_amt:
-              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
-            event_sponster_to_recipient_amt: Decimal.new("0.01")
+              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, publisher_credit),
+            event_sponster_to_recipient_amt: publisher_credit
           })
 
         updated_attrs
