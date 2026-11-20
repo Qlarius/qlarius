@@ -46,7 +46,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLiveTest do
           title: "Spring Shoes",
           end_date: "2026-12-01",
           is_payable: "true",
-          is_throttled: "false"
+          is_throttled: "false",
+          is_ptp: "true"
         }
       )
       |> render_submit()
@@ -54,12 +55,14 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLiveTest do
     assert html =~ "Spring Shoes"
     assert html =~ "Ends Dec 1, 2026"
     assert html =~ "Payable"
+    assert html =~ "Directory"
     refute html =~ "Draft name"
 
     saved = Repo.reload!(campaign)
     assert saved.title == "Spring Shoes"
     assert saved.is_payable
-    assert saved.end_date == ~N[2026-12-01 00:00:00]
+    assert saved.is_ptp
+    assert saved.end_date == ~N[2026-12-01 23:59:59]
   end
 
   defp campaign_fixture do

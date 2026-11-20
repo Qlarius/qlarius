@@ -821,8 +821,10 @@ defmodule QlariusWeb.Components.AdsComponents do
   end
 
   @doc """
-  At-a-glance targeting cues for an offer: zip-targeted (pin), age-gated
+  At-a-glance cues for an offer: zip-targeted (pin), directory (D), age-gated
   category (18+/21+) and payable cash (green $). Renders nothing when none apply.
+
+  Directory reads `campaign.is_ptp`: a Qadabra-funded interest match.
   """
   attr :offer, :map, required: true
   attr :ad_category, :map, default: nil
@@ -834,12 +836,13 @@ defmodule QlariusWeb.Components.AdsComponents do
     assigns =
       assigns
       |> assign(:zip?, zip_targeted?(assigns.offer))
+      |> assign(:directory?, directory_ad?(assigns.offer))
       |> assign(:age_min, age_min(assigns.ad_category))
       |> assign(:payable?, Map.get(assigns.offer, :is_payable) == true)
 
     ~H"""
     <span
-      :if={@zip? || @age_min || @payable?}
+      :if={@zip? || @directory? || @age_min || @payable?}
       class="inline-flex shrink-0 items-center gap-1.5"
       data-offer-indicators
     >
@@ -848,6 +851,18 @@ defmodule QlariusWeb.Components.AdsComponents do
         name="hero-map-pin-solid"
         class={"shrink-0 text-blue-400 #{if(@size == :md, do: "size-5", else: "size-4")}"}
       />
+      <span
+        :if={@directory?}
+        title="Directory: an interest match funded by Qadabra"
+        aria-label="Directory: an interest match funded by Qadabra"
+        data-indicator="directory"
+        class={[
+          "offer-indicator-directory",
+          if(@size == :md, do: "offer-indicator-directory--md", else: "offer-indicator-directory--sm")
+        ]}
+      >
+        <span class="offer-indicator-directory__mark">D</span>
+      </span>
       <span
         :if={@age_min}
         title={"Ages #{@age_min} and up"}
@@ -876,6 +891,10 @@ defmodule QlariusWeb.Components.AdsComponents do
     </span>
     """
   end
+
+  defp directory_ad?(%{is_ptp: true}), do: true
+  defp directory_ad?(%{campaign: %{is_ptp: true}}), do: true
+  defp directory_ad?(_offer), do: false
 
   defp zip_targeted?(%{matching_tags_snapshot: snapshot}) when not is_nil(snapshot) do
     snapshot |> inspect() |> String.downcase() |> String.contains?("zip code")
@@ -935,27 +954,32 @@ defmodule QlariusWeb.Components.AdsComponents do
         <span class="video-app-row__icon">
           <.icon name="hero-film" class="h-5 w-5" />
         </span>
-        <div class="video-app-row__main">
-          <p class="video-app-row__amt">
-            ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
-          </p>
-          <p class="video-app-row__label" title={@offer.media_run.media_piece.ad_category.ad_label}>
+        <div class="video-app-row__main is-open">
+          <div class="mb-2 flex items-baseline justify-between gap-3">
+            <p class="video-app-row__amt">
+              ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
+            </p>
+            <span class="video-app-row__rate">${Decimal.round(@rate, 3)}/sec</span>
+          </div>
+          <div
+            class="video-app-row__label"
+            title={@offer.media_run.media_piece.ad_category.ad_label}
+          >
             {@offer.media_run.media_piece.ad_category.ad_label}
-          </p>
-          <p class="video-app-row__meta">
+          </div>
+          <div class="video-app-row__meta">
             <.offer_indicators
               offer={@offer}
               ad_category={@offer.media_run.media_piece.ad_category}
-              size={:sm}
+              size={:md}
               force_light={@force_light}
             />
-            <span class="truncate">
-              {format_duration(@offer.media_run.media_piece.duration || 0)} ·
-              <span class="video-app-row__rate">${Decimal.round(@rate, 3)}/sec</span>
+            <span class="ml-auto flex shrink-0 items-center gap-2 text-sm leading-none text-green-600">
+              <span>{format_duration(@offer.media_run.media_piece.duration || 0)}</span>
+              <.icon name="hero-chevron-double-right" class="video-app-row__go h-6 w-6" />
             </span>
-          </p>
+          </div>
         </div>
-        <.icon name="hero-chevron-double-right" class="video-app-row__go h-5 w-5" />
       <% end %>
     </li>
     """
@@ -965,7 +989,7 @@ defmodule QlariusWeb.Components.AdsComponents do
     ~H"""
     <li
       class={[
-        "flex items-center gap-3 w-full min-w-0 px-4 transition-all duration-200 !rounded-none h-[120px]",
+        "flex items-center gap-3 w-full min-w-0 px-4 transition-all duration-200 !rounded-none min-h-[120px]",
         surface_panel_row_classes(@completed, @surface_panel_row?, @force_light)
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
@@ -1005,43 +1029,41 @@ defmodule QlariusWeb.Components.AdsComponents do
           </div>
         </div>
       <% else %>
-        <%!-- Available state: text left; icon top-right, chevrons bottom-right in same column --%>
-        <div class="flex min-w-0 flex-1 items-stretch gap-3">
-          <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
+        <%!-- Amount and rate up top, film icon with them. Bottom row matches the 3-tap card: cues left, chevron right. --%>
+        <div class="flex min-w-0 flex-1 flex-col py-5">
+          <div class="mb-2 flex items-start justify-between gap-3">
             <div class="text-2xl font-bold leading-none tabular-amount">
               ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
             </div>
-            <p
-              class="min-w-0 truncate text-base text-base-content/50"
-              title={@offer.media_run.media_piece.ad_category.ad_label}
-            >
-              {@offer.media_run.media_piece.ad_category.ad_label}
-            </p>
-            <div class="flex min-w-0 items-center gap-2">
-              <.offer_indicators
-                offer={@offer}
-                ad_category={@offer.media_run.media_piece.ad_category}
-                size={:sm}
-                force_light={@force_light}
-              />
-              <div class="min-w-0 truncate text-sm text-base-content/50">
-                {format_duration(@offer.media_run.media_piece.duration || 0)} ·
-                <span class="font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
-                  ${Decimal.round(@rate, 3)}/sec
-                </span>
-              </div>
+            <div class="flex shrink-0 items-center gap-3">
+              <span class="text-sm font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
+                ${Decimal.round(@rate, 3)}/sec
+              </span>
+              <span class={[
+                "inline-flex h-8 w-8 items-center justify-center rounded-full !bg-sponster-200",
+                if(!@force_light, do: "dark:!bg-sponster-800")
+              ]}>
+                <.icon name="hero-film" class="h-5 w-5 text-base-content" />
+              </span>
             </div>
           </div>
-          <div class="flex w-8 shrink-0 flex-col items-center justify-between">
-            <span class={[
-              "inline-flex h-8 w-8 items-center justify-center rounded-full !bg-sponster-200",
-              if(!@force_light, do: "dark:!bg-sponster-800")
-            ]}>
-              <.icon name="hero-film" class="h-5 w-5 text-base-content" />
-            </span>
-            <div class="text-green-600">
+          <div
+            class="mb-4 min-w-0 truncate text-base text-base-content/50"
+            title={@offer.media_run.media_piece.ad_category.ad_label}
+          >
+            {@offer.media_run.media_piece.ad_category.ad_label}
+          </div>
+          <div class="flex min-w-0 items-center justify-between gap-2">
+            <.offer_indicators
+              offer={@offer}
+              ad_category={@offer.media_run.media_piece.ad_category}
+              size={:md}
+              force_light={@force_light}
+            />
+            <span class="ml-auto flex shrink-0 items-center gap-2 text-sm leading-none text-green-600">
+              <span>{format_duration(@offer.media_run.media_piece.duration || 0)}</span>
               <.icon name="hero-chevron-double-right" class="h-6 w-6" />
-            </div>
+            </span>
           </div>
         </div>
       <% end %>

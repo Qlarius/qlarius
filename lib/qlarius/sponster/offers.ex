@@ -158,7 +158,7 @@ defmodule Qlarius.Sponster.Offers do
       as: :campaign,
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
       order_by: [desc: o.offer_amt],
-      preload: [media_piece: :ad_category]
+      preload: [campaign: c, media_piece: :ad_category]
     )
     |> CampaignFilters.live_now(now)
     |> Repo.all()
@@ -173,7 +173,7 @@ defmodule Qlarius.Sponster.Offers do
       join: c in assoc(o, :campaign),
       as: :campaign,
       where: o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
-      preload: [media_run: [media_piece: :ad_category]]
+      preload: [campaign: c, media_run: [media_piece: :ad_category]]
     )
     |> CampaignFilters.live_now(now)
     |> Repo.all()

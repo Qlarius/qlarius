@@ -18,7 +18,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     "target_id" => "",
     "media_sequence_id" => "",
     "is_payable" => "false",
-    "is_throttled" => "false"
+    "is_throttled" => "false",
+    "is_ptp" => "false"
   }
 
   @impl true
@@ -671,7 +672,13 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   defp blank_edit_form do
     to_form(
-      %{"title" => "", "end_date" => "", "is_payable" => "false", "is_throttled" => "false"},
+      %{
+        "title" => "",
+        "end_date" => "",
+        "is_payable" => "false",
+        "is_throttled" => "false",
+        "is_ptp" => "false"
+      },
       as: :campaign
     )
   end
@@ -681,7 +688,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
       "title" => campaign.title || "",
       "end_date" => (campaign.end_date && Calendar.strftime(campaign.end_date, "%Y-%m-%d")) || "",
       "is_payable" => if(campaign.is_payable, do: "true", else: "false"),
-      "is_throttled" => if(campaign.is_throttled, do: "true", else: "false")
+      "is_throttled" => if(campaign.is_throttled, do: "true", else: "false"),
+      "is_ptp" => if(campaign.is_ptp, do: "true", else: "false")
     }
   end
 
@@ -689,6 +697,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     params
     |> Map.update("is_throttled", false, &truthy?/1)
     |> Map.update("is_payable", false, &truthy?/1)
+    |> Map.update("is_ptp", false, &truthy?/1)
   end
 
   defp truthy?(value), do: value in [true, "true", "on"]
@@ -931,6 +940,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                   <fieldset class="space-y-1">
                     <legend class="mb-2 text-sm font-semibold">Options</legend>
                     <.campaign_toggle
+                      name="campaign[is_ptp]"
+                      value={@campaign_form.params["is_ptp"]}
+                      label="Directory"
+                      description="A Qadabra-funded interest match. People see it as a directory ad."
+                    />
+                    <.campaign_toggle
                       name="campaign[is_payable]"
                       value={@campaign_form.params["is_payable"]}
                       label="Payable"
@@ -979,7 +994,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                   <div>
                     <h2 class="text-xl font-semibold">Edit campaign</h2>
                     <p class="mt-1 text-sm text-base-content/60">
-                      Name, end date, and whether earnings are payable or offers are throttled.
+                      Name, end date, and whether it is a directory campaign, earnings are payable, or offers are throttled.
                     </p>
                   </div>
 
@@ -991,6 +1006,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
                   <fieldset class="space-y-1">
                     <legend class="mb-2 text-sm font-semibold">Options</legend>
+                    <.campaign_toggle
+                      name="campaign[is_ptp]"
+                      value={@edit_form.params["is_ptp"]}
+                      label="Directory"
+                      description="A Qadabra-funded interest match. People see it as a directory ad."
+                    />
                     <.campaign_toggle
                       name="campaign[is_payable]"
                       value={@edit_form.params["is_payable"]}
@@ -1147,6 +1168,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
+            <.status_badge :if={campaign.is_ptp} tone="info">Directory</.status_badge>
             <.status_badge :if={campaign.is_payable} tone="info">Payable</.status_badge>
             <.status_badge :if={campaign.is_throttled}>Throttled</.status_badge>
             <%= cond do %>

@@ -25,6 +25,7 @@ defmodule QlariusWeb.OfferIndicatorsTest do
     assert html =~ "hero-map-pin-solid"
     refute html =~ ~s(data-indicator="age")
     refute html =~ ~s(data-indicator="payable")
+    refute html =~ ~s(data-indicator="directory")
   end
 
   test "18+ category shows an 18+ badge" do
@@ -63,6 +64,21 @@ defmodule QlariusWeb.OfferIndicatorsTest do
     assert html =~ "21+"
     assert html =~ ~s(data-indicator="payable")
     assert html =~ "size-4"
+  end
+
+  test "directory campaign shows a D badge" do
+    html =
+      render_indicators(offer(%{campaign: %{is_ptp: true}}), category(%{}))
+
+    assert html =~ ~s(data-indicator="directory")
+    assert html =~ "D"
+    assert html =~ "interest match funded by Qadabra"
+  end
+
+  test "a loaded campaign that is not directory shows no D" do
+    html = render_indicators(offer(%{campaign: %{is_ptp: false}}), category(%{}))
+
+    refute html =~ "data-offer-indicators"
   end
 
   test "renders nothing when no indicator applies" do

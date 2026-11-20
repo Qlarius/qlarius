@@ -188,16 +188,16 @@ defmodule Qlarius.Sponster.Campaigns do
   end
 
   @doc """
-  Updates a campaign's own details: name, end date, payable, and throttled.
+  Updates a campaign's own details: name, end date, directory, payable, and throttled.
 
   Target and sequence are left alone. When payable or throttled changes, the
   campaign's existing offers take the new flags so a launched campaign matches
-  what was just saved.
+  what was just saved. Directory (`is_ptp`) lives on the campaign.
   """
   def update_campaign_details(%Campaign{} = campaign, attrs) do
     attrs =
       attrs
-      |> Map.take(~w(title end_date is_payable is_throttled))
+      |> Map.take(~w(title end_date is_payable is_throttled is_ptp))
       |> Map.update("end_date", nil, &blank_to_nil/1)
 
     changeset = Campaign.changeset(campaign, attrs)
