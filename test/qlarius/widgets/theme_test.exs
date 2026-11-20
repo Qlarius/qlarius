@@ -166,9 +166,26 @@ defmodule Qlarius.Widgets.ThemeTest do
 
     system = get(build_conn(), "/widgets/insta_tip?split_code=#{recipient.split_code}")
     system_html = html_response(system, 200)
-    refute system_html =~ ~s(data-theme-mode="widget")
+    assert system_html =~ ~s(data-theme-mode="widget-system")
     refute system_html =~ ~s(data-theme="light")
     refute system_html =~ ~s(data-theme="dark")
+  end
+
+  test "a recipient without creator_id still resolves theme via creator.recipient_id", %{
+    creator: creator,
+    recipient: recipient
+  } do
+    {:ok, creator} =
+      Creators.update_creator(creator, %{
+        "ad_strip_theme" => "light",
+        "tip_jar_theme" => "dark"
+      })
+
+    _ = creator |> Ecto.Changeset.change(%{recipient_id: recipient.id}) |> Repo.update!()
+    {:ok, recipient} = Recipients.update_recipient(recipient, %{"creator_id" => nil})
+
+    assert Theme.for_recipient(recipient, :ad_strip_theme, nil) == "light"
+    assert Theme.for_recipient(recipient, :tip_jar_theme, nil) == "dark"
   end
 
   test "admin API reads and writes widget themes", %{creator: creator, group: group} do
