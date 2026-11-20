@@ -171,6 +171,23 @@ defmodule Qlarius.Widgets.ThemeTest do
     refute system_html =~ ~s(data-theme="dark")
   end
 
+  test "a recipient without creator_id still resolves theme via creator.recipient_id", %{
+    creator: creator,
+    recipient: recipient
+  } do
+    {:ok, creator} =
+      Creators.update_creator(creator, %{
+        "ad_strip_theme" => "light",
+        "tip_jar_theme" => "dark"
+      })
+
+    _ = creator |> Ecto.Changeset.change(%{recipient_id: recipient.id}) |> Repo.update!()
+    {:ok, recipient} = Recipients.update_recipient(recipient, %{"creator_id" => nil})
+
+    assert Theme.for_recipient(recipient, :ad_strip_theme, nil) == "light"
+    assert Theme.for_recipient(recipient, :tip_jar_theme, nil) == "dark"
+  end
+
   test "admin API reads and writes widget themes", %{creator: creator, group: group} do
     admin =
       %User{}
