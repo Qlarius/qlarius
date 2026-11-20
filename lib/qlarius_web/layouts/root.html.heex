@@ -242,43 +242,45 @@
 
         applyThemeForCurrentPath();
 
-        const shouldIgnoreThemeEvents = () => {
+        const themeIsPinned = () => {
           const sp = new URLSearchParams(window.location.search);
-          if (sp.get("force_theme")) return true;
+          const forceT = sp.get("force_theme");
+          if (forceT === "light" || forceT === "dark") return true;
 
           const mode = document.documentElement.getAttribute("data-theme-mode");
-          return mode === "qlink" || mode === "widget";
+          return mode === "qlink" || mode === "widget" || mode === "forced";
         };
 
-        const isWidgetSystem = () =>
-          document.documentElement.getAttribute("data-theme-mode") === "widget-system" ||
-            document.documentElement.classList.contains("embed-document");
+        // Every widget embed has the class. A pinned one also has mode
+        // "widget" or "forced", and that pin wins over the device.
+        const isWidgetSystem = () => {
+          if (themeIsPinned()) return false;
+          const mode = document.documentElement.getAttribute("data-theme-mode");
+          return (
+            mode === "widget-system" ||
+            document.documentElement.classList.contains("embed-document")
+          );
+        };
 
         window.addEventListener("storage", (e) => {
           if (e.key !== "phx:theme") return;
-          if (shouldIgnoreThemeEvents()) return;
-          if (isWidgetSystem()) return;
+          if (themeIsPinned() || isWidgetSystem()) return;
           setTheme(e.newValue || "system");
         });
 
         window.addEventListener("phx:set-theme", ({ detail: { theme } }) => {
-          if (shouldIgnoreThemeEvents()) return;
-          if (isWidgetSystem()) return;
+          if (themeIsPinned() || isWidgetSystem()) return;
           setTheme(theme);
         });
 
         window
           .matchMedia("(prefers-color-scheme: dark)")
           .addEventListener("change", () => {
-            const sp = new URLSearchParams(window.location.search);
-            if (sp.get("force_theme")) return;
-
-            const mode = document.documentElement.getAttribute("data-theme-mode");
-            if (mode === "widget-system" || document.documentElement.classList.contains("embed-document")) {
+            if (themeIsPinned()) return;
+            if (isWidgetSystem()) {
               setWidgetSystemTheme();
               return;
             }
-            if (mode === "qlink" || mode === "widget") return;
 
             const current = localStorage.getItem("phx:theme");
             if (!current || current === "system") setTheme("system");
