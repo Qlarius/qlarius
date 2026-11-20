@@ -1,4 +1,6 @@
-// Injected on Qadabra-family pages (including widget iframes).
+// Injected on Qadabra-family pages (including widget iframes whose URL
+// matches). Brave may skip this script inside a third-party iframe;
+// publisher_relay.js covers that case from the host page.
 //
 // The extension popup, first-party qadabra.app tabs, and publisher widget
 // iframes sit in different cookie partitions — a session in one does not

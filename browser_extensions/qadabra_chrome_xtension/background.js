@@ -294,6 +294,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
 
+  // Content-script only. Not handled in onMessageExternal, so a publisher
+  // page cannot ask for it. The response is a one-shot widget socket token,
+  // never the vault identity token.
+  if (message?.type === "qadabra:auth:relay-widget") {
+    relayWidgetToken(message.sync_id).then(sendResponse);
+    return true;
+  }
+
   if (
     message?.type &&
     (String(message.type).startsWith("qadabra:auth:") ||
@@ -333,6 +341,39 @@ function isAuthRedirect(response) {
     response.status === 308 ||
     response.status === 401
   );
+}
+
+async function relayWidgetToken(syncId) {
+  try {
+    if (await underLogoutGuard()) return { ok: true, authed: false };
+
+    const env = await getQadabraEnv();
+    const vault = await getVault();
+    if (!vault.token) return { ok: true, authed: false };
+
+    const deviceId = vault.device_id || (await ensureDeviceId());
+    const body = { token: vault.token, device_id: deviceId };
+    if (typeof syncId === "string" && syncId) body.sync_id = syncId;
+
+    const res = await fetch(`${env.apiBase}/auth/extension_exchange`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) return { ok: false };
+
+    const payload = await res.json();
+    if (!payload?.widget_token) return { ok: false };
+    return { ok: true, widget_token: payload.widget_token };
+  } catch (error) {
+    console.warn("widget relay exchange failed:", error.message);
+    return { ok: false };
+  }
 }
 
 async function exchangeVaultForSession(env, vault) {

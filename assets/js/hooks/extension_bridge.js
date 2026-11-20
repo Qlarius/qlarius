@@ -267,6 +267,7 @@ export async function globalExtensionLogout() {
 // Last settled bridge outcome for this page — skip repeat probes on
 // LiveSocket reconnect when nothing auth-related changed.
 let lastSyncResult = null
+let parentHandoffAt = 0
 
 /**
  * Reconcile Phoenix session ↔ extension vault.
@@ -419,8 +420,33 @@ function wireExtensionPageListener() {
   // (including from the extension popup iframe on another host / cookie
   // partition). It may also perform exchange itself and ask us to reconnect.
   window.addEventListener("message", (event) => {
-    if (event.origin !== window.location.origin) return
     if (logoutNavigationPending()) return
+
+    // Publisher relay (isolated content script on the host page). Its
+    // postMessage arrives with the publisher's origin, so the same-origin
+    // check below would drop it. Accept only an exchange handoff from the
+    // embedding frame, and only the one-shot widget socket token — never
+    // a logout, and never on a first-party Qadabra page.
+    if (
+      isWidgetDocument() &&
+      event.source === window.parent &&
+      window.parent !== window &&
+      event.data?.type === "qadabra:auth:please-reconnect" &&
+      event.data.reason === "extension_exchange" &&
+      typeof event.data.widget_token === "string" &&
+      event.data.widget_token.length > 20
+    ) {
+      if (hasAuthedWidgetToken()) return
+      const now = Date.now()
+      if (now - parentHandoffAt < 3000) return
+      parentHandoffAt = now
+      lastSyncResult = "exchanged"
+      setUpgradeToken(event.data.widget_token)
+      reconnectLiveSocket()
+      return
+    }
+
+    if (event.origin !== window.location.origin) return
 
     if (event.data?.type === "qadabra:extension-hello" && event.data.id) {
       const prev = document.documentElement.dataset.qadabraExtensionId
