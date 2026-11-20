@@ -31,7 +31,7 @@ defmodule QlariusWeb.ReferralsLiveTest do
         age_trait_id: 200_093
       })
 
-    %{conn: log_in_user(conn, user)}
+    %{conn: log_in_user(conn, user), user: user}
   end
 
   test "a new member sees the summary, their link and code, and the referrer form", %{
@@ -45,6 +45,7 @@ defmodule QlariusWeb.ReferralsLiveTest do
     assert html =~ ~s(id="referral-link-input")
     assert html =~ ~s(id="referral-code-text")
     assert html =~ "Did someone refer you?"
+    assert html =~ "10 days left to add a referrer."
     assert html =~ ~s(phx-submit="save_referral_code")
 
     # Nothing pending, nobody referred yet, so one column
@@ -86,6 +87,23 @@ defmodule QlariusWeb.ReferralsLiveTest do
 
     assert html =~ "Referred by"
     refute html =~ "Referred by Mefile"
+    refute html =~ ~s(phx-submit="save_referral_code")
+  end
+
+  test "hides the referrer section once the 10 days have passed", %{conn: conn, user: user} do
+    past =
+      DateTime.utc_now()
+      |> DateTime.add(-11, :day)
+      |> DateTime.to_naive()
+      |> NaiveDateTime.truncate(:second)
+
+    user |> Ecto.Changeset.change(%{inserted_at: past}) |> Repo.update!()
+
+    {:ok, _view, html} = live(conn, ~p"/referrals")
+
+    assert html =~ "Your link"
+    refute html =~ "Your referrer"
+    refute html =~ "The 10 days to add a referrer have passed."
     refute html =~ ~s(phx-submit="save_referral_code")
   end
 end

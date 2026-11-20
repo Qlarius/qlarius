@@ -66,6 +66,7 @@ defmodule QlariusWeb.ReferralsLive do
       |> assign(:referral_code_input, "")
       |> assign(:referral_error, nil)
       |> assign(:show_referral_form, referral == nil && can_add)
+      |> assign(:referral_days_remaining, referral_days_remaining(socket.assigns.current_scope.user))
       |> assign(:pending_clicks_count, pending_clicks_count)
       |> assign(:total_paid, total_paid)
       |> assign(:next_payout_date, next_payout_date)
@@ -264,47 +265,45 @@ defmodule QlariusWeb.ReferralsLive do
                 </.surface_panel>
               </section>
 
-              <section>
+              <section :if={@referral || @show_referral_form}>
                 <div class="mefile-category__head">
                   <h2>Your referrer</h2>
                 </div>
                 <.surface_panel>
-                  <%= cond do %>
-                    <% @referral -> %>
-                      <p class="text-[15px] text-base-content">
-                        Referred by
-                        <span class="font-semibold">
-                          <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
-                            {referrer_alias}
-                          <% else %>
-                            {String.capitalize(@referral.referrer_type)}
-                          <% end %>
-                        </span>
-                      </p>
-                      <p class="mt-0.5 text-[13px] text-base-content/55">
-                        Until {Calendar.strftime(@referral.expires_at, "%b %-d, %Y")}
-                      </p>
-                    <% @show_referral_form -> %>
-                      <p class="text-sm text-base-content/70">
-                        Did someone refer you? Enter their code within 10 days of joining.
-                      </p>
-                      <form phx-submit="save_referral_code" class="referral-link mt-4">
-                        <input
-                          type="text"
-                          name="code"
-                          placeholder="Referral code"
-                          value={@referral_code_input}
-                          aria-label="Referral code"
-                          class="referral-link__field"
-                          required
-                        />
-                        <button type="submit" class="referral-btn">Save</button>
-                      </form>
-                      <p :if={@referral_error} class="mt-2 text-sm text-error">{@referral_error}</p>
-                    <% true -> %>
-                      <p class="text-sm text-base-content/60">
-                        The 10 days to add a referrer have passed.
-                      </p>
+                  <%= if @referral do %>
+                    <p class="text-[15px] text-base-content">
+                      Referred by
+                      <span class="font-semibold">
+                        <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
+                          {referrer_alias}
+                        <% else %>
+                          {String.capitalize(@referral.referrer_type)}
+                        <% end %>
+                      </span>
+                    </p>
+                    <p class="mt-0.5 text-[13px] text-base-content/55">
+                      Until {Calendar.strftime(@referral.expires_at, "%b %-d, %Y")}
+                    </p>
+                  <% else %>
+                    <p class="text-sm text-base-content/70">
+                      Did someone refer you? Enter their code.
+                    </p>
+                    <p class="mt-0.5 text-[13px] text-base-content/55">
+                      {days_left(@referral_days_remaining)} to add a referrer.
+                    </p>
+                    <form phx-submit="save_referral_code" class="referral-link mt-4">
+                      <input
+                        type="text"
+                        name="code"
+                        placeholder="Referral code"
+                        value={@referral_code_input}
+                        aria-label="Referral code"
+                        class="referral-link__field"
+                        required
+                      />
+                      <button type="submit" class="referral-btn">Save</button>
+                    </form>
+                    <p :if={@referral_error} class="mt-2 text-sm text-error">{@referral_error}</p>
                   <% end %>
                 </.surface_panel>
               </section>
@@ -389,4 +388,14 @@ defmodule QlariusWeb.ReferralsLive do
 
   defp days_left(1), do: "1 day left"
   defp days_left(n), do: "#{n} days left"
+
+  # Same 10-day window as `Referrals.can_add_referral?/1`. Any leftover part
+  # of a day still counts, so the form never says 0 days while it is open.
+  defp referral_days_remaining(%{inserted_at: inserted_at}) do
+    registered_at = DateTime.from_naive!(inserted_at, "Etc/UTC")
+    deadline = DateTime.add(registered_at, 10, :day)
+    remaining = DateTime.diff(deadline, DateTime.utc_now())
+
+    if remaining > 0, do: div(remaining + 86_399, 86_400), else: 0
+  end
 end
