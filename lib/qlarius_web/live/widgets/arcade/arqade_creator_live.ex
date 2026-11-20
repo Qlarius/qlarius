@@ -10,6 +10,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
   alias Qlarius.Creators
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Widgets.Theme
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
 
@@ -28,9 +29,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(%{"creator_id" => creator_id}, session, socket) do
+  def mount(%{"creator_id" => creator_id} = params, session, socket) do
+    widget_embed? = socket.assigns[:base_path] == "/widgets"
+
     creator = Creators.get_creator!(creator_id)
     creator_id = creator.id
+
+    force_theme = Theme.resolve(Map.get(params, "force_theme"), creator.arqade_theme)
 
     return_to = Paths.creator("", creator.id)
     current_path = return_to
@@ -44,7 +49,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
         current_path: current_path,
         title: "Arqade",
         display_mode: "tile",
-        show_discovery_view_menu: false
+        show_discovery_view_menu: false,
+        widget_document_theme: if(widget_embed?, do: Theme.pin(force_theme), else: nil)
       )
       |> assign_async(:catalogs, fn ->
         {:ok, %{catalogs: Arcade.list_discoverable_catalogs_by_creator(creator_id)}}
@@ -84,7 +90,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
   end
 
   def handle_event("toggle_discovery_view_menu", _params, socket) do
-    {:noreply, assign(socket, :show_discovery_view_menu, !socket.assigns.show_discovery_view_menu)}
+    {:noreply,
+     assign(socket, :show_discovery_view_menu, !socket.assigns.show_discovery_view_menu)}
   end
 
   def handle_event("hide_discovery_view_menu", _params, socket) do
@@ -147,7 +154,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
                 crumbs={[]}
                 current={@creator.name}
               />
-              <p :if={String.trim(@creator.bio || "") != ""} class="text-sm text-base-content/60 mt-2 line-clamp-5">
+              <p
+                :if={String.trim(@creator.bio || "") != ""}
+                class="text-sm text-base-content/60 mt-2 line-clamp-5"
+              >
                 {String.trim(@creator.bio)}
               </p>
             </div>

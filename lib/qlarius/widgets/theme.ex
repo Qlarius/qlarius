@@ -101,6 +101,18 @@ defmodule Qlarius.Widgets.Theme do
         %Recipient{creator_id: creator_id} when is_integer(creator_id) ->
           Repo.one(from c in Creator, where: c.id == ^creator_id, select: field(c, ^field))
 
+        # Legacy/partial data: a recipient may not have creator_id populated,
+        # but the creator can still reference its primary recipient via
+        # creators.recipient_id.
+        %Recipient{id: recipient_id} when is_integer(recipient_id) ->
+          Repo.one(
+            from c in Creator,
+              where: c.recipient_id == ^recipient_id,
+              order_by: [asc: c.id],
+              limit: 1,
+              select: field(c, ^field)
+          )
+
         _ ->
           nil
       end

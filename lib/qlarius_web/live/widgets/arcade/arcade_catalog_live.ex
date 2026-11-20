@@ -12,6 +12,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Widgets.Theme
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
   alias Phoenix.LiveView.AsyncResult
@@ -31,9 +32,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(%{"catalog_id" => catalog_id}, session, socket) do
+  def mount(%{"catalog_id" => catalog_id} = params, session, socket) do
+    widget_embed? = socket.assigns[:base_path] == "/widgets"
     catalog_id = parse_id(catalog_id)
     return_to = Paths.catalog("", catalog_id)
+
+    force_theme =
+      if widget_embed? do
+        Theme.for_catalog(catalog_id, Map.get(params, "force_theme"))
+      else
+        nil
+      end
 
     socket =
       socket
@@ -43,7 +52,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
         catalog: AsyncResult.loading(),
         base_path: "",
         current_path: return_to,
-        title: "Arqade"
+        title: "Arqade",
+        widget_document_theme: if(widget_embed?, do: Theme.pin(force_theme), else: nil)
       )
       |> start_async(:load_catalog, fn -> Creators.get_catalog!(catalog_id) end)
       |> maybe_init_tiqit_host(return_to)
