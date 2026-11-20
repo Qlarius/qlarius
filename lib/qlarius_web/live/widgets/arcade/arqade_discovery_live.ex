@@ -17,6 +17,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.ContentAudiences
   alias Qlarius.Tiqit.ContentEngagement
+  alias Qlarius.Widgets.Theme
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
 
@@ -36,8 +37,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     scope = socket.assigns[:current_scope]
+
+    widget_embed? = socket.assigns[:base_path] == "/widgets"
+
+    widget_document_theme =
+      if widget_embed? do
+        Theme.pin(Map.get(params, "force_theme"))
+      else
+        nil
+      end
 
     socket =
       socket
@@ -48,6 +58,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         title: "Arqade",
         display_mode: "tile",
         show_discovery_view_menu: false,
+        widget_document_theme: widget_document_theme,
         show_why_you?: false,
         why_you: nil,
         content_details: nil,
@@ -100,7 +111,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   end
 
   def handle_event("discovery_click", params, socket) do
-    _ = ContentEngagement.record_discovery_click(socket.assigns.current_scope, click_attrs(params))
+    _ =
+      ContentEngagement.record_discovery_click(socket.assigns.current_scope, click_attrs(params))
+
     {:noreply, socket}
   rescue
     _ -> {:noreply, socket}
@@ -181,7 +194,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
           "flex flex-col gap-6 pb-2",
           @base_path == "/tiqit" && "overflow-y-auto flex-1 min-h-0 px-4 py-4"
         ]}>
-
           <.async_result :let={feed} assign={@feed}>
             <:loading>
               <.discovery_section_skeleton
@@ -253,7 +265,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
           show_view_menu={@show_discovery_view_menu}
         />
       </.arqade_page_wrap>
-
     </div>
     """
   end
@@ -312,7 +323,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
       piece: piece,
       group: piece.content_group,
       catalog: piece.content_group && piece.content_group.catalog,
-      creator: piece.content_group && piece.content_group.catalog && piece.content_group.catalog.creator
+      creator:
+        piece.content_group && piece.content_group.catalog && piece.content_group.catalog.creator
     }
   end
 
