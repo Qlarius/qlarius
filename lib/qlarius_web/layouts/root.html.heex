@@ -186,15 +186,30 @@
         };
 
         // Qlink pages pin "qlink". Widget embeds pin "widget" when a creator
-        // or force_theme chooses light or dark. System leaves the mode unset
-        // so the viewer (saved theme, then the device) wins.
-        const themeMode = document.documentElement.getAttribute("data-theme-mode");
-        const qlinkPinned = themeMode === "qlink";
-        const themePinned = qlinkPinned || themeMode === "widget";
+        // or force_theme chooses light or dark. For widget embeds, "system"
+        // must follow the viewer device (prefers-color-scheme), not the
+        // viewer saved theme.
+        const embedDocument = document.documentElement.classList.contains("embed-document");
+
+        const setWidgetSystemTheme = () => {
+          const systemPrefersDark =
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute(
+            "data-theme",
+            systemPrefersDark ? "dark" : "light"
+          );
+          document.documentElement.setAttribute("data-theme-mode", "widget-system");
+          updateThemeColor(systemPrefersDark);
+        };
 
         const applyThemeForCurrentPath = () => {
           const sp = new URLSearchParams(window.location.search);
           const forceT = sp.get("force_theme");
+          const themeMode = document.documentElement.getAttribute("data-theme-mode");
+          const qlinkPinned = themeMode === "qlink";
+          const widgetPinned = themeMode === "widget";
+          const widgetSystem = themeMode === "widget-system";
+
           if (forceT === "light" || forceT === "dark") {
             document.documentElement.setAttribute("data-theme", forceT);
             document.documentElement.setAttribute(
@@ -204,8 +219,20 @@
             updateThemeColor(forceT === "dark");
             return;
           }
-          if (themePinned) {
-            updateThemeColor(document.documentElement.getAttribute("data-theme") === "dark");
+          if (qlinkPinned) {
+            updateThemeColor(
+              document.documentElement.getAttribute("data-theme") === "dark"
+            );
+            return;
+          }
+          if (widgetPinned) {
+            updateThemeColor(
+              document.documentElement.getAttribute("data-theme") === "dark"
+            );
+            return;
+          }
+          if (widgetSystem || embedDocument) {
+            setWidgetSystemTheme();
             return;
           }
           const initial =
@@ -215,22 +242,47 @@
 
         applyThemeForCurrentPath();
 
-        const sp0 = new URLSearchParams(window.location.search);
-        if (!themePinned && !sp0.get("force_theme")) {
-          window.addEventListener("storage", (e) => {
-            if (e.key !== "phx:theme") return;
-            setTheme(e.newValue || "system");
+        const shouldIgnoreThemeEvents = () => {
+          const sp = new URLSearchParams(window.location.search);
+          if (sp.get("force_theme")) return true;
+
+          const mode = document.documentElement.getAttribute("data-theme-mode");
+          return mode === "qlink" || mode === "widget";
+        };
+
+        const isWidgetSystem = () =>
+          document.documentElement.getAttribute("data-theme-mode") === "widget-system" ||
+            document.documentElement.classList.contains("embed-document");
+
+        window.addEventListener("storage", (e) => {
+          if (e.key !== "phx:theme") return;
+          if (shouldIgnoreThemeEvents()) return;
+          if (isWidgetSystem()) return;
+          setTheme(e.newValue || "system");
+        });
+
+        window.addEventListener("phx:set-theme", ({ detail: { theme } }) => {
+          if (shouldIgnoreThemeEvents()) return;
+          if (isWidgetSystem()) return;
+          setTheme(theme);
+        });
+
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", () => {
+            const sp = new URLSearchParams(window.location.search);
+            if (sp.get("force_theme")) return;
+
+            const mode = document.documentElement.getAttribute("data-theme-mode");
+            if (mode === "widget-system" || document.documentElement.classList.contains("embed-document")) {
+              setWidgetSystemTheme();
+              return;
+            }
+            if (mode === "qlink" || mode === "widget") return;
+
+            const current = localStorage.getItem("phx:theme");
+            if (!current || current === "system") setTheme("system");
           });
-          window.addEventListener("phx:set-theme", ({ detail: { theme } }) => {
-            setTheme(theme);
-          });
-          window
-            .matchMedia("(prefers-color-scheme: dark)")
-            .addEventListener("change", () => {
-              const current = localStorage.getItem("phx:theme");
-              if (!current || current === "system") setTheme("system");
-            });
-        }
 
         window.addEventListener("phx:page-loading-stop", applyThemeForCurrentPath);
       })();

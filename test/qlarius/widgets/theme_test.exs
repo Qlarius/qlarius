@@ -166,7 +166,7 @@ defmodule Qlarius.Widgets.ThemeTest do
 
     system = get(build_conn(), "/widgets/insta_tip?split_code=#{recipient.split_code}")
     system_html = html_response(system, 200)
-    refute system_html =~ ~s(data-theme-mode="widget")
+    assert system_html =~ ~s(data-theme-mode="widget-system")
     refute system_html =~ ~s(data-theme="light")
     refute system_html =~ ~s(data-theme="dark")
   end

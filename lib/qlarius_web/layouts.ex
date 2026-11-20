@@ -1074,6 +1074,7 @@ defmodule QlariusWeb.Layouts do
     cond do
       assigns[:qlink_document_theme] in ["light", "dark"] -> "qlink"
       assigns[:widget_document_theme] in ["light", "dark"] -> "widget"
+      assigns[:embed_document] -> "widget-system"
       true -> nil
     end
   end
