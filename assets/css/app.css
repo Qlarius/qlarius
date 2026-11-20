@@ -4452,8 +4452,8 @@
    * the status-bar fade. This strip is that sample. It lives outside
    * `.mobile-shell`, so it must not use `.page-canvas`: the document dark
    * canvas is #1c1c1e, while the shell page is #000. A taller strip would
-   * cover the header. The fade itself is system glass and stays; matching
-   * the page colour makes it disappear. Letterboxed icons hide it.
+   * cover the header. iOS 27 extends a blur over the top of the page unless
+   * it can sample a solid bar here, so letterboxed icons keep the strip.
    */
   .ios-pwa-status-strip {
     display: none;
@@ -6970,10 +6970,6 @@ html.ios-pwa-letterbox .pwa-top-inset {
 
 html.ios-pwa-letterbox .mobile-layout-content {
   padding-top: 0;
-}
-
-html.ios-pwa-letterbox .ios-pwa-status-strip {
-  display: none;
 }
 
 html.ios-pwa-letterbox #hi-page,

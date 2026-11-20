@@ -554,7 +554,7 @@ defmodule QlariusWeb.Layouts do
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
                   class="page-canvas pwa-top-inset flex-shrink-0"
-                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                  style="height: max(12px, env(safe-area-inset-top));"
                 >
                 </div>
               <% end %>
@@ -624,7 +624,7 @@ defmodule QlariusWeb.Layouts do
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
                   class="page-canvas pwa-top-inset flex-shrink-0"
-                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                  style="height: max(12px, env(safe-area-inset-top));"
                 >
                 </div>
               <% end %>
