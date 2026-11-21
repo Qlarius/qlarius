@@ -144,28 +144,31 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     |> Repo.all()
   end
 
+  # One update for the chunk. The lateral query already limited each MeFile
+  # to its remaining slots, so splitting the write by MeFile only added a commit
+  # per person.
   defp activate_within_budget(me_file_ids, budgets, now) do
     limits = Enum.map(me_file_ids, fn id -> {id, budgets[id].remaining} end)
     offers = due_offers_within_budget(limits, now)
+    ids = Enum.map(offers, & &1.id)
 
-    offers
-    |> Enum.group_by(& &1.me_file_id)
-    |> Enum.reduce(0, fn {_me_file_id, rows}, acc ->
-      ids = Enum.map(rows, & &1.id)
-
+    if ids == [] do
+      0
+    else
       {activated, _} =
-        from(o in Offer, where: o.id in ^ids)
+        from(o in Offer, where: o.id in ^ids and o.is_current == false)
         |> Repo.update_all(set: [is_current: true, updated_at: now])
 
       if activated > 0 do
-        rows
-        |> Enum.map(& &1.campaign_id)
-        |> Enum.uniq()
-        |> Enum.each(&CampaignPubSub.broadcast_offers_created(&1, activated))
+        offers
+        |> Enum.group_by(& &1.campaign_id)
+        |> Enum.each(fn {campaign_id, rows} ->
+          CampaignPubSub.broadcast_offers_created(campaign_id, length(rows))
+        end)
       end
 
-      acc + activated
-    end)
+      activated
+    end
   end
 
   # The campaign predicates match CampaignFilters.live_now/2. LIMIT is the
