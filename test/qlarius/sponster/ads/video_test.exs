@@ -64,22 +64,42 @@ defmodule Qlarius.Sponster.Ads.VideoTest do
       assert Decimal.eq?(sponster_header.balance, Decimal.new("0.18"))
     end
 
-    test "does not credit a publisher when split is 0%" do
-      ctx = build_video_context!(offer_amt: "0.20")
+    test "credits the publisher from sponster keep when the reader split is 0% or missing" do
+      for split <- [0, nil] do
+        ctx = build_video_context!(offer_amt: "0.20")
 
-      assert {:ok, ad_event} =
-               Video.create_video_ad_event(ctx.offer, ctx.recipient, 0, "127.0.0.1")
+        assert {:ok, ad_event} =
+                 Video.create_video_ad_event(ctx.offer, ctx.recipient, split, "127.0.0.1")
 
-      ad_event = Repo.reload!(ad_event)
+        ad_event = Repo.reload!(ad_event)
 
-      assert is_nil(ad_event.recipient_id)
-      assert is_nil(ad_event.event_sponster_to_recipient_amt)
+        assert ad_event.recipient_id == ctx.recipient.id
+        assert ad_event.event_recipient_split_pct == 0
+        assert is_nil(ad_event.event_recipient_collect_amt)
+        assert Decimal.eq?(ad_event.event_sponster_to_recipient_amt, Decimal.new("0.02"))
+        assert Decimal.eq?(ad_event.event_me_file_collect_amt, Decimal.new("0.20"))
+        assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new("0.18"))
+        assert Decimal.eq?(ad_event.event_marketer_cost_amt, Decimal.new("0.40"))
 
-      reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
-      assert Decimal.eq?(reader_header.balance, Decimal.new("0.20"))
+        reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
+        assert Decimal.eq?(reader_header.balance, Decimal.new("0.20"))
 
-      recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
-      assert Decimal.eq?(recipient_header.balance, Decimal.new("0.00"))
+        recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
+        assert Decimal.eq?(recipient_header.balance, Decimal.new("0.02"))
+
+        recipient_entries =
+          from(e in LedgerEntry,
+            where: e.ledger_header_id == ^recipient_header.id and e.ad_event_id == ^ad_event.id
+          )
+          |> Repo.all()
+
+        assert [%LedgerEntry{} = sponster_share] = recipient_entries
+        assert Decimal.eq?(sponster_share.amt, Decimal.new("0.02"))
+        assert sponster_share.description =~ "SPONSTER"
+
+        campaign_header = Repo.get_by!(LedgerHeader, campaign_id: ctx.campaign.id)
+        assert Decimal.eq?(campaign_header.balance, Decimal.new("-0.40"))
+      end
     end
 
     test "does not credit a publisher when there is no recipient" do

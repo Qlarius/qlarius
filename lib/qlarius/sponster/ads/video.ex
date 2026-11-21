@@ -2,6 +2,7 @@ defmodule Qlarius.Sponster.Ads.Video do
   alias Qlarius.Repo
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.MediaPiecePhase
+  alias Qlarius.Sponster.Ads.PublisherCredit
   alias Qlarius.Sponster.Ads.Rates
   alias Qlarius.Wallets
   alias Qlarius.Jobs.HandleOfferCompletionWorker
@@ -47,40 +48,22 @@ defmodule Qlarius.Sponster.Ads.Video do
       url: "video://watched"
     }
 
+    # Video publisher credit comes out of Sponster's keep. If the keep is
+    # smaller than the configured credit, cap it so the keep never goes negative.
+    sponster_to_recipient_amt =
+      cap_sponster_to_recipient_amt(
+        Rates.video_publisher_credit_amt(),
+        ad_event_attrs.event_sponster_collect_amt
+      )
+
     ad_event_attrs =
-      if recipient && split_amount > 0 do
-        split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
-
-        split_amount_to_recipient =
-          ad_event_attrs.event_me_file_collect_amt
-          |> Decimal.mult(split_percentage)
-          |> Decimal.round(2, :half_up)
-
-        adjusted_me_file_collect_amt =
-          Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
-
-        # Video publisher credit comes out of Sponster's keep. If the keep is
-        # smaller than the configured credit, cap it so the keep never goes
-        # negative.
-        sponster_to_recipient_amt =
-          cap_sponster_to_recipient_amt(
-            Rates.video_publisher_credit_amt(),
-            ad_event_attrs.event_sponster_collect_amt
-          )
-
-        Map.merge(ad_event_attrs, %{
-          recipient_id: recipient.id,
-          event_split_code: recipient.split_code,
-          event_recipient_split_pct: split_amount,
-          event_recipient_collect_amt: split_amount_to_recipient,
-          event_me_file_collect_amt: adjusted_me_file_collect_amt,
-          event_sponster_collect_amt:
-            Decimal.sub(ad_event_attrs.event_sponster_collect_amt, sponster_to_recipient_amt),
-          event_sponster_to_recipient_amt: sponster_to_recipient_amt
-        })
-      else
-        ad_event_attrs
-      end
+      PublisherCredit.apply(
+        ad_event_attrs,
+        recipient,
+        split_amount,
+        sponster_to_recipient_amt,
+        PublisherCredit.share_of(ad_event_attrs.event_me_file_collect_amt, split_amount)
+      )
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 

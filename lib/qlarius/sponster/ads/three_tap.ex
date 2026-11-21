@@ -3,7 +3,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   import Ecto.Query, except: [update: 2, update: 3]
 
   alias Qlarius.Sponster.AdEvent
-  alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType, Rates}
+  alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType, PublisherCredit, Rates}
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets
   alias Qlarius.Jobs.HandleOfferCompletionWorker
@@ -40,39 +40,14 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       url: url
     }
 
-    # if recipient is provided, calculate the revshare to the recipient
     ad_event_attrs =
-      if recipient && split_amount > 0 do
-        split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
-
-        split_amount_to_recipient =
-          ad_event_attrs.event_me_file_collect_amt
-          |> Decimal.mult(split_percentage)
-          |> Decimal.round(2, :half_up)
-
-        adjusted_me_file_collect_amt =
-          Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
-
-        publisher_credit = Rates.three_tap_publisher_credit_amt()
-
-        updated_attrs =
-          Map.merge(ad_event_attrs, %{
-            recipient_id: recipient.id,
-            event_split_code: recipient.split_code,
-            event_recipient_split_pct: split_amount,
-            # update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
-            event_recipient_collect_amt: split_amount_to_recipient,
-            event_me_file_collect_amt: adjusted_me_file_collect_amt,
-            # update the sponster keep to give  $0.01 to recipient
-            event_sponster_collect_amt:
-              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, publisher_credit),
-            event_sponster_to_recipient_amt: publisher_credit
-          })
-
-        updated_attrs
-      else
-        ad_event_attrs
-      end
+      PublisherCredit.apply(
+        ad_event_attrs,
+        recipient,
+        split_amount,
+        Rates.three_tap_publisher_credit_amt(),
+        PublisherCredit.share_of(ad_event_attrs.event_me_file_collect_amt, split_amount)
+      )
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
@@ -144,21 +119,17 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       url: url
     }
 
-    # if recipient is provided, calculate the revshare to the recipient
-    # For Phase 2 (final), ensure exact split by calculating remainder after Phase 1
-    ad_event_attrs =
-      if recipient && split_amount > 0 do
-        split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
-
-        # Calculate total recipient should get from entire offer
+    # Phase 2 finishes the reader's split: the recipient's share of the whole
+    # offer, minus whatever the banner events already paid. A 0% or missing
+    # split pays none of the reader's collect and still credits the publisher
+    # from Sponster's keep.
+    reader_share =
+      if PublisherCredit.split_pct(split_amount) > 0 do
         total_recipient_amount =
           offer.offer_amt
-          |> Decimal.mult(split_percentage)
+          |> Decimal.mult(Decimal.div(Decimal.new(split_amount), Decimal.new(100)))
           |> Decimal.round(2, :half_up)
 
-        # Sum Phase 1 recipient payouts across all banner-impression events for this offer.
-        # Media runs may allow multiple phase-1 collects (`maximum_banner_count`, retry buffers)
-        # before the consumer completes phase 2 (jump); each collect inserts its own row.
         phase1_recipient_amount =
           from(a in AdEvent,
             where: a.offer_id == ^offer.id,
@@ -172,30 +143,19 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
             %Decimal{} = d -> d
           end
 
-        # Phase 2 recipient gets exactly what's left to reach the target split
-        split_amount_to_recipient = Decimal.sub(total_recipient_amount, phase1_recipient_amount)
-
-        adjusted_me_file_collect_amt =
-          Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
-
-        publisher_credit = Rates.three_tap_publisher_credit_amt()
-
-        updated_attrs =
-          Map.merge(ad_event_attrs, %{
-            recipient_id: recipient.id,
-            event_split_code: recipient.split_code,
-            event_recipient_split_pct: split_amount,
-            event_recipient_collect_amt: split_amount_to_recipient,
-            event_me_file_collect_amt: adjusted_me_file_collect_amt,
-            event_sponster_collect_amt:
-              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, publisher_credit),
-            event_sponster_to_recipient_amt: publisher_credit
-          })
-
-        updated_attrs
+        Decimal.sub(total_recipient_amount, phase1_recipient_amount)
       else
-        ad_event_attrs
+        nil
       end
+
+    ad_event_attrs =
+      PublisherCredit.apply(
+        ad_event_attrs,
+        recipient,
+        split_amount,
+        Rates.three_tap_publisher_credit_amt(),
+        reader_share
+      )
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
