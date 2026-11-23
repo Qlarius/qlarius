@@ -268,6 +268,7 @@ defmodule QlariusWeb.Components.AdminSidebar do
               nav_link("Unlaunched campaigns", ~p"/admin/campaigns"),
               nav_link("Recipients", ~p"/admin/recipients"),
               nav_link("Promo sequences", ~p"/admin/promo_sequences"),
+              nav_link("Widget serves", ~p"/admin/widget_serves"),
               nav_link("Ad Categories", ~p"/admin/ad_categories"),
               subheading("YouData", "bg-youdata-500"),
               nav_link("Trait Manager", ~p"/admin/traits"),

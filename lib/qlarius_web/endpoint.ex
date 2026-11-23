@@ -28,11 +28,11 @@ defmodule QlariusWeb.Endpoint do
   # failing the join.
   socket "/widgets/live", QlariusWeb.WidgetSocket,
     websocket: [
-      connect_info: [:x_headers, session: @session_options],
+      connect_info: [:x_headers, :user_agent, session: @session_options],
       check_origin: false
     ],
     longpoll: [
-      connect_info: [:x_headers, session: @session_options],
+      connect_info: [:x_headers, :user_agent, session: @session_options],
       check_origin: false
     ]
 

@@ -24,6 +24,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Sponster.PromoSequences
+  alias Qlarius.Sponster.WidgetServeLogs
   alias QlariusWeb.SponsterRecipientSurface
 
   import QlariusWeb.Components.AdsComponents
@@ -72,7 +73,31 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         socket
       end
 
+    # The static render also runs mount; logging only the connected mount
+    # keeps one row per real load.
+    if connected?(socket) && recipient, do: record_serve(socket, recipient, params)
+
     {:ok, socket}
+  end
+
+  defp record_serve(socket, recipient, params) do
+    user_id =
+      case socket.assigns[:current_scope] do
+        %{user: %{id: id}} -> id
+        _ -> nil
+      end
+
+    WidgetServeLogs.record(%{
+      recipient_id: recipient.id,
+      recipient_split_code: recipient.split_code,
+      recipient_referral_code: recipient.referral_code,
+      user_id: user_id,
+      authed: authed?(socket.assigns[:current_scope]),
+      ip_address: socket.assigns[:user_ip],
+      user_agent: get_connect_info(socket, :user_agent),
+      host_page_url: params["host_url"],
+      page_load_id: params["sync_id"]
+    })
   end
 
   @impl true

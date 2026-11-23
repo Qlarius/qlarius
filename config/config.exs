@@ -28,7 +28,8 @@ config :qlarius, Oban,
        {"*/10 * * * *", Qlarius.Jobs.ExpireWillCallGiftsWorker},
        {"*/15 * * * *", Qlarius.Jobs.DeactivateEndedCampaignsWorker},
        {"30 * * * *", Qlarius.Jobs.SweepExpiredQaiSessionsWorker},
-       {"0 6 * * *", Qlarius.Jobs.SyncContentGroupFeedsWorker}
+       {"0 6 * * *", Qlarius.Jobs.SyncContentGroupFeedsWorker},
+       {"15 4 * * *", Qlarius.Jobs.PruneWidgetServeLogsWorker}
      ]}
   ]
 
