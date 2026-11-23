@@ -374,7 +374,7 @@
                           ? "https://localhost:4001"
                           : "https://qadabra.app";
                         var tipFrame = document.getElementById("sponster-insta-tip-iframe");
-                        tipFrame.src = base + "/widgets/insta_tip?force_theme=light&split_code=daily_local";
+                        tipFrame.src = base + "/widgets/insta_tip?split_code=daily_local";
                         // The widget posts its height; fit the iframe to it (640px until then).
                         window.addEventListener("message", function (event) {
                           var data = event.data;
