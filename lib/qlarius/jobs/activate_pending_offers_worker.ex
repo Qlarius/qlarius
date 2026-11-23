@@ -23,15 +23,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-    # Get counts before activation for summary
-    pending_unthrottled = count_pending_unthrottled_offers(now)
-    pending_throttled = count_pending_throttled_offers(now)
-
     Logger.info("📊 Config: throttle limits are per MeFile")
-
-    Logger.info(
-      "📊 Pending offers: #{pending_unthrottled} unthrottled, #{pending_throttled} throttled"
-    )
 
     unthrottled_activated = activate_unthrottled_offers(now)
 
@@ -41,7 +33,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     if unthrottled_activated == 0 and throttled_activated == 0 do
       Logger.info(
         "ActivatePendingOffersWorker: nothing to activate " <>
-          "(#{pending_unthrottled} unthrottled due, #{me_files_processed} throttled MeFiles, #{throttled_blocked} already at cap)"
+          "(#{me_files_processed} throttled MeFiles, #{throttled_blocked} already at cap)"
       )
     end
 
@@ -60,32 +52,6 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     """)
 
     :ok
-  end
-
-  defp count_pending_unthrottled_offers(now) do
-    from(o in Offer,
-      join: c in assoc(o, :campaign),
-      as: :campaign,
-      where: o.is_current == false,
-      where: o.is_throttled == false,
-      where: o.pending_until <= ^now,
-      select: count(o.id)
-    )
-    |> CampaignFilters.live_now(now)
-    |> Repo.one()
-  end
-
-  defp count_pending_throttled_offers(now) do
-    from(o in Offer,
-      join: c in assoc(o, :campaign),
-      as: :campaign,
-      where: o.is_current == false,
-      where: o.is_throttled == true,
-      where: o.pending_until <= ^now,
-      select: count(o.id)
-    )
-    |> CampaignFilters.live_now(now)
-    |> Repo.one()
   end
 
   defp activate_unthrottled_offers(now) do

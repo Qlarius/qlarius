@@ -258,6 +258,28 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       assert budgets[capped.me_file.id] == Offers.throttle_budget(capped.me_file.id, now)
     end
 
+    test "throttle_budgets still counts recent ads for a me file under its live cap" do
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      full = build_three_tap_context!([])
+      recent = build_three_tap_context!([])
+      set_me_file_throttle!(full.me_file, count: 2, days: 7)
+      set_me_file_throttle!(recent.me_file, count: 2, days: 7)
+
+      live = insert_due_throttled_offers!(full, 2)
+      live_ids = Enum.map(live, & &1.id)
+
+      Repo.update_all(from(o in Offer, where: o.id in ^live_ids), set: [is_current: true])
+      insert_throttled_events!(full, 3)
+      insert_throttled_events!(recent, 2)
+
+      budgets = Offers.throttle_budgets([full.me_file.id, recent.me_file.id], now)
+
+      assert budgets[full.me_file.id].current == 2
+      assert budgets[full.me_file.id].remaining == 0
+      assert budgets[recent.me_file.id].completed == 2
+      assert budgets[recent.me_file.id].remaining == 0
+    end
+
     test "the activation job applies each me file's own cap" do
       small = build_three_tap_context!([])
       large = build_three_tap_context!([])

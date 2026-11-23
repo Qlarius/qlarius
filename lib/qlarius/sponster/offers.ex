@@ -421,7 +421,9 @@ defmodule Qlarius.Sponster.Offers do
 
   MeFiles that share a count and a window are counted together. The rule is
   read once and passed into those queries, so each ad event does not look up
-  its MeFile. A days value of 0 skips the completed count.
+  its MeFile. A limit of 0 skips both counts. A days value of 0 skips the
+  completed count. A MeFile whose live throttled offers already fill the limit
+  also skips that count, because those ads cannot open another slot.
   """
   def throttle_budgets([], _now), do: %{}
 
@@ -432,19 +434,31 @@ defmodule Qlarius.Sponster.Offers do
       Enum.group_by(settings, fn {_id, rule} -> rule end, fn {id, _rule} -> id end)
 
     known =
-      Enum.reduce(grouped, %{}, fn {%{limit: limit, days: days}, ids}, acc ->
-        current = current_throttled_counts(ids)
+      Enum.reduce(grouped, %{}, fn
+        {%{limit: limit, days: days}, ids}, acc when is_integer(limit) and limit <= 0 ->
+          Enum.reduce(ids, acc, fn id, acc ->
+            Map.put(acc, id, budget(limit, days, 0, 0))
+          end)
 
-        completed =
-          if days == 0, do: %{}, else: completed_throttled_counts(ids, window_start(now, days))
+        {%{limit: limit, days: days}, ids}, acc ->
+          current = current_throttled_counts(ids)
 
-        Enum.reduce(ids, acc, fn id, acc ->
-          Map.put(
-            acc,
-            id,
-            budget(limit, days, Map.get(current, id, 0), Map.get(completed, id, 0))
-          )
-        end)
+          completed =
+            if days == 0 do
+              %{}
+            else
+              ids
+              |> Enum.filter(fn id -> Map.get(current, id, 0) < limit end)
+              |> completed_throttled_counts(window_start(now, days))
+            end
+
+          Enum.reduce(ids, acc, fn id, acc ->
+            Map.put(
+              acc,
+              id,
+              budget(limit, days, Map.get(current, id, 0), Map.get(completed, id, 0))
+            )
+          end)
       end)
 
     Enum.reduce(me_file_ids, known, fn id, acc ->
@@ -488,6 +502,8 @@ defmodule Qlarius.Sponster.Offers do
   end
 
   # `since` is the rule's window, the same instant for every MeFile in the chunk.
+  defp completed_throttled_counts([], _since), do: %{}
+
   defp completed_throttled_counts(me_file_ids, since) do
     me_file_ids
     |> Enum.chunk_every(2_000)
