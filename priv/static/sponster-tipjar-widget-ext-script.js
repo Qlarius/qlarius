@@ -1,13 +1,18 @@
 // Sponster third-party embed loader.
 //
+// KEEP IN SYNC: priv/static/demosite/local_news/sponster-local.js and
+// sponster-prod.js are the demo copies. When you change iframe injection,
+// postMessage handling, or collapsed height here, make the same change in
+// both of those files. The only intended difference is the widget origin.
+//
 // Host pages include:
 //
 //   <div id="sponster-tipjar-widget" sponster-split-code="SPLIT_CODE"></div>
 //   <script src="https://qadabra.app/sponster-tipjar-widget-ext-script.js"></script>
 //
-// The iframe target is chosen from the *page* hostname (localhost →
-// https://localhost:4001, otherwise https://qadabra.app) so demosite and
-// publisher HTML do not need environment-specific embed URLs.
+// The iframe origin is the origin this script was loaded from, so a page that
+// includes the production script talks to https://qadabra.app even when that
+// page is served from localhost.
 //
 // This script injects a single bottom-anchored iframe pointing at
 // /widgets/ads_ext/:split_code — the shared Sponster stack (announcer bar +
@@ -32,14 +37,16 @@
   var splitCode = widgetDiv.getAttribute("sponster-split-code");
   if (!splitCode) return;
 
-  // Publisher pages (e.g. daily-local.com) must iframe Qadabra, not themselves.
-  // Local demosite / tunnel hosts hit the local Phoenix app on :4001.
-  // Resolve from the *page* hostname so the same embed HTML works in local
-  // testing and production without swapping script/iframe URLs.
+  // Follow the script URL, not the host page. The Daily Local demo does not
+  // load this file: sponster-prod.js hardcodes qadabra.app, and
+  // sponster-local.js hardcodes localhost:4001. The copy of this file
+  // deployed on qadabra.app still sends a localhost page to the local widget.
   var qlariusOrigin = (function () {
-    var host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
-      return "https://localhost:4001";
+    var src = document.currentScript && document.currentScript.src;
+    if (src) {
+      try {
+        return new URL(src).origin;
+      } catch (_e) {}
     }
     return "https://qadabra.app";
   })();
