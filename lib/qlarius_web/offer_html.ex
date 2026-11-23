@@ -23,6 +23,9 @@ defmodule QlariusWeb.OfferHTML do
     # Pass a map into ~p — a prebuilt query string gets URI-encoded
     # (`recipient_id=99` → `recipient_id%3D99`), so /jump/collect never
     # sees recipient_id and the Text/Jump phase skips recipient split.
+    # autosplit=0 marks a native tip-only visit. Collect drops the host
+    # when it sees that flag. A reader who chose 0% omits the flag, so
+    # the hosted recipient_id still receives the fixed credit.
     query =
       if Keyword.get(opts, :tip_only, false) do
         %{recipient_id: recipient.id, autosplit: 0}

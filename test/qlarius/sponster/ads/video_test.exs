@@ -102,6 +102,29 @@ defmodule Qlarius.Sponster.Ads.VideoTest do
       end
     end
 
+    test "a native tip-only video passes no host and credits nothing" do
+      ctx = build_video_context!(offer_amt: "0.20")
+
+      assert {:ok, ad_event} = Video.create_video_ad_event(ctx.offer, nil, 0, "127.0.0.1")
+      ad_event = Repo.reload!(ad_event)
+
+      assert is_nil(ad_event.recipient_id)
+      assert is_nil(ad_event.event_sponster_to_recipient_amt)
+      assert is_nil(ad_event.event_recipient_collect_amt)
+      assert Decimal.eq?(ad_event.event_me_file_collect_amt, Decimal.new("0.20"))
+      assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new("0.20"))
+      assert Decimal.eq?(ad_event.event_marketer_cost_amt, Decimal.new("0.40"))
+
+      reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
+      assert Decimal.eq?(reader_header.balance, Decimal.new("0.20"))
+
+      recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
+      assert Decimal.eq?(recipient_header.balance, Decimal.new("0.00"))
+
+      sponster_header = Repo.get!(LedgerHeader, Wallets.sponster_ledger_header_id())
+      assert Decimal.eq?(sponster_header.balance, Decimal.new("0.20"))
+    end
+
     test "does not credit a publisher when there is no recipient" do
       ctx = build_video_context!(offer_amt: "0.20", with_recipient: false)
 

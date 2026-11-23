@@ -3,7 +3,7 @@ defmodule QlariusWeb.AdJumpPageController do
 
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offers
-  alias Qlarius.Sponster.Ads.ThreeTap
+  alias Qlarius.Sponster.Ads.{PublisherCredit, ThreeTap}
   alias Qlarius.Sponster.Recipient
   alias QlariusWeb.Plugs.HostAwareSession
 
@@ -52,14 +52,20 @@ defmodule QlariusWeb.AdJumpPageController do
         |> json(%{error: "Offer not found"})
 
       offer ->
-        # Get recipient if provided
-        recipient =
-          if recipient_id && recipient_id != "", do: Repo.get(Recipient, recipient_id), else: nil
-
         offer = Repo.preload(offer, me_file: [])
 
+        # autosplit=0 is a native /tiqit visit: no host, so no fixed credit.
+        # A reader at 0% on a hosted page omits the flag and still sends
+        # recipient_id, so that publisher keeps the fixed credit.
+        native_visit? = params["autosplit"] == "0"
+
+        loaded_recipient =
+          if recipient_id && recipient_id != "", do: Repo.get(Recipient, recipient_id), else: nil
+
+        recipient = PublisherCredit.host_from_jump(loaded_recipient, params)
+
         split_amount =
-          if params["autosplit"] == "0" do
+          if native_visit? do
             0
           else
             (offer.me_file && offer.me_file.split_amount) || 0

@@ -55,27 +55,53 @@ defmodule Qlarius.Sponster.Ads.ThreeTapTest do
     assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new("0.01"))
   end
 
-  test "a jump with autosplit off still credits the publisher and keeps the reader's collect" do
-    ctx = build_three_tap_context!()
+  test "a jump at 0% or a missing split still credits the publisher and keeps the reader's collect" do
+    for split <- [0, nil] do
+      ctx = build_three_tap_context!()
 
-    assert {:ok, ad_event} =
-             ThreeTap.create_jump_ad_event(ctx.offer, ctx.recipient, 0, "127.0.0.1")
+      assert {:ok, ad_event} =
+               ThreeTap.create_jump_ad_event(ctx.offer, ctx.recipient, split, "127.0.0.1")
 
-    ad_event = Repo.reload!(ad_event)
+      ad_event = Repo.reload!(ad_event)
 
-    assert ad_event.recipient_id == ctx.recipient.id
-    assert is_nil(ad_event.event_recipient_collect_amt)
-    assert Decimal.eq?(ad_event.event_sponster_to_recipient_amt, Decimal.new("0.01"))
-    assert Decimal.eq?(ad_event.event_me_file_collect_amt, Decimal.new("0.15"))
-    assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new("0.08"))
-    assert Decimal.eq?(ad_event.event_marketer_cost_amt, Decimal.new("0.24"))
+      assert ad_event.recipient_id == ctx.recipient.id
+      assert is_nil(ad_event.event_recipient_collect_amt)
+      assert Decimal.eq?(ad_event.event_sponster_to_recipient_amt, Decimal.new("0.01"))
+      assert Decimal.eq?(ad_event.event_me_file_collect_amt, Decimal.new("0.15"))
+      assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new("0.08"))
+      assert Decimal.eq?(ad_event.event_marketer_cost_amt, Decimal.new("0.24"))
 
-    reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
-    assert Decimal.eq?(reader_header.balance, Decimal.new("0.15"))
+      reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
+      assert Decimal.eq?(reader_header.balance, Decimal.new("0.15"))
 
-    recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
-    assert Decimal.eq?(recipient_header.balance, Decimal.new("0.01"))
-    assert [%LedgerEntry{}] = recipient_entries(recipient_header, ad_event)
+      recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
+      assert Decimal.eq?(recipient_header.balance, Decimal.new("0.01"))
+      assert [%LedgerEntry{}] = recipient_entries(recipient_header, ad_event)
+    end
+  end
+
+  test "a native tip-only banner or jump passes no host and credits nothing" do
+    for {fun, reader_collect, sponster_collect} <- [
+          {&ThreeTap.create_banner_ad_event/4, "0.05", "0.01"},
+          {&ThreeTap.create_jump_ad_event/4, "0.15", "0.09"}
+        ] do
+      ctx = build_three_tap_context!()
+
+      assert {:ok, ad_event} = fun.(ctx.offer, nil, 0, "127.0.0.1")
+      ad_event = Repo.reload!(ad_event)
+
+      assert is_nil(ad_event.recipient_id)
+      assert is_nil(ad_event.event_sponster_to_recipient_amt)
+      assert is_nil(ad_event.event_recipient_collect_amt)
+      assert Decimal.eq?(ad_event.event_me_file_collect_amt, Decimal.new(reader_collect))
+      assert Decimal.eq?(ad_event.event_sponster_collect_amt, Decimal.new(sponster_collect))
+
+      reader_header = Repo.get_by!(LedgerHeader, me_file_id: ctx.reader_me_file.id)
+      assert Decimal.eq?(reader_header.balance, Decimal.new(reader_collect))
+
+      recipient_header = Repo.get_by!(LedgerHeader, recipient_id: ctx.recipient.id)
+      assert Decimal.eq?(recipient_header.balance, Decimal.new("0.00"))
+    end
   end
 
   test "a 50% split still moves the reader's share and pays the publisher credit on both phases" do

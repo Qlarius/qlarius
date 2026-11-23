@@ -3,6 +3,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   import Phoenix.LiveView, only: [put_flash: 3, push_event: 3]
 
   alias Qlarius.Accounts.Scope
+  alias Qlarius.Sponster.Ads.PublisherCredit
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Wallets
@@ -409,7 +410,9 @@ defmodule QlariusWeb.SponsterRecipientSurface do
         put_flash(socket, :error, "Offer not found")
 
       {offer, _rate} ->
-        recipient = socket.assigns.recipient
+        recipient =
+          PublisherCredit.host(socket.assigns.recipient, tip_only?: socket.assigns[:tip_only?])
+
         split_amount = ad_event_split_amount(socket)
         user_ip = socket.assigns[:user_ip] || "0.0.0.0"
 
