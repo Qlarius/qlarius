@@ -1,4 +1,8 @@
 defmodule QlariusWeb.Helpers.ImageHelpers do
+  import Ecto.Query
+
+  alias Qlarius.Creators.Creator
+  alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.Uploaders.RecipientBrandImage
@@ -109,17 +113,67 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
   @doc """
   Returns the brand image URL for a Sponster recipient.
 
-  A recipient with no brand image uses the tip jar default.
+  The recipient's own file wins. With none, the image of the creator this
+  recipient belongs to is used. A caller may pass that creator as
+  `creator:`; otherwise it is loaded from `creator_id` or from the creator
+  whose `recipient_id` is this recipient. Anything else uses the tip jar default.
   """
   def recipient_brand_image_url(recipient, opts \\ [])
 
   def recipient_brand_image_url(nil, _opts), do: placeholder_image_url()
 
-  def recipient_brand_image_url(%Recipient{graphic_url: nil} = recipient, _opts) do
-    RecipientBrandImage.url({nil, recipient})
+  def recipient_brand_image_url(%Recipient{} = recipient, opts) do
+    if brand_file?(recipient.graphic_url) do
+      RecipientBrandImage.url({recipient.graphic_url, recipient})
+    else
+      case creator_with_image(recipient, opts) do
+        nil -> RecipientBrandImage.url({nil, recipient})
+        creator -> CreatorImage.url({creator.image, creator}, :original)
+      end
+    end
   end
 
-  def recipient_brand_image_url(%Recipient{} = recipient, _opts) do
-    RecipientBrandImage.url({recipient.graphic_url, recipient})
+  defp brand_file?(%{file_name: name}), do: present?(name)
+  defp brand_file?(name), do: present?(name)
+
+  defp present?(value) when is_binary(value), do: String.trim(value) != ""
+  defp present?(_), do: false
+
+  defp creator_with_image(recipient, opts) do
+    passed = Keyword.get(opts, :creator)
+
+    creator =
+      cond do
+        passed_creator?(recipient, passed) ->
+          passed
+
+        creator = loaded_creator(recipient) ->
+          creator
+
+        is_integer(recipient.creator_id) ->
+          Repo.get(Creator, recipient.creator_id)
+
+        true ->
+          creator_pointing_at(recipient) || passed
+      end
+
+    if is_binary(creator && creator.image) and creator.image != "" and is_integer(creator.id) do
+      creator
+    end
   end
+
+  defp passed_creator?(%Recipient{creator_id: id}, %{id: id}) when is_integer(id), do: true
+  defp passed_creator?(_, _), do: false
+
+  defp loaded_creator(%Recipient{creator: %_{} = creator}) do
+    if Ecto.assoc_loaded?(creator), do: creator, else: nil
+  end
+
+  defp loaded_creator(_), do: nil
+
+  defp creator_pointing_at(%Recipient{id: id}) when is_integer(id) do
+    Repo.one(from c in Creator, where: c.recipient_id == ^id, order_by: [asc: c.id], limit: 1)
+  end
+
+  defp creator_pointing_at(_), do: nil
 end
