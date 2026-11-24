@@ -481,8 +481,10 @@ defmodule Qlarius.Sponster.Offers do
   defp current_throttled_counts(me_file_ids) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
+    # A few hundred ids, not a few thousand, so this count gives the connection
+    # back before the shared pool's queue interval.
     me_file_ids
-    |> Enum.chunk_every(2_000)
+    |> Enum.chunk_every(100)
     |> Enum.reduce(%{}, fn ids, acc ->
       counts =
         from(o in Offer,
@@ -506,7 +508,7 @@ defmodule Qlarius.Sponster.Offers do
 
   defp completed_throttled_counts(me_file_ids, since) do
     me_file_ids
-    |> Enum.chunk_every(2_000)
+    |> Enum.chunk_every(100)
     |> Enum.reduce(%{}, fn ids, acc ->
       counts =
         from(ae in AdEvent,

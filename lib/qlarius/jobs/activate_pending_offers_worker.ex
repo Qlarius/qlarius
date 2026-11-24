@@ -1,6 +1,13 @@
 defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   # One run at a time for as long as a job is queued or executing. A slow cycle
   # must not stack on the next cron tick and hold the database pool.
+  #
+  # Oban does not check out a connection for perform/1. Each Repo call checks
+  # one out and returns it when that query finishes. A single unbounded UPDATE
+  # or a lateral read across hundreds of MeFiles keeps that connection checked
+  # out the whole time, and the shared pool then drops web requests (CoDel,
+  # default queue interval 2s). Batches keep each checkout small. A run also
+  # stops after @run_budget_ms so the rest waits for the next */5 tick.
   use Oban.Worker,
     queue: :activations,
     max_attempts: 1,
@@ -16,24 +23,46 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   alias Qlarius.Sponster.Campaigns.CampaignFilters
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
 
+  # Small enough that one statement returns its connection before the pool's
+  # queue interval. The run budget leaves the rest of a backlog for the next tick.
+  @batch_size 25
+  @run_budget_ms 2_000
+  @query_timeout_ms 5_000
+
   @impl Oban.Worker
   def perform(%Oban.Job{}) do
     require Logger
     Logger.info("📊 ActivatePendingOffersWorker: Starting activation cycle")
 
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    started = System.monotonic_time(:millisecond)
 
     Logger.info("📊 Config: throttle limits are per MeFile")
 
-    unthrottled_activated = activate_unthrottled_offers(now)
+    # Alternate which backlog goes first so a large unthrottled set cannot
+    # spend the whole budget on every tick and leave throttled offers pending.
+    {unthrottled_activated, throttled_activated, throttled_blocked, me_files_processed, deferred} =
+      if rem(now.minute, 10) < 5 do
+        unthrottled = activate_unthrottled_offers(now, started)
+        {throttled, blocked, processed, deferred} = activate_throttled_offers(now, started)
+        {unthrottled, throttled, blocked, processed, deferred}
+      else
+        {throttled, blocked, processed, deferred} = activate_throttled_offers(now, started)
+        unthrottled = activate_unthrottled_offers(now, started)
+        {unthrottled, throttled, blocked, processed, deferred}
+      end
 
-    {throttled_activated, throttled_blocked, me_files_processed} =
-      activate_throttled_offers(now)
-
-    if unthrottled_activated == 0 and throttled_activated == 0 do
+    if unthrottled_activated == 0 and throttled_activated == 0 and deferred == 0 do
       Logger.info(
         "ActivatePendingOffersWorker: nothing to activate " <>
           "(#{me_files_processed} throttled MeFiles, #{throttled_blocked} already at cap)"
+      )
+    end
+
+    if deferred > 0 do
+      Logger.warning(
+        "ActivatePendingOffersWorker: deferred #{deferred} throttled MeFiles after #{@run_budget_ms}ms. " <>
+          "The next cron tick continues them."
       )
     end
 
@@ -48,52 +77,102 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     📊 ─────────────────────────────────────────────────────
     📊 MeFiles processed:            #{me_files_processed}
     📊 MeFiles blocked (throttled):  #{throttled_blocked}
+    📊 MeFiles deferred:             #{deferred}
     📊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     """)
 
     :ok
   end
 
-  defp activate_unthrottled_offers(now) do
+  defp activate_unthrottled_offers(now, started) do
     require Logger
 
-    {count, _} =
-      from(o in Offer,
-        join: c in assoc(o, :campaign),
-        as: :campaign,
-        where: o.is_current == false,
-        where: o.is_throttled == false,
-        where: o.pending_until <= ^now
-      )
-      |> CampaignFilters.live_now(now)
-      |> Repo.update_all(set: [is_current: true, updated_at: now])
+    total = activate_unthrottled_batch(now, started, 0)
 
-    Logger.info("ActivatePendingOffersWorker: Activated #{count} unthrottled offers")
+    Logger.info("ActivatePendingOffersWorker: Activated #{total} unthrottled offers")
 
-    if count > 0 do
+    if total > 0 do
       broadcast_activations()
     end
 
-    count
+    total
   end
 
-  defp activate_throttled_offers(now) do
+  defp activate_unthrottled_batch(now, started, total) do
+    if over_budget?(started) do
+      total
+    else
+      {count, _} =
+        from(o in Offer, where: o.id in subquery(due_unthrottled_ids(now)))
+        |> Repo.update_all([set: [is_current: true, updated_at: now]], timeout: @query_timeout_ms)
+
+      if count == 0 do
+        total
+      else
+        activate_unthrottled_batch(now, started, total + count)
+      end
+    end
+  end
+
+  defp due_unthrottled_ids(now) do
+    from(o in Offer,
+      join: c in assoc(o, :campaign),
+      as: :campaign,
+      where: o.is_current == false,
+      where: o.is_throttled == false,
+      where: o.pending_until <= ^now,
+      order_by: [asc: o.id],
+      limit: ^@batch_size,
+      select: o.id
+    )
+    |> CampaignFilters.live_now(now)
+  end
+
+  defp activate_throttled_offers(now, started) do
     require Logger
 
-    me_file_ids = pending_throttled_me_file_ids(now)
-    budgets = Offers.throttle_budgets(me_file_ids, now)
-    open = Enum.filter(me_file_ids, fn id -> budgets[id].remaining > 0 end)
+    me_file_ids = now |> pending_throttled_me_file_ids() |> rotate(now)
+
+    {activated, blocked, processed, deferred?} =
+      Enum.reduce_while(Enum.chunk_every(me_file_ids, @batch_size), {0, 0, 0, false}, fn ids,
+                                                                                         {activated,
+                                                                                          blocked,
+                                                                                          processed,
+                                                                                          _} ->
+        if over_budget?(started) and processed > 0 do
+          {:halt, {activated, blocked, processed, true}}
+        else
+          budgets = Offers.throttle_budgets(ids, now)
+          open = Enum.filter(ids, fn id -> budgets[id].remaining > 0 end)
+
+          {:cont,
+           {activated + activate_within_budget(open, budgets, now),
+            blocked + (length(ids) - length(open)), processed + length(ids), false}}
+        end
+      end)
+
+    deferred = if deferred?, do: length(me_file_ids) - processed, else: 0
 
     Logger.info(
-      "ActivatePendingOffersWorker: #{length(me_file_ids)} MeFiles with due throttled offers, #{length(open)} under their cap"
+      "ActivatePendingOffersWorker: #{length(me_file_ids)} MeFiles with due throttled offers, " <>
+        "#{length(me_file_ids) - blocked - deferred} under their cap, #{deferred} deferred"
     )
 
-    activated =
-      open
-      |> Enum.chunk_every(500)
-      |> Enum.reduce(0, fn ids, acc -> acc + activate_within_budget(ids, budgets, now) end)
+    {activated, blocked, processed, deferred}
+  end
 
-    {activated, length(me_file_ids) - length(open), length(me_file_ids)}
+  defp over_budget?(started) do
+    System.monotonic_time(:millisecond) - started >= @run_budget_ms
+  end
+
+  # Spread a backlog across ticks. Capped MeFiles stay pending, so always
+  # starting at the lowest id would rescan them and never reach the rest.
+  defp rotate([], _now), do: []
+
+  defp rotate(ids, now) do
+    offset = rem(now.minute * 60 + now.second, length(ids))
+    {head, tail} = Enum.split(ids, offset)
+    tail ++ head
   end
 
   defp pending_throttled_me_file_ids(now) do
@@ -104,15 +183,17 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       where: o.is_throttled == true,
       where: o.pending_until <= ^now,
       distinct: true,
+      order_by: [asc: o.me_file_id],
       select: o.me_file_id
     )
     |> CampaignFilters.live_now(now)
     |> Repo.all()
   end
 
-  # One update for the chunk. The lateral query already limited each MeFile
-  # to its remaining slots, so splitting the write by MeFile only added a commit
-  # per person.
+  # One short read and one short update for this batch. The connection is
+  # checked back in after each, before the next MeFile batch.
+  defp activate_within_budget([], _budgets, _now), do: 0
+
   defp activate_within_budget(me_file_ids, budgets, now) do
     limits = Enum.map(me_file_ids, fn id -> {id, budgets[id].remaining} end)
     offers = due_offers_within_budget(limits, now)
@@ -123,7 +204,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     else
       {activated, _} =
         from(o in Offer, where: o.id in ^ids and o.is_current == false)
-        |> Repo.update_all(set: [is_current: true, updated_at: now])
+        |> Repo.update_all([set: [is_current: true, updated_at: now]], timeout: @query_timeout_ms)
 
       if activated > 0 do
         offers
@@ -162,7 +243,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     ) AS picked ON TRUE
     """
 
-    %{rows: rows} = Repo.query!(sql, [ids, remainings, now])
+    %{rows: rows} = Repo.query!(sql, [ids, remainings, now], timeout: @query_timeout_ms)
 
     Enum.map(rows, fn [id, me_file_id, campaign_id] ->
       %{id: id, me_file_id: me_file_id, campaign_id: campaign_id}

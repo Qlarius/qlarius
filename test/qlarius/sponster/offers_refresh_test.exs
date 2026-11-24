@@ -280,6 +280,23 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       assert budgets[recent.me_file.id].remaining == 0
     end
 
+    test "the activation job turns due unthrottled offers current in batches" do
+      ctx = build_three_tap_context!([])
+
+      offers =
+        Enum.map(1..3, fn _ ->
+          insert_offer!(%{ctx | media_run: insert_media_run!(ctx)}, %{
+            is_current: false,
+            is_throttled: false,
+            pending_until: hours_ago(1)
+          })
+        end)
+
+      assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
+
+      assert Enum.all?(reload!(offers), & &1.is_current)
+    end
+
     test "the activation job applies each me file's own cap" do
       small = build_three_tap_context!([])
       large = build_three_tap_context!([])
