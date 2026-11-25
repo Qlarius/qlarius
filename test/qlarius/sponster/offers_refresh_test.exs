@@ -283,8 +283,9 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     test "the activation job turns due unthrottled offers current in batches" do
       ctx = build_three_tap_context!([])
 
+      # More than one batch of 25, so the run has to come back for the rest.
       offers =
-        Enum.map(1..3, fn _ ->
+        Enum.map(1..27, fn _ ->
           insert_offer!(%{ctx | media_run: insert_media_run!(ctx)}, %{
             is_current: false,
             is_throttled: false,

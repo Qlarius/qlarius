@@ -8,6 +8,11 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   # out the whole time, and the shared pool then drops web requests (CoDel,
   # default queue interval 2s). Batches keep each checkout small. A run also
   # stops after @run_budget_ms so the rest waits for the next */5 tick.
+  #
+  # A batch is only small if its lookup is. Each one reads a partial index of
+  # pending offers (offers_pending_unthrottled_index and
+  # offers_pending_throttled_index) in that index's own order. Ordering a batch
+  # by offer id instead walks the whole primary key to find 25 rows.
   use Oban.Worker,
     queue: :activations,
     max_attempts: 1,
@@ -27,6 +32,12 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   # queue interval. The run budget leaves the rest of a backlog for the next tick.
   @batch_size 25
   @run_budget_ms 2_000
+
+  # Postgres cancels a statement at @statement_timeout_ms and the connection
+  # goes back to the pool. The pool timeout sits above it as a backstop. When
+  # that one fires the connection is dropped and Postgres keeps running the
+  # statement with nobody waiting for the result.
+  @statement_timeout_ms 4_000
   @query_timeout_ms 5_000
 
   @impl Oban.Worker
@@ -103,17 +114,22 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       total
     else
       {count, _} =
-        from(o in Offer, where: o.id in subquery(due_unthrottled_ids(now)))
-        |> Repo.update_all([set: [is_current: true, updated_at: now]], timeout: @query_timeout_ms)
+        bounded("unthrottled batch update", fn ->
+          from(o in Offer, where: o.id in subquery(due_unthrottled_ids(now)))
+          |> Repo.update_all(set: [is_current: true, updated_at: now])
+        end)
 
-      if count == 0 do
-        total
+      # A short batch is the last one, so no extra lookup just to find nothing.
+      if count < @batch_size do
+        total + count
       else
         activate_unthrottled_batch(now, started, total + count)
       end
     end
   end
 
+  # The order matches offers_pending_unthrottled_index, so the lookup stops
+  # after one batch of index entries and returns at once when nothing is due.
   defp due_unthrottled_ids(now) do
     from(o in Offer,
       join: c in assoc(o, :campaign),
@@ -121,7 +137,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       where: o.is_current == false,
       where: o.is_throttled == false,
       where: o.pending_until <= ^now,
-      order_by: [asc: o.id],
+      order_by: [asc: o.pending_until, asc: o.id],
       limit: ^@batch_size,
       select: o.id
     )
@@ -203,8 +219,10 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       0
     else
       {activated, _} =
-        from(o in Offer, where: o.id in ^ids and o.is_current == false)
-        |> Repo.update_all([set: [is_current: true, updated_at: now]], timeout: @query_timeout_ms)
+        bounded("throttled batch update", fn ->
+          from(o in Offer, where: o.id in ^ids and o.is_current == false)
+          |> Repo.update_all(set: [is_current: true, updated_at: now])
+        end)
 
       if activated > 0 do
         offers
@@ -243,11 +261,41 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     ) AS picked ON TRUE
     """
 
-    %{rows: rows} = Repo.query!(sql, [ids, remainings, now], timeout: @query_timeout_ms)
+    %{rows: rows} =
+      bounded("throttled offer lookup", fn -> Repo.query!(sql, [ids, remainings, now]) end)
 
     Enum.map(rows, fn [id, me_file_id, campaign_id] ->
       %{id: id, me_file_id: me_file_id, campaign_id: campaign_id}
     end)
+  end
+
+  # One statement on one checkout, with Postgres holding the time limit. A
+  # cancelled statement fails this run and names the step. Batches already
+  # written stay written and the next cron tick picks up the rest.
+  defp bounded(step, fun) do
+    {:ok, result} =
+      Repo.transaction(
+        fn ->
+          Repo.query!("SET LOCAL statement_timeout = #{@statement_timeout_ms}")
+          fun.()
+        end,
+        timeout: @query_timeout_ms
+      )
+
+    result
+  rescue
+    error in Postgrex.Error ->
+      require Logger
+
+      if match?(%{postgres: %{code: :query_canceled}}, error) do
+        Logger.error(
+          "ActivatePendingOffersWorker: #{step} was cancelled by Postgres after " <>
+            "#{@statement_timeout_ms}ms. The connection went back to the pool and the " <>
+            "next cron tick retries."
+        )
+      end
+
+      reraise error, __STACKTRACE__
   end
 
   defp broadcast_activations do
