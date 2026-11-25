@@ -4483,9 +4483,9 @@
   }
 
   /*
-   * Dynamic Island status bar is 59pt. Installed apps on iOS 27 still report
-   * safe-area-inset-top as 0 while the blur covers the page, so the floor
-   * has to clear that band on its own. The spacer is transparent.
+   * On a letterboxed Home Screen icon the status bar already sits above
+   * the page and safe-area-inset-top is 0. The blur only fades a short way
+   * into the page, so the clearance is that fade, not another status bar.
    */
   .pwa-top-inset {
     height: max(12px, env(safe-area-inset-top, 0px));
@@ -4493,13 +4493,13 @@
   }
 
   html.ios-pwa .pwa-top-inset {
-    height: max(env(safe-area-inset-top, 0px), 5.5rem);
+    height: max(env(safe-area-inset-top, 0px), 1.5rem);
   }
 
   /* The inline script marks ios-pwa before the server knows, so the
      clearance lives on the scroller and does not depend on the spacer. */
   html.ios-pwa .mobile-shell .panel-scroll {
-    padding-top: max(env(safe-area-inset-top, 0px), 5.5rem);
+    padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
   }
 
   html.ios-pwa .mobile-shell .panel-scroll > .pwa-top-inset {
@@ -6998,12 +6998,12 @@ html.ios-pwa-letterbox .mobile-shell {
 
 html.ios-pwa-letterbox .pwa-top-inset {
   display: block;
-  height: max(env(safe-area-inset-top, 0px), 5.5rem);
+  height: max(env(safe-area-inset-top, 0px), 1.5rem);
   background: transparent;
 }
 
 html.ios-pwa-letterbox .mobile-layout-content {
-  padding-top: 0.75rem;
+  padding-top: 0;
 }
 
 html.ios-pwa-letterbox #hi-page,
