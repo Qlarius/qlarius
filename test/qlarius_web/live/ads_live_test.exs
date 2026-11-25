@@ -88,37 +88,7 @@ defmodule QlariusWeb.AdsLiveTest do
       media_run: %{media_piece: %{duration: 30, ad_category: %{ad_label: "Food/Restaurant"}}}
     }
 
-    test "app_row lays the row out for /ads with the same click target" do
-      html =
-        render_component(&AdsComponents.video_offer_list_item/1,
-          offer: @offer,
-          rate: Decimal.new("0.01"),
-          completed: false,
-          app_row: true
-        )
-
-      assert html =~ "video-app-row"
-      assert html =~ ~s(phx-click="open_video_ad")
-      assert html =~ ~s(phx-value-offer_id="7")
-      assert html =~ "Food/Restaurant"
-      assert html =~ "$0.30"
-    end
-
-    test "a finished app row matches the 3-tap finished phase" do
-      html =
-        render_component(&AdsComponents.video_offer_list_item/1,
-          offer: @offer,
-          rate: Decimal.new("0.01"),
-          completed: true,
-          app_row: true
-        )
-
-      assert html =~ "Attention Paid™"
-      assert html =~ "video-app-row__check"
-      refute html =~ ~s(phx-click="open_video_ad")
-    end
-
-    test "widgets keep the original row" do
+    test "the row puts the film icon with the rate and opens the video" do
       html =
         render_component(&AdsComponents.video_offer_list_item/1,
           offer: @offer,
@@ -126,9 +96,30 @@ defmodule QlariusWeb.AdsLiveTest do
           completed: false
         )
 
-      refute html =~ "video-app-row"
-      assert html =~ "h-[120px]"
+      assert html =~ "hero-film"
       assert html =~ ~s(phx-click="open_video_ad")
+      assert html =~ ~s(phx-value-offer_id="7")
+      assert html =~ "Food/Restaurant"
+      assert html =~ "$0.30"
+      assert html =~ "$0.010/sec"
+      {film_at, _} = :binary.match(html, "hero-film")
+      {rate_at, _} = :binary.match(html, "$0.010/sec")
+      assert film_at < rate_at
+      assert html =~ "font-normal text-sponster-600"
+      assert html =~ "text-base font-bold"
+    end
+
+    test "a finished row shows the paid cue and does not open again" do
+      html =
+        render_component(&AdsComponents.video_offer_list_item/1,
+          offer: @offer,
+          rate: Decimal.new("0.01"),
+          completed: true
+        )
+
+      assert html =~ "Attention Paid™"
+      assert html =~ "hero-check"
+      refute html =~ ~s(phx-click="open_video_ad")
     end
   end
 end

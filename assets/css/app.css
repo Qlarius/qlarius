@@ -2298,45 +2298,10 @@
     margin-bottom: 0;
   }
 
+  /* Same width as a 3-tap card (offer_html inline 347px) so the tab switch
+     does not resize the board. The side-by-side layout removes this cap. */
   .ads-video-list {
-    @apply mx-auto w-full max-w-[470px];
-  }
-
-  /* /ads video row. Top inset matches the 3-tap card's p-5. */
-  .video-app-row {
-    @apply flex min-h-[120px] w-full min-w-0 items-center gap-4 px-5 transition-colors;
-    border-radius: 0 !important;
-  }
-
-  .video-app-row__icon {
-    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sponster-700 dark:text-sponster-300;
-    background-color: color-mix(in oklab, var(--color-sponster-500) 16%, var(--color-base-100));
-  }
-
-  .video-app-row__icon.is-done {
-    @apply bg-base-200 text-base-content/40;
-  }
-
-  .video-app-row__main {
-    @apply flex min-w-0 flex-1 flex-col;
-  }
-
-  .video-app-row__main.is-open {
-    @apply w-full justify-start py-5;
-  }
-
-  /* Same gaps as the 3-tap card: 8px under the amount, 16px under the
-     category. The indicator strip keeps the card's line height. */
-  .video-app-row__amt {
-    @apply text-2xl leading-none font-bold text-base-content tabular-amount;
-  }
-
-  .video-app-row__label {
-    @apply mb-4 truncate text-base text-base-content/50;
-  }
-
-  .video-app-row__meta {
-    @apply flex min-w-0 items-center justify-between gap-2;
+    @apply mx-auto w-full max-w-[347px];
   }
 
   /* Light cards: white letter on a quiet gray disc. Dark cards: the letter
@@ -2393,27 +2358,6 @@
 
   html[data-theme="dark"] [data-theme="light"] .offer-indicator-directory__mark {
     color: #fff;
-  }
-
-  .video-app-row__rate {
-    @apply shrink-0 text-sm font-medium text-base-content/65 tabular-amount;
-  }
-
-  /* Finished: same as the 3-tap "Attention Paid" phase */
-  .video-app-row__done {
-    @apply text-sm font-semibold text-gray-400;
-  }
-
-  .video-app-row__collected {
-    @apply text-sm text-gray-400;
-  }
-
-  .video-app-row__check {
-    @apply shrink-0 text-green-500;
-  }
-
-  .video-app-row__go {
-    @apply shrink-0 text-green-600;
   }
 
   .ads-empty {

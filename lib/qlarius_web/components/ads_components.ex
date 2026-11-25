@@ -788,10 +788,6 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :empty_message, :string, default: "No video ads available"
   attr :class, :string, default: "max-w-[470px] mx-auto w-full"
 
-  attr :app_row, :boolean,
-    default: false,
-    doc: "First-party /ads row (icon left, ledger-style). Widgets keep the default row."
-
   def video_offer_list(assigns) do
     ~H"""
     <%= if !@loading && Enum.empty?(@video_offers) do %>
@@ -812,7 +808,6 @@ defmodule QlariusWeb.Components.AdsComponents do
             tip_only={@tip_only}
             force_light={@force_light}
             surface_panel_row?={true}
-            app_row={@app_row}
           />
         </ul>
       </.surface_panel>
@@ -914,77 +909,10 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :force_light, :boolean, default: false
   attr :surface_panel_row?, :boolean, default: false
   attr :tip_only, :boolean, default: false
-  attr :app_row, :boolean, default: false
 
-  # /ads only: the same 120px row, laid out like a ledger row (icon chip left,
-  # amount, category, length and rate, chevrons right). Same click target.
-  # Type matches the 3-tap card's first phase (amount, category, chevron).
-  def video_offer_list_item(%{app_row: true} = assigns) do
-    ~H"""
-    <li
-      class={[
-        "video-app-row",
-        surface_panel_row_classes(@completed, @surface_panel_row?, @force_light)
-      ]}
-      phx-click={if !@completed, do: "open_video_ad"}
-      phx-value-offer_id={@offer.id}
-    >
-      <%= if @completed do %>
-        <% {me_file_collect_total, _recipient_collect_total} =
-          if @me_file_id do
-            Qlarius.Sponster.Ads.Video.calculate_offer_totals(@offer.id, @me_file_id, @recipient)
-          else
-            {Decimal.new("0"), nil}
-          end %>
-        <%!-- Same finished cue as the 3-tap card: grey text, large green check right --%>
-        <span class="video-app-row__icon is-done">
-          <.icon name="hero-film" class="h-5 w-5" />
-        </span>
-        <div class="video-app-row__main">
-          <p class="video-app-row__done">Attention Paid™</p>
-          <p class="video-app-row__collected">
-            Collected:
-            <span class="text-[15px] font-semibold tabular-amount">
-              {format_usd(me_file_collect_total)}
-            </span>
-          </p>
-        </div>
-        <.icon name="hero-check" class="video-app-row__check h-8 w-8" />
-      <% else %>
-        <span class="video-app-row__icon">
-          <.icon name="hero-film" class="h-5 w-5" />
-        </span>
-        <div class="video-app-row__main is-open">
-          <div class="mb-2 flex items-baseline justify-between gap-3">
-            <p class="video-app-row__amt">
-              ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
-            </p>
-            <span class="video-app-row__rate">${Decimal.round(@rate, 3)}/sec</span>
-          </div>
-          <div
-            class="video-app-row__label"
-            title={@offer.media_run.media_piece.ad_category.ad_label}
-          >
-            {@offer.media_run.media_piece.ad_category.ad_label}
-          </div>
-          <div class="video-app-row__meta">
-            <.offer_indicators
-              offer={@offer}
-              ad_category={@offer.media_run.media_piece.ad_category}
-              size={:md}
-              force_light={@force_light}
-            />
-            <span class="ml-auto flex shrink-0 items-center gap-2 text-sm leading-none text-green-600">
-              <span>{format_duration(@offer.media_run.media_piece.duration || 0)}</span>
-              <.icon name="hero-chevron-double-right" class="video-app-row__go h-6 w-6" />
-            </span>
-          </div>
-        </div>
-      <% end %>
-    </li>
-    """
-  end
-
+  # One row for /ads and the Sponster drawer: amount left, film icon then the
+  # rate at the top right, category under the amount, length and chevrons at
+  # the bottom right.
   def video_offer_list_item(assigns) do
     ~H"""
     <li
@@ -1036,14 +964,14 @@ defmodule QlariusWeb.Components.AdsComponents do
               ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
             </div>
             <div class="flex shrink-0 items-center gap-3">
-              <span class="text-sm font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
-                ${Decimal.round(@rate, 3)}/sec
-              </span>
               <span class={[
                 "inline-flex h-8 w-8 items-center justify-center rounded-full !bg-sponster-200",
                 if(!@force_light, do: "dark:!bg-sponster-800")
               ]}>
                 <.icon name="hero-film" class="h-5 w-5 text-base-content" />
+              </span>
+              <span class="text-sm font-normal text-sponster-600 dark:text-sponster-400 tabular-amount">
+                ${Decimal.round(@rate, 3)}/sec
               </span>
             </div>
           </div>
@@ -1060,8 +988,8 @@ defmodule QlariusWeb.Components.AdsComponents do
               size={:md}
               force_light={@force_light}
             />
-            <span class="ml-auto flex shrink-0 items-center gap-2 text-sm leading-none text-green-600">
-              <span>{format_duration(@offer.media_run.media_piece.duration || 0)}</span>
+            <span class="ml-auto flex shrink-0 items-center gap-2 leading-none text-green-600">
+              <span class="text-base font-bold">{format_duration(@offer.media_run.media_piece.duration || 0)}</span>
               <.icon name="hero-chevron-double-right" class="h-6 w-6" />
             </span>
           </div>

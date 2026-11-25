@@ -394,7 +394,6 @@ defmodule QlariusWeb.AdsLive do
                   completed_video_offers={@completed_video_offers}
                   me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
                   loading={@loading}
-                  app_row={true}
                   class="ads-video-list"
                 />
               <% end %>
