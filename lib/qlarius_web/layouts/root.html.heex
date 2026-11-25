@@ -76,8 +76,9 @@
         if (isIOS && isPWA) {
           document.documentElement.classList.add("ios-pwa");
           // Letterbox: top inset is 0 and the screen is taller than the layout
-          // viewport. iOS 27 still paints its blur over that page, so the
-          // clearance stays. An icon that reports a real top inset skips this.
+          // viewport. The status bar already sits above the page, so the
+          // page adds no extra top gap. An icon that reports a real top
+          // inset skips this.
           const syncIosPwaLetterbox = () => {
             const probe = document.createElement("div");
             probe.style.cssText = "position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)";

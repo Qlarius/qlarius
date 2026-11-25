@@ -4483,9 +4483,9 @@
   }
 
   /*
-   * On a letterboxed Home Screen icon the status bar already sits above
-   * the page and safe-area-inset-top is 0. The blur only fades a short way
-   * into the page, so the clearance is that fade, not another status bar.
+   * Only the inset iOS actually reports. A letterboxed Home Screen icon
+   * reports 0 because the status bar already sits above the page, and a
+   * floor here is a second empty band under the clock.
    */
   .pwa-top-inset {
     height: max(12px, env(safe-area-inset-top, 0px));
@@ -4493,13 +4493,13 @@
   }
 
   html.ios-pwa .pwa-top-inset {
-    height: max(env(safe-area-inset-top, 0px), 1.5rem);
+    height: env(safe-area-inset-top, 0px);
   }
 
-  /* The inline script marks ios-pwa before the server knows, so the
-     clearance lives on the scroller and does not depend on the spacer. */
+  /* The inline script marks ios-pwa before the server knows, so this
+     follows the reported inset even when the spacer div is not rendered. */
   html.ios-pwa .mobile-shell .panel-scroll {
-    padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   html.ios-pwa .mobile-shell .panel-scroll > .pwa-top-inset {
@@ -6998,7 +6998,7 @@ html.ios-pwa-letterbox .mobile-shell {
 
 html.ios-pwa-letterbox .pwa-top-inset {
   display: block;
-  height: max(env(safe-area-inset-top, 0px), 1.5rem);
+  height: env(safe-area-inset-top, 0px);
   background: transparent;
 }
 

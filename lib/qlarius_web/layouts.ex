@@ -550,8 +550,8 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%!-- Top clearance for the iOS standalone status-bar blur. Height is
-                   in CSS so a 0px safe-area inset still clears the blur. --%>
+              <%!-- Height is the reported safe-area inset. A letterboxed iOS icon
+                   reports 0, and the status bar is already above the page. --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div class="pwa-top-inset flex-shrink-0"></div>
               <% end %>
