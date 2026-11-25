@@ -4447,13 +4447,14 @@
   }
 
   /*
-   * Edge-to-edge Home Screen icons draw under the status bar. iOS samples a
-   * fixed element at the top edge (about 4px in) and extends that colour into
-   * the status-bar fade. This strip is that sample. It lives outside
-   * `.mobile-shell`, so it must not use `.page-canvas`: the document dark
-   * canvas is #1c1c1e, while the shell page is #000. A taller strip would
-   * cover the header. iOS 27 extends a blur over the top of the page unless
-   * it can sample a solid bar here, so letterboxed icons keep the strip.
+   * iOS 27 Home Screen apps paint a scroll-edge blur over the top of the
+   * page. WebKit samples one fixed element about 4px in from the top centre.
+   * A candidate at least 11px tall and nearly full width, with a declared
+   * background colour, makes that band flat so the header is not frosted.
+   * background-clip: text on an empty box keeps the colour in the style
+   * (so it can be sampled) without painting a bar, so the page stays clear.
+   * Once the page scrolls, the strip leaves the layout and the system blur
+   * shows the content passing underneath.
    */
   .ios-pwa-status-strip {
     display: none;
@@ -4469,10 +4470,41 @@
     z-index: 70;
     pointer-events: none;
     background-color: var(--color-base-200);
+    -webkit-background-clip: text;
+    background-clip: text;
   }
 
   html[data-theme="dark"].ios-pwa .ios-pwa-status-strip {
     background-color: #000000;
+  }
+
+  html.ios-pwa.ios-pwa-scrolled .ios-pwa-status-strip {
+    display: none;
+  }
+
+  /*
+   * Dynamic Island status bar is 59pt. Installed apps on iOS 27 still report
+   * safe-area-inset-top as 0 while the blur covers the page, so the floor
+   * has to clear that band on its own. The spacer is transparent.
+   */
+  .pwa-top-inset {
+    height: max(12px, env(safe-area-inset-top, 0px));
+    background: transparent;
+  }
+
+  html.ios-pwa .pwa-top-inset {
+    height: max(env(safe-area-inset-top, 0px), 5.5rem);
+  }
+
+  /* The inline script marks ios-pwa before the server knows, so the
+     clearance lives on the scroller and does not depend on the spacer. */
+  html.ios-pwa .mobile-shell .panel-scroll {
+    padding-top: max(env(safe-area-inset-top, 0px), 5.5rem);
+  }
+
+  html.ios-pwa .mobile-shell .panel-scroll > .pwa-top-inset {
+    display: none;
+    height: 0;
   }
 
   html.ios-pwa .mobile-bottom-nav-area {
@@ -6965,11 +6997,13 @@ html.ios-pwa-letterbox .mobile-shell {
 }
 
 html.ios-pwa-letterbox .pwa-top-inset {
-  display: none;
+  display: block;
+  height: max(env(safe-area-inset-top, 0px), 5.5rem);
+  background: transparent;
 }
 
 html.ios-pwa-letterbox .mobile-layout-content {
-  padding-top: 0;
+  padding-top: 0.75rem;
 }
 
 html.ios-pwa-letterbox #hi-page,

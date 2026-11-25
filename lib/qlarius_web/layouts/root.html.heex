@@ -75,9 +75,9 @@
           window.navigator.standalone === true;
         if (isIOS && isPWA) {
           document.documentElement.classList.add("ios-pwa");
-          // Letterbox: status bar is outside the page (top inset 0, and the
-          // screen is taller than the layout viewport). An icon saved with
-          // black-translucent still has a top inset, so it stays on the old spacing.
+          // Letterbox: top inset is 0 and the screen is taller than the layout
+          // viewport. iOS 27 still paints its blur over that page, so the
+          // clearance stays. An icon that reports a real top inset skips this.
           const syncIosPwaLetterbox = () => {
             const probe = document.createElement("div");
             probe.style.cssText = "position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)";
@@ -90,6 +90,14 @@
           syncIosPwaLetterbox();
           window.addEventListener("DOMContentLoaded", syncIosPwaLetterbox);
           window.addEventListener("orientationchange", () => requestAnimationFrame(syncIosPwaLetterbox));
+          // At rest the unpainted status strip keeps the blur off the header.
+          // Once the page moves, drop the strip so content shows through the
+          // system blur.
+          document.addEventListener("scroll", (event) => {
+            const scroller = event.target;
+            if (!scroller || !scroller.classList || !scroller.classList.contains("panel-scroll")) return;
+            document.documentElement.classList.toggle("ios-pwa-scrolled", scroller.scrollTop > 12);
+          }, true);
         }
 
         // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS).

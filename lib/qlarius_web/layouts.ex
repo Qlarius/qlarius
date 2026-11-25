@@ -550,13 +550,10 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%!-- Safe area top spacer for PWA notch --%>
+              <%!-- Top clearance for the iOS standalone status-bar blur. Height is
+                   in CSS so a 0px safe-area inset still clears the blur. --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div
-                  class="page-canvas pwa-top-inset flex-shrink-0"
-                  style="height: max(12px, env(safe-area-inset-top));"
-                >
-                </div>
+                <div class="pwa-top-inset flex-shrink-0"></div>
               <% end %>
               <QlariusWeb.Components.PWAInstallPrompt.install_banner
                 :if={assigns[:soft_install?]}
@@ -620,13 +617,8 @@ defmodule QlariusWeb.Layouts do
           <%!-- Slide-over screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div
-                  class="page-canvas pwa-top-inset flex-shrink-0"
-                  style="height: max(12px, env(safe-area-inset-top));"
-                >
-                </div>
+                <div class="pwa-top-inset flex-shrink-0"></div>
               <% end %>
               <div class="page-canvas flex flex-col min-h-full">
                 <div class="shell-narrow w-full max-w-4xl mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content">
