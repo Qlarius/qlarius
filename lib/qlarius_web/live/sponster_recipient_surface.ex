@@ -496,6 +496,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           socket
           |> assign(:current_scope, current_scope)
           |> assign(:current_balance, new_balance)
+          |> assign(:daily_gift_available?, false)
           |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
 
         {:error, :cooldown} ->
@@ -504,6 +505,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
             :error,
             "You already claimed your daily gift. Try again 24 hours after your last claim."
           )
+          |> assign(:daily_gift_available?, false)
 
         {:error, _} ->
           put_flash(

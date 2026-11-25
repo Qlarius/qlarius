@@ -441,10 +441,14 @@ defmodule QlariusWeb.WalletBalanceSync do
     end
   end
 
+  # The gift is claimed on the acting wallet (`scope.user`). A balance refresh
+  # must ask that same wallet. `true_user` is the signed-in account, and while
+  # proxying that is a different MeFile, so checking it turns the row back on
+  # after a successful claim.
   defp maybe_assign_daily_gift_available(socket) do
     if Map.has_key?(socket.assigns, :daily_gift_available?) do
-      case scope_user(socket) do
-        %User{} = user ->
+      case socket.assigns[:current_scope] do
+        %{user: %User{} = user} ->
           assign(socket, :daily_gift_available?, Wallets.daily_gift_available?(user))
 
         _ ->
