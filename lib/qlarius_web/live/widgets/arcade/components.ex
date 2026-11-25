@@ -547,14 +547,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 disabled={not @sponster_ads_available?}
                 title={if not @sponster_ads_available?, do: "No ads available right now"}
               >
+                <span class="topup-row__icon">
+                  <.icon name="hero-eye" class="size-6" />
+                </span>
                 <span class="topup-row__body">
-                  <%!-- `Sponster_logo_white_horiz.svg` is not shipped; color horiz is in priv/static/images. --%>
-                  <img
-                    src="/images/Sponster_logo_color_horiz.svg"
-                    alt="Sponster"
-                    class="h-5 w-auto max-w-[7rem] object-contain object-left"
-                    decoding="async"
-                  />
+                  <span class="topup-row__label">Sponster</span>
                   <span class="topup-row__hint">
                     {if @sponster_ads_available?,
                       do: "#{@ads_count} #{if @ads_count == 1, do: "ad", else: "ads"} ready",

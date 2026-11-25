@@ -69,6 +69,8 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
       assert html =~ "Top up wallet"
       assert html =~ "topup-row"
       assert html =~ ~s(id="strip-sponster-open")
+      assert html =~ "hero-eye"
+      assert html =~ "Sponster"
       assert html =~ "9 ads ready"
       assert html =~ "$1.14"
       assert html =~ "Daily gift"
