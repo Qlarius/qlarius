@@ -76,6 +76,8 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> assign(:active_offers, [])
     |> assign(:video_offers, [])
     |> assign(:loading_offers, false)
+    |> assign(:offers_loaded?, false)
+    |> assign(:offers_load_ref, nil)
     |> assign(:offers_refresh_gen, 0)
     |> assign(:show_video_player, false)
     |> assign(:current_video_offer, nil)
@@ -250,6 +252,27 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     {:handled, socket}
   end
 
+  # The widget starts this fetch on connect. A click that arrives first opens
+  # the drawer immediately; this message fills the list when the query returns.
+  def handle_info({:drawer_offers_loaded, token, result}, socket) do
+    if socket.assigns[:offers_load_ref] == token do
+      socket =
+        case result do
+          {:ok, payload} ->
+            apply_offer_payload(socket, payload, [])
+
+          _ ->
+            socket
+            |> assign(:offers_load_ref, nil)
+            |> assign(:loading_offers, false)
+        end
+
+      {:handled, socket}
+    else
+      :unhandled
+    end
+  end
+
   def handle_info(_msg, _socket), do: :unhandled
 
   defp do_handle_event("toggle_sponster_drawer", _params, socket) do
@@ -283,15 +306,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> assign(:show_split_reminder, false)
     |> then(fn s ->
       if will_open && !s.assigns.show_sponster_drawer do
-        s =
-          if Enum.empty?(s.assigns.video_offers) && Enum.empty?(s.assigns.active_offers) &&
-               s.assigns.current_scope do
-            s
-            |> assign(:loading_offers, true)
-            |> load_offers()
-          else
-            s
-          end
+        s = ensure_offers_loading(s)
 
         s
         |> assign(:show_sponster_drawer, true)
@@ -635,21 +650,23 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     socket
   end
 
+  @doc """
+  Starts the offer query without opening the drawer.
+
+  The embed widget calls this once its socket connects, so the first open is
+  a class change instead of a database round trip.
+  """
+  def preload_drawer_offers(socket) do
+    maybe_start_offers_load(socket)
+  end
+
   defp ensure_sponster_drawer_open(socket) do
     me_file =
       socket.assigns.current_scope && socket.assigns.current_scope.user &&
         socket.assigns.current_scope.user.me_file
 
     socket
-    |> then(fn s ->
-      if Enum.empty?(s.assigns.video_offers) && s.assigns.current_scope do
-        s
-        |> assign(:loading_offers, true)
-        |> load_offers()
-      else
-        s
-      end
-    end)
+    |> ensure_offers_loading()
     |> assign(:show_sponster_drawer, true)
     |> assign(:show_split_reminder, false)
     |> then(fn s ->
@@ -696,50 +713,127 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     end
   end
 
-  defp load_offers(socket, opts \\ []) do
-    case socket.assigns[:current_scope] do
-      nil ->
-        assign(socket, :loading_offers, false)
-
-      scope ->
-        me_file_id = scope.user.me_file.id
-
-        active_offers = Offers.list_current_three_tap_offers(me_file_id)
-        video_offers = Offers.list_current_video_offers(me_file_id)
-
-        video_offers_with_rate =
-          Enum.map(video_offers, fn offer ->
-            duration = offer.media_run.media_piece.duration || 1
-            rate = Decimal.div(offer.offer_amt || Decimal.new("0"), Decimal.new(duration))
-            {offer, rate}
-          end)
-          |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
-
-        {show_tabs, default_selected_ad_type} =
-          QlariusWeb.Components.AdsComponents.determine_ad_type_display(
-            length(active_offers),
-            length(video_offers_with_rate)
-          )
-
-        selected_ad_type =
-          if Keyword.get(opts, :preserve_selected_ad_type, false) do
-            preserve_selected_ad_type(
-              socket.assigns[:selected_ad_type],
-              length(active_offers),
-              length(video_offers_with_rate),
-              default_selected_ad_type
-            )
-          else
-            default_selected_ad_type
-          end
-
-        socket
-        |> assign(:active_offers, active_offers)
-        |> assign(:video_offers, video_offers_with_rate)
-        |> assign(:show_ad_type_tabs, show_tabs)
-        |> assign(:selected_ad_type, selected_ad_type)
-        |> assign(:loading_offers, false)
+  # Open the drawer without waiting on the query. A fetch already in flight
+  # keeps the spinner up; a finished fetch just reveals the list.
+  defp ensure_offers_loading(socket) do
+    cond do
+      socket.assigns[:offers_loaded?] -> assign(socket, :loading_offers, false)
+      is_nil(drawer_me_file_id(socket)) -> assign(socket, :loading_offers, false)
+      true -> maybe_start_offers_load(socket)
     end
+  end
+
+  defp maybe_start_offers_load(socket) do
+    cond do
+      socket.assigns[:offers_loaded?] ->
+        socket
+
+      socket.assigns[:offers_load_ref] ->
+        assign(socket, :loading_offers, true)
+
+      true ->
+        case drawer_me_file_id(socket) do
+          nil ->
+            assign(socket, :loading_offers, false)
+
+          me_file_id ->
+            token = System.unique_integer([:positive])
+            parent = self()
+
+            spawn(fn ->
+              allow_repo_sandbox(parent)
+
+              result =
+                try do
+                  {:ok, build_offer_payload(me_file_id)}
+                rescue
+                  exception -> {:error, Exception.message(exception)}
+                end
+
+              send(parent, {:drawer_offers_loaded, token, result})
+            end)
+
+            socket
+            |> assign(:offers_load_ref, token)
+            |> assign(:loading_offers, true)
+        end
+    end
+  end
+
+  defp allow_repo_sandbox(parent) do
+    repo = Qlarius.Repo
+
+    if repo.config()[:pool] == Ecto.Adapters.SQL.Sandbox do
+      Ecto.Adapters.SQL.Sandbox.allow(repo, parent, self())
+    end
+  end
+
+  defp drawer_me_file_id(socket) do
+    case socket.assigns[:current_scope] do
+      %{user: %{me_file: %{id: id}}} when is_integer(id) -> id
+      _ -> nil
+    end
+  end
+
+  defp load_offers(socket, opts) do
+    case drawer_me_file_id(socket) do
+      nil ->
+        socket
+        |> assign(:loading_offers, false)
+        |> assign(:offers_loaded?, true)
+
+      me_file_id ->
+        apply_offer_payload(socket, build_offer_payload(me_file_id), opts)
+    end
+  end
+
+  defp build_offer_payload(me_file_id) do
+    active_offers = Offers.list_current_three_tap_offers(me_file_id)
+    video_offers = Offers.list_current_video_offers(me_file_id)
+
+    video_offers_with_rate =
+      Enum.map(video_offers, fn offer ->
+        duration = offer.media_run.media_piece.duration || 1
+        rate = Decimal.div(offer.offer_amt || Decimal.new("0"), Decimal.new(duration))
+        {offer, rate}
+      end)
+      |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
+
+    {show_tabs, default_selected_ad_type} =
+      QlariusWeb.Components.AdsComponents.determine_ad_type_display(
+        length(active_offers),
+        length(video_offers_with_rate)
+      )
+
+    %{
+      active_offers: active_offers,
+      video_offers: video_offers_with_rate,
+      show_tabs: show_tabs,
+      default_selected: default_selected_ad_type
+    }
+  end
+
+  defp apply_offer_payload(socket, payload, opts) do
+    selected_ad_type =
+      if Keyword.get(opts, :preserve_selected_ad_type, false) do
+        preserve_selected_ad_type(
+          socket.assigns[:selected_ad_type],
+          length(payload.active_offers),
+          length(payload.video_offers),
+          payload.default_selected
+        )
+      else
+        payload.default_selected
+      end
+
+    socket
+    |> assign(:active_offers, payload.active_offers)
+    |> assign(:video_offers, payload.video_offers)
+    |> assign(:show_ad_type_tabs, payload.show_tabs)
+    |> assign(:selected_ad_type, selected_ad_type)
+    |> assign(:loading_offers, false)
+    |> assign(:offers_loaded?, true)
+    |> assign(:offers_load_ref, nil)
   end
 
   defp preserve_selected_ad_type("three_tap", three_tap_count, _video_count, _default)

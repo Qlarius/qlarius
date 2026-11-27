@@ -68,7 +68,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     socket =
       if connected?(socket) && socket.assigns.current_scope do
-        SponsterRecipientSurface.subscribe(socket)
+        socket
+        |> SponsterRecipientSurface.subscribe()
+        |> SponsterRecipientSurface.preload_drawer_offers()
       else
         socket
       end
