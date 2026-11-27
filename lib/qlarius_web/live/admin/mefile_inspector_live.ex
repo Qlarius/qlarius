@@ -89,30 +89,16 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     end
   end
 
+  # Tag totals and offer totals are separate statements. Joining the raw
+  # tables together multiplies every tag by every current offer before the
+  # GROUP BY, and that one statement held a pool checkout past 15 seconds.
   defp assign_mefiles(socket) do
     query = socket.assigns[:search_query] || ""
     page = socket.assigns[:page] || 1
     sort_by = socket.assigns[:sort_by] || :inserted_at
     sort_dir = socket.assigns[:sort_dir] || :desc
     per_page = 50
-
     offset = (page - 1) * per_page
-
-    base_query =
-      from(mf in MeFile,
-        join: u in User,
-        on: u.id == mf.user_id,
-        join: lh in LedgerHeader,
-        on: lh.me_file_id == mf.id,
-        left_join: o in Offer,
-        on: o.me_file_id == mf.id and o.is_current == true,
-        left_join: mft in MeFileTag,
-        on: mft.me_file_id == mf.id,
-        left_join: t in Trait,
-        on: t.id == mft.trait_id,
-        where: ilike(u.alias, ^"%#{query}%"),
-        group_by: [mf.id, u.alias, u.inserted_at, lh.balance]
-      )
 
     total_count =
       from(mf in MeFile,
@@ -123,65 +109,135 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
       )
       |> Repo.one()
 
-    base_query =
-      case {sort_by, sort_dir} do
-        {:alias, :asc} ->
-          from [mf, u] in base_query, order_by: [asc: u.alias]
-
-        {:alias, :desc} ->
-          from [mf, u] in base_query, order_by: [desc: u.alias]
-
-        {:wallet_balance, :asc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: lh.balance]
-
-        {:wallet_balance, :desc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: lh.balance]
-
-        {:tag_count, :asc} ->
-          from [mf, u, lh, o, mft, t] in base_query,
-            order_by: [asc: trait_count_fragment(t)]
-
-        {:tag_count, :desc} ->
-          from [mf, u, lh, o, mft, t] in base_query,
-            order_by: [desc: trait_count_fragment(t)]
-
-        {:offer_count, :asc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: count(o.id, :distinct)]
-
-        {:offer_count, :desc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: count(o.id, :distinct)]
-
-        {:inserted_at, :asc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: u.inserted_at]
-
-        {:inserted_at, :desc} ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: u.inserted_at]
-
-        _ ->
-          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: u.inserted_at]
-      end
-
-    mefiles =
-      from([mf, u, lh, o, mft, t] in base_query,
-        select: %{
-          me_file_id: mf.id,
-          alias: u.alias,
-          wallet_balance: lh.balance,
-          inserted_at: u.inserted_at,
-          tag_count: trait_count_fragment(t),
-          offer_count: count(o.id, :distinct)
-        },
-        offset: ^offset,
-        limit: ^per_page
-      )
+    rows =
+      page_query(query, sort_by, sort_dir, offset, per_page)
       |> Repo.all()
 
-    total_pages = ceil(total_count / per_page)
+    ids = rows |> Enum.map(& &1.me_file_id) |> Enum.uniq()
+    tag_counts = tag_counts_for(ids)
+    offer_counts = offer_counts_for(ids)
+
+    mefiles =
+      Enum.map(rows, fn row ->
+        row
+        |> Map.put(:tag_count, Map.get(tag_counts, row.me_file_id, 0))
+        |> Map.put(:offer_count, Map.get(offer_counts, row.me_file_id, 0))
+      end)
 
     socket
     |> assign(:mefiles, mefiles)
     |> assign(:total_count, total_count)
-    |> assign(:total_pages, total_pages)
+    |> assign(:total_pages, ceil(total_count / per_page))
+  end
+
+  defp page_query(search, sort_by, sort_dir, offset, per_page) do
+    base =
+      from(mf in MeFile,
+        join: u in User,
+        on: u.id == mf.user_id,
+        join: lh in LedgerHeader,
+        on: lh.me_file_id == mf.id,
+        where: ilike(u.alias, ^"%#{search}%"),
+        offset: ^offset,
+        limit: ^per_page,
+        select: %{
+          me_file_id: mf.id,
+          alias: u.alias,
+          wallet_balance: lh.balance,
+          inserted_at: u.inserted_at
+        }
+      )
+
+    case {sort_by, sort_dir} do
+      {:alias, :asc} ->
+        from([_mf, u, _lh] in base, order_by: [asc: u.alias])
+
+      {:alias, :desc} ->
+        from([_mf, u, _lh] in base, order_by: [desc: u.alias])
+
+      {:wallet_balance, :asc} ->
+        from([_mf, _u, lh] in base, order_by: [asc: lh.balance])
+
+      {:wallet_balance, :desc} ->
+        from([_mf, _u, lh] in base, order_by: [desc: lh.balance])
+
+      {:inserted_at, :asc} ->
+        from([_mf, u, _lh] in base, order_by: [asc: u.inserted_at])
+
+      {:tag_count, :asc} ->
+        from([mf, _u, _lh] in base,
+          left_join: tc in subquery(tag_count_query()),
+          on: tc.me_file_id == mf.id,
+          order_by: [asc: coalesce(tc.tag_count, 0)]
+        )
+
+      {:tag_count, :desc} ->
+        from([mf, _u, _lh] in base,
+          left_join: tc in subquery(tag_count_query()),
+          on: tc.me_file_id == mf.id,
+          order_by: [desc: coalesce(tc.tag_count, 0)]
+        )
+
+      {:offer_count, :asc} ->
+        from([mf, _u, _lh] in base,
+          left_join: oc in subquery(offer_count_query()),
+          on: oc.me_file_id == mf.id,
+          order_by: [asc: coalesce(oc.offer_count, 0)]
+        )
+
+      {:offer_count, :desc} ->
+        from([mf, _u, _lh] in base,
+          left_join: oc in subquery(offer_count_query()),
+          on: oc.me_file_id == mf.id,
+          order_by: [desc: coalesce(oc.offer_count, 0)]
+        )
+
+      _ ->
+        from([_mf, u, _lh] in base, order_by: [desc: u.inserted_at])
+    end
+  end
+
+  defp tag_count_query do
+    from(mft in MeFileTag,
+      join: t in Trait,
+      on: t.id == mft.trait_id,
+      group_by: mft.me_file_id,
+      select: %{me_file_id: mft.me_file_id, tag_count: trait_count_fragment(t)}
+    )
+  end
+
+  defp offer_count_query do
+    from(o in Offer,
+      where: o.is_current == true,
+      group_by: o.me_file_id,
+      select: %{me_file_id: o.me_file_id, offer_count: count(o.id)}
+    )
+  end
+
+  defp tag_counts_for([]), do: %{}
+
+  defp tag_counts_for(me_file_ids) do
+    from(mft in MeFileTag,
+      join: t in Trait,
+      on: t.id == mft.trait_id,
+      where: mft.me_file_id in ^me_file_ids,
+      group_by: mft.me_file_id,
+      select: {mft.me_file_id, trait_count_fragment(t)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  defp offer_counts_for([]), do: %{}
+
+  defp offer_counts_for(me_file_ids) do
+    from(o in Offer,
+      where: o.me_file_id in ^me_file_ids and o.is_current == true,
+      group_by: o.me_file_id,
+      select: {o.me_file_id, count(o.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   defp assign_metrics(socket) do
@@ -189,38 +245,23 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
       from(u in User, where: u.role == "user", select: count(u.id))
       |> Repo.one()
 
-    users_with_rich_mefiles =
-      from(mf in MeFile,
-        join: mft in MeFileTag,
-        on: mft.me_file_id == mf.id,
-        join: t in Trait,
-        on: t.id == mft.trait_id,
-        group_by: mf.id,
-        having: trait_count_fragment(t) > 4,
-        select: mf.id
+    # The rich count and the average come back as one row. Loading every
+    # MeFile's tag count into the app kept the checkout open for the transfer.
+    %{rich: users_with_rich_mefiles, avg: avg_tags} =
+      from(s in subquery(tag_count_query()),
+        select: %{
+          rich: filter(count(s.me_file_id), s.tag_count > 4),
+          avg: avg(s.tag_count)
+        }
       )
-      |> Repo.all()
-      |> length()
+      |> Repo.one()
 
     avg_tags_per_user =
-      from(mf in MeFile,
-        join: mft in MeFileTag,
-        on: mft.me_file_id == mf.id,
-        join: t in Trait,
-        on: t.id == mft.trait_id,
-        group_by: mf.id,
-        select: trait_count_fragment(t)
-      )
-      |> Repo.all()
-      |> case do
-        [] ->
-          0.0
-
-        counts ->
-          counts
-          |> Enum.sum()
-          |> Kernel./(length(counts))
-          |> Float.round(1)
+      case avg_tags do
+        nil -> 0.0
+        %Decimal{} = value -> value |> Decimal.to_float() |> Float.round(1)
+        value when is_float(value) -> Float.round(value, 1)
+        value when is_integer(value) -> value / 1
       end
 
     users_with_active_offers =
